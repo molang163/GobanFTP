@@ -1,0 +1,7 @@
+game=g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
+point=dd
+x=3
+y=3
+row=6
+column=d
+stone=black

@@ -1,0 +1,2 @@
+game=g1.id-ftp-race-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
+captures=0

@@ -1,0 +1,18 @@
+# Local build products and generated distribution metadata. These are not
+# display entry points unless regenerated for the current release.
+^\.git/
+^_Inline/
+^blib/
+^Makefile$
+^Makefile\.old$
+^META\.(?:json|yml)$
+^MYMETA\.(?:json|yml)$
+^pm_to_blib$
+^GobanFTP-[0-9][^/]*\.tar\.gz$
+^GobanFTP-[0-9][^/]*/
+
+# Temporary publish/build scratch files.
+(?:^|/)[^/]+\.part$
+(?:^|/)[^/]+\.tmp$
+(?:^|/)[^/]+\.bak$
+(?:^|/)\.gobanftp-tmp-[^/]+$

@@ -1,0 +1,30 @@
+Revision history for GobanFTP
+
+0.001  2026-05-17
+  - Treat this distribution as the v0.1 hardening/showcase release: the Perl
+    package version is `0.001`, while the project milestone name is `v0.1`.
+  - Built the initial GOFTP/1 runtime prototype: descriptor and event filename
+    parsing, event id calculation, DAG replay, rules validation, SGF output,
+    rebuildable projections, local CLI play/publish/watch commands, local
+    storage, and a mock-tested FTP store backend.
+  - Kept core replay listing-first: descriptor and events/ basenames remain
+    authoritative, while file bytes, FTP metadata, sidecars, projections, and
+    temporary entries stay outside consensus input.
+  - Added ack-assisted fork recovery commands while preserving conservative
+    fork diagnostics by default.
+  - Added release hygiene rules for Inline::C caches, blib, MYMETA,
+    pm_to_blib, generated distributions, and temporary publish/build scratch
+    files.
+  - Added a minimal replayable example fixture with rebuildable projections.
+  - Removed unused JSON::MaybeXS and Path::Tiny runtime dependency
+    declarations and synchronized the dependency documentation.
+  - Documented make disttest and the requirement to run live FTP tests against
+    an isolated, disposable FTP root.
+  - Added an opt-in `script/live-ftp-smoke` helper that runs the live FTP tests
+    against a temporary localhost pyftpdlib server without making pyftpdlib a
+    default test dependency.
+  - Documented the v0.1 hardening/showcase boundary: `GOFTP/1` consensus stays
+    frozen for the release, and the listing transcript is a replay-derived
+    projection rather than a consensus input.
+  - Added a browsable `ftp-race-shrine` example fixture that shows a conservative
+    fork after an FTP-style race while keeping ack-assisted recovery explicit.

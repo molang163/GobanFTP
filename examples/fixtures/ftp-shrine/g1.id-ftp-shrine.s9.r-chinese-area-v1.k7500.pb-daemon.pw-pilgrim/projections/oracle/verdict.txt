@@ -1,0 +1,9 @@
+game=g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
+status=ok
+canonical_moves=6
+legal_moves=6
+diagnostics=0
+canonical_ids=0agr68rv1sp5qi21,k1kalhibnvic4mno,p3ige9epnj7c6om0,tndasisr9c6ihr0j,eqc92l6ocvbm6mgd,2m3u03ptk0oqdc91
+legal_ids=0agr68rv1sp5qi21,k1kalhibnvic4mno,p3ige9epnj7c6om0,tndasisr9c6ihr0j,eqc92l6ocvbm6mgd,2m3u03ptk0oqdc91
+next_color=b
+terminal=0

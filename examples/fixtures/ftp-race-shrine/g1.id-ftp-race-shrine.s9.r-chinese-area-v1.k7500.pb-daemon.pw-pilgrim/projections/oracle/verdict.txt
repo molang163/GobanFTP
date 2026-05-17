@@ -1,0 +1,14 @@
+game=g1.id-ftp-race-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
+status=fork
+canonical_moves=1
+legal_moves=3
+diagnostics=1
+canonical_ids=hihat4p8r6gaeuts
+legal_ids=hihat4p8r6gaeuts,o00qmn6v8j683ds6,ps9v3kftvp5v1gl5
+next_color=w
+terminal=0
+fork.parent_id=hihat4p8r6gaeuts
+fork.child_ids=o00qmn6v8j683ds6,ps9v3kftvp5v1gl5
+diagnostic.1.child_ids=o00qmn6v8j683ds6,ps9v3kftvp5v1gl5
+diagnostic.1.code=fork
+diagnostic.1.parent_id=hihat4p8r6gaeuts

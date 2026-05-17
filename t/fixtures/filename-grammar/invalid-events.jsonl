@@ -1,0 +1,16 @@
+{"id":"uppercase_color","name":"m1.p000001.B.play-dd.pa-genesis.by-alice.n-k31v.h-f98qai37nace5spg","error":"move.color"}
+{"id":"uppercase_player","name":"m1.p000001.b.play-dd.pa-genesis.by-Alice.n-k31v.h-f98qai37nace5spg","error":"filename.charset"}
+{"id":"bad_ply_width","name":"m1.p1.b.play-dd.pa-genesis.by-alice.n-k31v.h-f98qai37nace5spg","error":"move.ply_width"}
+{"id":"bad_color","name":"m1.p000001.x.play-dd.pa-genesis.by-alice.n-k31v.h-f98qai37nace5spg","error":"move.color"}
+{"id":"bad_action","name":"m1.p000001.b.place-dd.pa-genesis.by-alice.n-k31v.h-f98qai37nace5spg","error":"move.action"}
+{"id":"point_outside_9x9","name":"m1.p000001.b.play-zz.pa-genesis.by-alice.n-k31v.h-f98qai37nace5spg","error":"move.point_bounds"}
+{"id":"missing_event_id","name":"m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v","error":"event_id.missing"}
+{"id":"bad_event_id_length","name":"m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v.h-f98","error":"event_id.length"}
+{"id":"bad_event_id_alphabet","name":"m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v.h-zzzzzzzzzzzzzzzz","error":"event_id.alphabet"}
+{"id":"event_id_mismatch","name":"m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v.h-0000000000000000","error":"event_id.mismatch"}
+{"id":"bad_parent_length","name":"m1.p000002.w.play-ee.pa-f98.by-bob.n-q9az.h-5ivvsvtid3j6u1pg","error":"move.parent"}
+{"id":"bad_ack_target_length","name":"a1.t-f98.by-bob.n-s7p2.h-tim1sb5lpmd0d4q5","error":"ack.target"}
+{"id":"empty_nonce","name":"m1.p000001.b.play-dd.pa-genesis.by-alice.n-.h-f98qai37nace5spg","error":"event.nonce"}
+{"id":"extra_field","name":"m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v.extra.h-f98qai37nace5spg","error":"event.field_count"}
+{"id":"illegal_slash","name":"m1.p000001.b.play-dd.pa-genesis.by-alice/n-k31v.h-f98qai37nace5spg","error":"filename.charset"}
+{"id":"non_ascii","name":"m1.p000001.b.play-dd.pa-genesis.by-alice.n-棋.h-f98qai37nace5spg","error":"filename.charset"}

@@ -1,0 +1,25 @@
+{
+  "size": 4,
+  "rows": [
+    "0210",
+    "2021",
+    "0210",
+    "0000"
+  ],
+  "first_move": {
+    "color": "b",
+    "action": "play-bb",
+    "captures": ["cb"],
+    "expected_rows": [
+      "0210",
+      "2101",
+      "0210",
+      "0000"
+    ]
+  },
+  "recapture": {
+    "color": "w",
+    "action": "play-cb",
+    "reason": "superko"
+  }
+}

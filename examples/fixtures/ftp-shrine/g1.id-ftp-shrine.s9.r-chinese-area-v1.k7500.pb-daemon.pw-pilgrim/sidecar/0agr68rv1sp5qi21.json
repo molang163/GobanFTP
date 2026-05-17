@@ -1,0 +1,9 @@
+{
+  "gobanftp_sidecar": 1,
+  "event_id": "0agr68rv1sp5qi21",
+  "kind": "comment",
+  "consensus_input": false,
+  "event_name_hint": "m1.p000001.b.play-dd.pa-genesis.by-daemon.n-altar1.h-0agr68rv1sp5qi21",
+  "caption": "The daemon places the altar stone at dd.",
+  "replay_note": "This JSON is marginalia. The event basename is the packet."
+}

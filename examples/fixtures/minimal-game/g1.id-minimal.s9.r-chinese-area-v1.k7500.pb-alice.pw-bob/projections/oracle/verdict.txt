@@ -1,0 +1,9 @@
+game=g1.id-minimal.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob
+status=ok
+canonical_moves=2
+legal_moves=2
+diagnostics=0
+canonical_ids=f98qai37nace5spg,5ivvsvtid3j6u1pg
+legal_ids=f98qai37nace5spg,5ivvsvtid3j6u1pg
+next_color=b
+terminal=0

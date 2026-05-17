@@ -1,0 +1,4 @@
+{"id":"capture_two_stone_group","size":3,"rows":["212","212","000"],"next_color":"w","move":{"color":"w","action":"play-bc"},"ok":true,"captures":["ba","bb"],"expected_rows":["202","202","020"]}
+{"id":"suicide_center","size":3,"rows":["020","202","020"],"next_color":"b","move":{"color":"b","action":"play-bb"},"ok":false,"reason":"suicide","expected_rows":["020","202","020"]}
+{"id":"capture_four_singletons","size":3,"rows":["121","202","121"],"next_color":"b","move":{"color":"b","action":"play-bb"},"ok":true,"captures":["ba","ab","cb","bc"],"expected_rows":["101","010","101"]}
+{"id":"corner_capture","size":3,"rows":["201","110","000"],"next_color":"b","move":{"color":"b","action":"play-ba"},"ok":true,"captures":["aa"],"expected_rows":["011","110","000"]}

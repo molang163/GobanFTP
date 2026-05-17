@@ -1,0 +1,12 @@
+{
+  "gobanftp_sidecar": 1,
+  "event_id": "2m3u03ptk0oqdc91",
+  "kind": "stale-comment",
+  "consensus_input": false,
+  "event_name_hint": "m1.p000006.w.play-fe.pa-eqc92l6ocvbm6mgd.by-pilgrim.n-veil1.h-2m3u03ptk0oqdc91",
+  "caption": "The pilgrim closes the white cluster at fe.",
+  "misleading_demo": {
+    "claimed_action": "play-aa",
+    "why_safe": "This deliberately stale field is ignored; the filename still says play-fe."
+  }
+}

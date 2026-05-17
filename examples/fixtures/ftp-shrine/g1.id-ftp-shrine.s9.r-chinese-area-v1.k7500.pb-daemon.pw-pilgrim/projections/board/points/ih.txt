@@ -1,0 +1,7 @@
+game=g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
+point=ih
+x=8
+y=7
+row=2
+column=i
+stone=empty

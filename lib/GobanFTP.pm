@@ -1,0 +1,16 @@
+package GobanFTP;
+
+use strict;
+use warnings;
+
+our $VERSION = '0.001';
+
+1;
+
+__END__
+
+=head1 NAME
+
+GobanFTP - listing-first Go over FTP
+
+=cut

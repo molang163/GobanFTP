@@ -1,0 +1,41 @@
+GOFTP/1 FTP LISTING TRANSCRIPT
+
+This file is a projection for readers. It is not a consensus input.
+Core replay reads the game descriptor basename and the direct event basenames
+returned by NLST events/. It does not read event file bytes.
+
+Game descriptor basename:
+g1.id-minimal.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob
+
+Transcript:
+
+220 GobanFTP fixture service ready.
+USER anonymous
+331 Anonymous login accepted for fixture access.
+PASS anonymous@
+230 Login successful.
+TYPE I
+200 Type set to I.
+CWD /goftp/g1.id-minimal.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob
+250 Directory changed.
+NLST events/
+150 Opening data connection for events/.
+a1.t-f98qai37nace5spg.by-bob.n-s7p2.h-tim1sb5lpmd0d4q5
+m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v.h-f98qai37nace5spg
+m1.p000002.w.play-ee.pa-f98qai37nace5spg.by-bob.n-q9az.h-5ivvsvtid3j6u1pg
+226 NLST complete.
+QUIT
+221 Goodbye.
+
+Commands not sent by GOFTP/1 replay:
+
+SIZE events/<event-basename>
+MDTM events/<event-basename>
+RETR events/<event-basename>
+
+Replay note:
+
+The three names printed by NLST events/ are the current event basenames.
+GOFTP/1 replay uses those basenames and the game descriptor basename.
+RETR, SIZE, MDTM, entry type, file size, file bytes, FTP mtime, and server
+listing order do not participate in replay.

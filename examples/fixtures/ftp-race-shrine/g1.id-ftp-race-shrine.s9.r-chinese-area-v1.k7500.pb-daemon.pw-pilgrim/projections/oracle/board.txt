@@ -1,0 +1,14 @@
+game=g1.id-ftp-race-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
+size=9
+next_color=w
+terminal=0
+  a b c d e f g h i
+9 . . . . . . . . .
+8 . . . . . . . . .
+7 . . . . . . . . .
+6 . . . B . . . . .
+5 . . . . . . . . .
+4 . . . . . . . . .
+3 . . . . . . . . .
+2 . . . . . . . . .
+1 . . . . . . . . .

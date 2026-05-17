@@ -1,0 +1,7 @@
+game=g1.id-minimal.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob
+point=ah
+x=0
+y=7
+row=2
+column=a
+stone=empty

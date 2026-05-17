@@ -1,0 +1,14 @@
+game=g1.id-minimal.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob
+size=9
+next_color=b
+terminal=0
+  a b c d e f g h i
+9 . . . . . . . . .
+8 . . . . . . . . .
+7 . . . . . . . . .
+6 . . . B . . . . .
+5 . . . . W . . . .
+4 . . . . . . . . .
+3 . . . . . . . . .
+2 . . . . . . . . .
+1 . . . . . . . . .

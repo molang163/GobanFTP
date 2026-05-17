@@ -1,0 +1,17 @@
+name	reason
+m1.p000001.B.play-dd.pa-genesis.by-alice.n-k31v.h-f98qai37nace5spg	uppercase-color
+m1.p000001.b.play-dd.pa-genesis.by-Alice.n-k31v.h-f98qai37nace5spg	uppercase-player
+m1.p1.b.play-dd.pa-genesis.by-alice.n-k31v.h-f98qai37nace5spg	bad-ply-width
+m1.p000001.x.play-dd.pa-genesis.by-alice.n-k31v.h-f98qai37nace5spg	bad-color
+m1.p000001.b.place-dd.pa-genesis.by-alice.n-k31v.h-f98qai37nace5spg	bad-action
+m1.p000001.b.play-zz.pa-genesis.by-alice.n-k31v.h-f98qai37nace5spg	point-outside-board
+m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v	missing-event-id
+m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v.h-f98	bad-event-id-length
+m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v.h-zzzzzzzzzzzzzzzz	bad-event-id-alphabet
+m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v.h-0000000000000000	event-id-mismatch
+m1.p000002.w.play-ee.pa-f98.by-bob.n-q9az.h-5ivvsvtid3j6u1pg	bad-parent-length
+a1.t-f98.by-bob.n-s7p2.h-tim1sb5lpmd0d4q5	bad-target-length
+m1.p000001.b.play-dd.pa-genesis.by-alice.n-.h-f98qai37nace5spg	empty-nonce
+m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v.extra.h-f98qai37nace5spg	extra-field
+m1.p000001.b.play-dd.pa-genesis.by-alice/n-k31v.h-f98qai37nace5spg	illegal-slash
+m1.p000001.b.play-dd.pa-genesis.by-alice.n-棋.h-f98qai37nace5spg	non-ascii

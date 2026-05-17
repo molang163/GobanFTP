@@ -1,0 +1,417 @@
+#!/usr/bin/env perl
+use v5.34;
+use strict;
+use warnings;
+
+use Digest::SHA qw(sha256_hex);
+use File::Path qw(make_path);
+use File::Spec;
+use File::Temp qw(tempdir);
+use FindBin;
+use IO::Select;
+use IPC::Open3;
+use POSIX qw(WNOHANG);
+use Symbol qw(gensym);
+use Time::HiRes qw(sleep time);
+
+use lib "$FindBin::Bin/../lib";
+use GobanFTP::Redact qw(redact_text);
+
+my %opts = (
+    python        => $ENV{GOBANFTP_PYTHON} // $ENV{PYTHON} // 'python3',
+    prove         => $ENV{GOBANFTP_PROVE}  // 'prove',
+    ready_timeout => 10,
+    ftp_timeout   => 10,
+);
+
+while (@ARGV) {
+    my $arg = shift @ARGV;
+    if ($arg eq '--python') {
+        $opts{python} = _need_value($arg);
+    }
+    elsif ($arg eq '--prove') {
+        $opts{prove} = _need_value($arg);
+    }
+    elsif ($arg eq '--ready-timeout') {
+        $opts{ready_timeout} = _positive_number($arg, _need_value($arg));
+    }
+    elsif ($arg eq '--ftp-timeout') {
+        $opts{ftp_timeout} = _positive_number($arg, _need_value($arg));
+    }
+    elsif ($arg eq '--help') {
+        print <<'USAGE';
+usage: live-ftp-smoke [--python python3] [--prove prove]
+
+Start a disposable localhost pyftpdlib FTP server and run:
+  prove -l t/store-ftp.t t/ftp-live-flow.t
+
+pyftpdlib is optional and is not a default Perl test dependency.
+Install it for this opt-in smoke helper with:
+  python3 -m pip install pyftpdlib
+USAGE
+        exit 0;
+    }
+    else {
+        die "unknown option: $arg\n";
+    }
+}
+
+_require_pyftpdlib(\%opts);
+
+my @secrets = _secret_env_values();
+my $tmp = tempdir('gobanftp-live-ftp-smoke-XXXXXX', TMPDIR => 1, CLEANUP => 1);
+my $home = File::Spec->catdir($tmp, 'ftp-home');
+make_path($home);
+
+my $token = _token(8);
+my $remote_root = "goftp-smoke-$token";
+my $physical_root = File::Spec->catdir($home, $remote_root);
+make_path($physical_root);
+
+my $user = "smoke-$token";
+my $password = _token(32);
+push @secrets, $password;
+
+my $ready_file = File::Spec->catfile($tmp, 'server.ready');
+my $server_log = File::Spec->catfile($tmp, 'server.log');
+
+my $server_pid;
+my $interrupted;
+local $SIG{INT} = sub {
+    $interrupted = 'INT';
+    _stop_server($server_pid);
+    die "interrupted\n";
+};
+local $SIG{TERM} = sub {
+    $interrupted = 'TERM';
+    _stop_server($server_pid);
+    die "terminated\n";
+};
+
+my $exit = eval {
+    $server_pid = _start_server(
+        opts       => \%opts,
+        home       => $home,
+        user       => $user,
+        password   => $password,
+        ready_file => $ready_file,
+        log_file   => $server_log,
+    );
+
+    my $port = _wait_for_ready(
+        pid         => $server_pid,
+        ready_file  => $ready_file,
+        log_file    => $server_log,
+        timeout     => $opts{ready_timeout},
+        redact_with => \@secrets,
+    );
+
+    print STDERR "live FTP smoke: localhost port $port, disposable root $remote_root\n";
+
+    my %test_env = %ENV;
+    delete @test_env{ grep { /\AGOBANFTP_FTP_/ } keys %test_env };
+    @test_env{qw(
+        GOBANFTP_STORE
+        GOBANFTP_FTP_TEST
+        GOBANFTP_FTP_HOST
+        GOBANFTP_FTP_PORT
+        GOBANFTP_FTP_USER
+        GOBANFTP_FTP_PASSWORD
+        GOBANFTP_FTP_ROOT
+        GOBANFTP_FTP_PASSIVE
+        GOBANFTP_FTP_TIMEOUT
+    )} = (
+        'ftp',
+        '1',
+        '127.0.0.1',
+        $port,
+        $user,
+        $password,
+        $remote_root,
+        '1',
+        $opts{ftp_timeout},
+    );
+
+    local %ENV = %test_env;
+    my $result = _run_command(
+        [$opts{prove}, '-l', 't/store-ftp.t', 't/ftp-live-flow.t'],
+        redact_with => \@secrets,
+    );
+
+    print STDOUT $result->{stdout};
+    print STDERR $result->{stderr};
+
+    if ($result->{exit} != 0) {
+        my $log = _read_file($server_log);
+        if ($log ne '') {
+            print STDERR "\npyftpdlib server log:\n", _redact($log, \@secrets);
+        }
+    }
+
+    $result->{exit};
+};
+my $error = $@;
+
+_stop_server($server_pid);
+
+if ($error) {
+    die $error if $interrupted;
+    die _redact($error, \@secrets);
+}
+
+exit $exit;
+
+sub _need_value {
+    my ($arg) = @_;
+    die "$arg requires a value\n" if !@ARGV;
+    return shift @ARGV;
+}
+
+sub _positive_number {
+    my ($arg, $value) = @_;
+    die "$arg must be a positive number\n"
+        if !defined($value) || $value !~ /\A(?:[1-9][0-9]*|0?\.[0-9]*[1-9][0-9]*)\z/;
+    return 0 + $value;
+}
+
+sub _require_pyftpdlib {
+    my ($opts) = @_;
+
+    my $result = eval {
+        _run_command([$opts->{python}, '-c', 'import pyftpdlib'], redact_with => []);
+    };
+    if (!$result) {
+        my $error = $@ || 'unknown error';
+        chomp $error;
+        $error =~ s/ at \Q$0\E line \d+\.?\z//;
+        print STDERR "could not run Python interpreter '$opts->{python}': $error\n";
+        print STDERR "set GOBANFTP_PYTHON or pass --python with a Python that can import pyftpdlib\n";
+        exit 2;
+    }
+
+    return 1 if $result->{exit} == 0;
+
+    print STDERR "pyftpdlib is required for script/live-ftp-smoke.\n";
+    print STDERR "Install it outside the default Perl test dependencies, for example:\n";
+    print STDERR "  $opts->{python} -m pip install pyftpdlib\n";
+    exit 2;
+}
+
+sub _start_server {
+    my (%args) = @_;
+
+    my $opts = $args{opts};
+    my %server_env = %ENV;
+    delete @server_env{ grep { /\AGOBANFTP_FTP_/ } keys %server_env };
+    @server_env{qw(
+        GOBANFTP_LIVE_SMOKE_HOME
+        GOBANFTP_LIVE_SMOKE_USER
+        GOBANFTP_LIVE_SMOKE_PASSWORD
+        GOBANFTP_LIVE_SMOKE_READY
+    )} = @args{qw(home user password ready_file)};
+
+    my $pid = fork;
+    die "fork pyftpdlib server: $!\n" if !defined $pid;
+
+    if ($pid == 0) {
+        open STDIN, '<', File::Spec->devnull
+            or die "open devnull: $!\n";
+        open STDOUT, '>>', $args{log_file}
+            or die "open $args{log_file}: $!\n";
+        open STDERR, '>&', \*STDOUT
+            or die "dup server stderr: $!\n";
+
+        local %ENV = %server_env;
+        exec $opts->{python}, '-u', '-c', _python_server_code()
+            or do {
+                print STDERR "exec $opts->{python}: $!\n";
+                POSIX::_exit(127);
+            };
+    }
+
+    return $pid;
+}
+
+sub _wait_for_ready {
+    my (%args) = @_;
+
+    my $deadline = time + $args{timeout};
+    while (time < $deadline) {
+        if (-e $args{ready_file}) {
+            open my $fh, '<:encoding(ASCII)', $args{ready_file}
+                or die "open $args{ready_file}: $!\n";
+            my $line = <$fh> // '';
+            close $fh or die "close $args{ready_file}: $!\n";
+            chomp $line;
+            die "pyftpdlib wrote invalid ready port: $line\n"
+                if $line !~ /\A[1-9][0-9]*\z/;
+            return 0 + $line;
+        }
+
+        my $waited = waitpid($args{pid}, WNOHANG);
+        if ($waited == $args{pid}) {
+            my $log = _redact(_read_file($args{log_file}), $args{redact_with});
+            die "pyftpdlib server exited before it was ready\n$log";
+        }
+
+        sleep 0.05;
+    }
+
+    my $log = _redact(_read_file($args{log_file}), $args{redact_with});
+    die "timed out waiting for pyftpdlib server to choose a localhost port\n$log";
+}
+
+sub _stop_server {
+    my ($pid) = @_;
+    return if !$pid;
+
+    kill 'TERM', $pid;
+    for (1 .. 40) {
+        my $waited = waitpid($pid, WNOHANG);
+        return if $waited == $pid || $waited == -1;
+        sleep 0.05;
+    }
+
+    kill 'KILL', $pid;
+    waitpid($pid, 0);
+    return;
+}
+
+sub _run_command {
+    my ($command, %args) = @_;
+
+    my ($stdout, $stderr) = ('', '');
+    my $err = gensym;
+
+    my $pid = open3(my $in, my $out, $err, @$command);
+    close $in or die 'close command stdin: ' . $! . "\n";
+
+    my $select = IO::Select->new($out, $err);
+    my %which = (
+        fileno($out) => \$stdout,
+        fileno($err) => \$stderr,
+    );
+
+    while ($select->count) {
+        for my $fh ($select->can_read) {
+            my $buffer = '';
+            my $read = sysread $fh, $buffer, 8192;
+            die "read command output: $!\n" if !defined $read;
+            if ($read == 0) {
+                $select->remove($fh);
+                close $fh;
+                next;
+            }
+            ${ $which{fileno($fh)} } .= $buffer;
+        }
+    }
+
+    waitpid $pid, 0;
+    my $status = $?;
+    my $exit = $status == -1 ? 255
+        : ($status & 127)     ? 128 + ($status & 127)
+        :                       ($status >> 8);
+
+    return {
+        exit   => $exit,
+        stdout => _redact($stdout, $args{redact_with}),
+        stderr => _redact($stderr, $args{redact_with}),
+    };
+}
+
+sub _token {
+    my ($chars) = @_;
+
+    my $bytes = '';
+    if (open my $fh, '<:raw', '/dev/urandom') {
+        read $fh, $bytes, 32;
+        close $fh;
+    }
+
+    $bytes .= join "\0", time, $$, rand(), rand(), {};
+    return substr sha256_hex($bytes), 0, $chars;
+}
+
+sub _secret_env_values {
+    my @values;
+    my %seen;
+    for my $name (keys %ENV) {
+        next if $name !~ /(?:PASSWORD|PASSWD|TOKEN|SECRET|KEY)/;
+        my $value = $ENV{$name};
+        next if !defined($value) || $value eq '';
+        push @values, $value if !$seen{$value}++;
+    }
+    return @values;
+}
+
+sub _redact {
+    my ($text, $secrets) = @_;
+
+    $text = redact_text($text);
+    for my $secret (sort { length($b) <=> length($a) } grep { defined && $_ ne '' } @{ $secrets // [] }) {
+        $text =~ s/\Q$secret\E/[REDACTED]/g;
+    }
+    return $text;
+}
+
+sub _read_file {
+    my ($path) = @_;
+    return '' if !defined($path) || !-e $path;
+
+    open my $fh, '<:encoding(UTF-8)', $path or return '';
+    my $text = do { local $/; <$fh> };
+    close $fh;
+    return $text // '';
+}
+
+sub _python_server_code {
+    return <<'PYTHON';
+import logging
+import os
+import signal
+import sys
+
+try:
+    from pyftpdlib.authorizers import DummyAuthorizer
+    from pyftpdlib.handlers import FTPHandler
+    from pyftpdlib.servers import FTPServer
+except Exception as exc:
+    sys.stderr.write("pyftpdlib import failed: %s\n" % exc)
+    sys.exit(42)
+
+home = os.environ["GOBANFTP_LIVE_SMOKE_HOME"]
+user = os.environ["GOBANFTP_LIVE_SMOKE_USER"]
+password = os.environ["GOBANFTP_LIVE_SMOKE_PASSWORD"]
+ready = os.environ["GOBANFTP_LIVE_SMOKE_READY"]
+
+logging.getLogger("pyftpdlib").setLevel(logging.WARNING)
+
+authorizer = DummyAuthorizer()
+authorizer.add_user(user, password, home, perm="elradfmwMT")
+
+handler = FTPHandler
+handler.authorizer = authorizer
+handler.banner = "GobanFTP live FTP smoke server"
+
+server = FTPServer(("127.0.0.1", 0), handler)
+server.max_cons = 32
+server.max_cons_per_ip = 32
+port = server.socket.getsockname()[1]
+
+tmp_ready = ready + ".tmp"
+with open(tmp_ready, "w", encoding="ascii") as fh:
+    fh.write(str(port) + "\n")
+os.replace(tmp_ready, ready)
+
+def stop(signum, frame):
+    server.close_all()
+
+signal.signal(signal.SIGTERM, stop)
+signal.signal(signal.SIGINT, stop)
+
+try:
+    server.serve_forever(timeout=0.2, blocking=True, handle_exit=False)
+finally:
+    server.close_all()
+PYTHON
+}

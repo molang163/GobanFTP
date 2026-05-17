@@ -1,0 +1,2 @@
+{"id":"minimal_9x9","name":"g1.id-minimal.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob","fields":{"game_id":"minimal","size":9,"rules":"chinese-area-v1","komi_milli":7500,"black":"alice","white":"bob"}}
+{"id":"atoms_with_digits_dash_underscore","name":"g1.id-game_42-alpha.s19.r-chinese-area-v1.k0.pb-player_1.pw-player-2","fields":{"game_id":"game_42-alpha","size":19,"rules":"chinese-area-v1","komi_milli":0,"black":"player_1","white":"player-2"}}

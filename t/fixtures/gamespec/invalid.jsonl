@@ -1,0 +1,10 @@
+{"id":"uppercase","name":"g1.id-Minimal.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob","error":"gamespec.charset"}
+{"id":"space","name":"g1.id-minimal game.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob","error":"gamespec.charset"}
+{"id":"slash","name":"g1.id-minimal/game.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob","error":"gamespec.charset"}
+{"id":"dot_in_atom","name":"g1.id-minimal.game.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob","error":"gamespec.field_count"}
+{"id":"missing_white","name":"g1.id-minimal.s9.r-chinese-area-v1.k7500.pb-alice","error":"gamespec.field_count"}
+{"id":"bad_version","name":"g2.id-minimal.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob","error":"gamespec.version"}
+{"id":"bad_size_zero","name":"g1.id-minimal.s0.r-chinese-area-v1.k7500.pb-alice.pw-bob","error":"gamespec.size"}
+{"id":"bad_size_leading_zero","name":"g1.id-minimal.s09.r-chinese-area-v1.k7500.pb-alice.pw-bob","error":"gamespec.size"}
+{"id":"bad_komi_decimal","name":"g1.id-minimal.s9.r-chinese-area-v1.k7.5.pb-alice.pw-bob","error":"gamespec.field_count"}
+{"id":"empty_black","name":"g1.id-minimal.s9.r-chinese-area-v1.k7500.pb-.pw-bob","error":"gamespec.player"}
