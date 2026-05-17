@@ -226,9 +226,9 @@ v1.0 is complete only when these gates are all true:
 - release notes, fixture manifests, smoke commands, and artifact checks leave no
   "choose later" language for v1.0 profile, adapter, witness, or auth behavior
 
-Detailed gates live in `docs/V1_DOD.md`. Filename grammar vectors are planned in
-`docs/GRAMMAR.md`; attack fixture admission and verdicts are planned in
-`docs/ATTACKS.md`.
+Detailed gates live in `docs/V1_DOD.md`. Substrate profile contracts live in
+`docs/PROFILES.md`. Filename grammar vectors are planned in `docs/GRAMMAR.md`;
+attack fixture admission and verdicts are planned in `docs/ATTACKS.md`.
 
 ## v1.0 Proof Machine
 
@@ -270,6 +270,7 @@ Tasks:
 - define the v1.0 profile template: profile id, version, system type,
   authoritative inputs, ignored metadata, publish semantics, read normalization,
   diagnostics, auth stance, fixtures, and smoke command
+- record the baseline and planned v1.0 profiles in `docs/PROFILES.md`
 - define the adapter contract around listing-like reads, event-name publishing,
   metadata normalization, capability reporting, and stable diagnostics
 - keep the existing FTP path as the `GOFTP/1` baseline profile without changing
