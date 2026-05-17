@@ -3,15 +3,19 @@ Changes
 cpanfile
 docs/ALGORITHMS.md
 docs/ARCHITECTURE.md
+docs/ATTACKS.md
 docs/BUILD.md
 docs/CLI.md
 docs/DECISIONS.md
 docs/DIAGNOSTICS.md
 docs/GLOSSARY.md
+docs/GRAMMAR.md
 docs/PROTOCOL.md
 docs/ROADMAP.md
 docs/RULES.md
 docs/SHOWCASE.md
+docs/SOURCE_ART.md
+docs/V1_DOD.md
 examples/fixtures/ftp-race-shrine/g1.id-ftp-race-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim/events/a1.t-ps9v3kftvp5v1gl5.by-daemon.n-ackleft.h-7d3cjn514h885jq1
 examples/fixtures/ftp-race-shrine/g1.id-ftp-race-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim/events/m1.p000001.b.play-dd.pa-genesis.by-daemon.n-root1.h-hihat4p8r6gaeuts
 examples/fixtures/ftp-race-shrine/g1.id-ftp-race-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim/events/m1.p000002.w.play-ee.pa-hihat4p8r6gaeuts.by-pilgrim.n-raceleft.h-ps9v3kftvp5v1gl5
@@ -234,6 +238,7 @@ lib/GobanFTP/Coord.pm
 lib/GobanFTP/DAG.pm
 lib/GobanFTP/Event.pm
 lib/GobanFTP/EventID.pm
+lib/GobanFTP/EventSetRoot.pm
 lib/GobanFTP/Filename/Grammar.pm
 lib/GobanFTP/GameSpec.pm
 lib/GobanFTP/Listing.pm
@@ -270,6 +275,7 @@ t/diagnostics-contract.t
 t/e2e-ftp-mock.t
 t/e2e-local.t
 t/event-id.t
+t/event-set-root.t
 t/event.t
 t/example-ftp-race-shrine.t
 t/example-ftp-shrine.t
@@ -315,6 +321,8 @@ t/fixtures/sgf/expected-variations.sgf
 t/fixtures/sgf/game.name
 t/fixtures/sgf/main-events.jsonl
 t/fixtures/sgf/variation-events.jsonl
+t/fixtures/vectors/event-set-root.jsonl
+t/fixtures/vectors/README.md
 t/ftp-cli-parity.t
 t/ftp-live-flow.t
 t/gamespec.t

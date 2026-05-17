@@ -99,6 +99,10 @@ Fast paths:
 ```text
 Showcase: docs/SHOWCASE.md
 Protocol: docs/PROTOCOL.md
+Grammar:  docs/GRAMMAR.md
+v1.0 DoD: docs/V1_DOD.md
+Attacks:  docs/ATTACKS.md
+Art:      docs/SOURCE_ART.md
 Build:    docs/BUILD.md
 CLI:      docs/CLI.md
 ```

@@ -255,3 +255,36 @@ Reason:
   must not become accidental consensus
 - if a new system needs different consensus inputs, it deserves a new protocol
   version or explicit profile with fixtures
+
+## 021: v1.0 Is A Proof Machine
+
+The v1.0 release target is not a game server. It is a proof machine that shows a
+Go game can emerge from untrusted enumerable substrates while preserving the
+same replay truth for the same accepted event basenames.
+
+Reason:
+
+- a hard Definition of Done prevents the v1.0 route from becoming a loose
+  collection of backends and displays
+- `event_set_root` should commit to the accepted event set for witness
+  comparison without becoming a `GOFTP/1` event-id input
+- attack fixtures, grammar vectors, diagnostics, ruleset seals, and
+  cross-system witnesses are release assets, not optional polish
+- source art, C acceleration, terminal interfaces, and Web views may reveal the
+  proof, but they must not decide truth
+
+## 022: Source-Art Motifs Are Surfaces
+
+GobanFTP may use repeated source-art motifs such as an altar, goban, hash seal,
+DAG tree, FTP gate, projection mirror, witness eye, root monolith, signature
+seal, observatory, and a small arch-gate easter egg.
+
+Reason:
+
+- a motif register makes the repository feel intentionally strange instead of
+  randomly decorated
+- each picture should correspond to a protocol responsibility readers can audit
+- the arch-gate easter egg is a hidden developer wink, not project branding,
+  protocol naming, package metadata, or an official affiliation claim
+- source-art motifs must remain outside event ids, `event_set_root`, replay,
+  rule legality, SGF, storage semantics, and diagnostics

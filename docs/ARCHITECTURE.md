@@ -52,6 +52,7 @@ lib/GobanFTP/
   Filename/Grammar.pm strict event filename parser and formatter
   Event.pm          typed event from filename
   EventID.pm        domain-separated filename event ids
+  EventSetRoot.pm   draft accepted event-set witness roots
   Listing.pm        normalize NLST/MLSD/local directory names
   Coord.pm          coordinate parsing and SGF conversion
   Board.pm          board state

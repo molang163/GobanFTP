@@ -9,10 +9,9 @@ P0 through P8 are implemented for the v0.1 release. The v0.1 boundary freezes
 filename protocol, while result events, scoring, and signed consensus remain
 future work unless a later phase or decision records them first.
 
-The v1.0 direction is to let GobanFTP become visibly multi-system protocol
-abuse without making the v0.1 replay contract ambiguous. Other systems may be
-added as explicit profiles, adapters, or projection surfaces only after their
-replay inputs and ignored metadata are written down.
+The v1.0 route is to turn that boundary into a proof machine: explicit
+profiles, adapter contracts, hostile fixtures, cross-system witnesses, optional
+signed/auth profiles, and reader-facing surfaces. `GOFTP/1` remains unchanged.
 
 ## Cross-Cutting Acceptance: Elegance Without Obscurity
 
@@ -201,30 +200,227 @@ Acceptance:
 - scoring, final result events, and signed consensus remain explicitly deferred
   to a future phase, protocol version, or profile
 
-## P9: v1.0 Multi-System Rites
+## v1.0 Definition Of Done
 
-Goal: let the project abuse more than FTP while preserving the inspectable
-listing-first lesson that made v0.1 coherent.
+v1.0 is complete only when these gates are all true:
+
+- `GOFTP/1` descriptor-name and direct-`events/` replay remains byte-for-behavior
+  unchanged for every v0.1 fixture, including event ids, fork diagnostics, board
+  state, SGF output, and projection rebuilds
+- the v1.0 substrate set is explicitly named before implementation; the release
+  target is local, FTP, Git-like, DNS-like, and WebDAV-like profiles unless
+  `docs/V1_DOD.md` is deliberately revised before code depends on the matrix
+- every v1.0 profile declares authoritative inputs, ignored metadata, publish
+  semantics, read normalization, failure diagnostics, and auth stance before code
+  depends on it
+- attack fixtures prove that timestamps, listing order, object size, file bytes,
+  entry type, sidecars, projections, caches, and temporary publish residue cannot
+  become accidental consensus
+- cross-system witnesses prove that the same event set observed through FTP and
+  each named v1.0 substrate produces the same `event_set_root`, DAG, replay
+  status, board, SGF, and diagnostics where applicable
+- signed/auth behavior is explicit profile behavior; unsigned `GOFTP/1` remains
+  valid and signatures never silently become `GOFTP/1` consensus
+- source-art, TUI, and Web surfaces can display profiles, witnesses, signatures,
+  forks, and projections, but none of them can feed replay or change consensus
+- release notes, fixture manifests, smoke commands, and artifact checks leave no
+  "choose later" language for v1.0 profile, adapter, witness, or auth behavior
+
+Detailed gates live in `docs/V1_DOD.md`. Filename grammar vectors are planned in
+`docs/GRAMMAR.md`; attack fixture admission and verdicts are planned in
+`docs/ATTACKS.md`.
+
+## v1.0 Proof Machine
+
+The v1.0 proof machine is the repeatable chain that makes every supported system
+auditable:
+
+```text
+profile declaration
+  -> adapter reads declared authoritative inputs
+  -> normalized event basenames
+  -> GOFTP/1 event id verification
+  -> event_set_root
+  -> DAG and rule replay
+  -> witness outputs and projections
+```
+
+`event_set_root` is a witness commitment, not a new `GOFTP/1` event id input. It
+is derived from the game descriptor basename and the sorted set of direct event
+basenames that parse as GOFTP/1 events and pass event-id verification after
+profile normalization. DAG-invalid or rule-illegal events still belong to that
+accepted event set; malformed names, unknown versions, bad event ids, and ignored
+metadata are recorded in diagnostics, not hidden inside the root.
+
+The proof machine must be able to say, for every supported system:
+
+- what was read
+- what was ignored
+- what was rejected
+- what event set was accepted
+- what root commits to that event set
+- what replay and projection outputs follow from that root
+
+## P9: v1.0 Profile And Adapter Contract
+
+Goal: make "other systems" exact before adding system-specific behavior.
 
 Tasks:
 
-- define what "other systems" means for v1.0 before adding code
-- keep FTP as the baseline `GOFTP/1` specimen
-- introduce new systems through explicit profiles or adapters, not hidden
-  conditionals inside replay
-- require each system to declare authoritative inputs, ignored metadata,
-  publish semantics, and failure diagnostics
-- add at least one fixture and one runnable smoke path for every new system
-- keep cross-system projections rebuildable from the declared authoritative
-  inputs
-- keep source art decorative and non-consensus even when more systems appear
+- define the v1.0 profile template: profile id, version, system type,
+  authoritative inputs, ignored metadata, publish semantics, read normalization,
+  diagnostics, auth stance, fixtures, and smoke command
+- define the adapter contract around listing-like reads, event-name publishing,
+  metadata normalization, capability reporting, and stable diagnostics
+- keep the existing FTP path as the `GOFTP/1` baseline profile without changing
+  descriptor grammar, event filename grammar, event id preimages, DAG replay,
+  rule legality, SGF export, or projection rebuilding
+- choose the first non-FTP profile to implement, then add the remaining named
+  v1.0 profiles behind the same adapter contract
+- require any profile that needs different consensus inputs to declare a new
+  profile or protocol version instead of changing `GOFTP/1`
 
 Acceptance:
 
-- `GOFTP/1` replay remains unchanged for v0.1 fixtures
-- every v1.0 system has docs that say what counts as truth and what remains
-  shadow
-- no system uses timestamps, server order, object size, file bytes, or transport
-  metadata as consensus unless a new protocol version or explicit profile says so
-- a reader can inspect the new system specimen and see how the abuse works
-- tests prove that deleting projections and sidecars does not change replay
+- each named v1.0 substrate has a written profile before adapter code for that
+  substrate lands
+- adapter conformance tests can run the same replay fixture through FTP and each
+  implemented v1.0 substrate
+- `GOFTP/1` v0.1 fixtures pass unchanged under the baseline profile
+- no adapter can pass payload bytes, timestamps, order, entry type, object size,
+  cache contents, sidecar contents, or projection contents into core replay
+
+## P10: Attack Fixtures
+
+Goal: prove the profile and adapter boundaries under hostile or misleading
+storage states.
+
+Tasks:
+
+- add fixtures for malformed names, unknown event versions, bad event ids,
+  missing parents, illegal moves, duplicate names, nested entries, stale tmp
+  entries, and fork races
+- add metadata-spoof fixtures for reordered listings, forged timestamps, changed
+  sizes, changed file bytes, changed entry types, stale caches, stale sidecars,
+  and stale projections
+- add profile-specific publish-failure fixtures for partial writes, existing
+  final names, conflicting final names, delayed visibility, and retry behavior
+- add signed/auth negative fixtures once signed/auth profiles exist
+- record expected diagnostics and expected replay outputs for every attack
+  fixture
+
+Acceptance:
+
+- attack fixtures run against every implemented adapter where the system can
+  represent the attack
+- rejected input is visible in diagnostics and excluded from DAG replay
+- ignored metadata changes do not change `event_set_root`, replay status, board,
+  SGF, or projections
+- publish failures are classified without inventing hidden consensus rules
+
+## P11: Cross-System Witness And `event_set_root`
+
+Goal: prove that different systems expose the same game when their accepted event
+sets are the same.
+
+Tasks:
+
+- define the `event_set_root` preimage, encoding, and diagnostic output
+- write witness output that includes profile id, adapter id, game descriptor,
+  accepted event count, rejected input count, `event_set_root`, canonical tip,
+  replay status, board hash, SGF hash, and relevant diagnostic codes
+- create cross-system witness fixtures with the same accepted event set in FTP
+  and each implemented v1.0 substrate
+- add a forked witness fixture so branch visibility and conservative fork status
+  are compared across systems
+- make witness output rebuildable from declared authoritative inputs
+
+Acceptance:
+
+- FTP and each implemented v1.0 substrate produce the same `event_set_root` for
+  the same accepted event basenames
+- equal roots produce equal DAG replay status, board output, SGF output, and fork
+  diagnostics
+- differing ignored metadata does not affect witness equality
+- witness files are projections and can be deleted and rebuilt
+
+## P12: Signed/Auth Profiles
+
+Goal: add explicit trust surfaces without changing unsigned `GOFTP/1`.
+
+Tasks:
+
+- define which profile or profiles require signatures, authentication, or both
+- keep publish authentication separate from replay consensus unless a profile
+  explicitly declares signed consensus
+- define signing preimages for event-name attestations or `event_set_root`
+  attestations
+- define key identity, key rotation, missing-signature, bad-signature,
+  stale-signature, and revoked-key diagnostics
+- keep secrets out of filenames and out of projection files
+- document how unsigned `GOFTP/1` remains valid and unchanged
+
+Acceptance:
+
+- unsigned v0.1 fixtures replay exactly as before
+- signed/auth fixtures pass only under profiles that explicitly require them
+- bad signatures and auth failures are visible diagnostics, not silent replay
+  changes
+- sidecar signatures remain advisory outside a signed/auth profile
+
+## P13: Source-Art, TUI, And Web Surfaces
+
+Goal: make the proof machine inspectable without letting display surfaces become
+consensus.
+
+Tasks:
+
+- extend source-art smoke paths to display or invoke witness checks while keeping
+  source art decorative
+- define and apply the source-art motif register in `docs/SOURCE_ART.md`,
+  including altar, goban, hash seal, DAG tree, FTP gate, projection mirror,
+  witness eye, root monolith, signature seal, observatory surfaces, and a small
+  arch-gate easter egg
+- expose profile id, adapter id, `event_set_root`, replay status, fork status,
+  and signature status in terminal output
+- add a Web-facing inspection surface or static export for witnesses,
+  projections, profiles, diagnostics, and attack fixtures
+- keep all TUI and Web output derived from replay results, witness outputs, or
+  projections
+- preserve the rule that changing source art, terminal formatting, Web assets,
+  or projection wording cannot change replay
+
+Acceptance:
+
+- source-art, TUI, and Web surfaces can be deleted or regenerated without
+  changing `event_set_root`, DAG replay, board state, SGF, or diagnostics
+- the arch-gate easter egg is present only as non-consensus source/display art
+  and cannot be confused with protocol branding or official project affiliation
+- surfaces display enough witness detail for a reader to inspect the abuse
+- display code does not parse storage metadata as consensus input
+
+## P14: v1.0 Release Freeze
+
+Goal: freeze v1.0 only after the profile, adapter, attack, witness, auth, and
+surface gates are complete.
+
+Tasks:
+
+- run v0.1 fixture parity and record that `GOFTP/1` behavior is unchanged
+- run profile and adapter conformance tests for every supported system
+- run attack fixtures and cross-system witness fixtures
+- run signed/auth fixtures for signed/auth profiles
+- run source-art, TUI, Web, projection rebuild, SGF, and CLI smoke paths
+- freeze profile docs, adapter contracts, witness format, diagnostics, and
+  release artifact manifest
+- document every deferred surface as a future profile, protocol version, or
+  later phase
+
+Acceptance:
+
+- release notes state that `GOFTP/1` remains unchanged from v0.1
+- no v1.0 profile, adapter, witness, auth, or diagnostic behavior has unresolved
+  "choose later" wording
+- all release artifacts can be rebuilt or verified from the recorded commands
+- shipped fixtures demonstrate baseline FTP, the named v1.0 substrates, attacks,
+  cross-system witness equality, and signed/auth behavior where enabled

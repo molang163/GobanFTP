@@ -13,6 +13,7 @@ filename-grammar/
 gamespec/
 event-id/
 listing-normalization/
+vectors/
 single-move/
 capture/
 ko/
