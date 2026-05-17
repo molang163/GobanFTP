@@ -237,3 +237,21 @@ Reason:
 - scoring and final result events need their own future phase or decision
 - signed consensus needs a future protocol version or explicit profile
 - release hardening should make the current boundary clearer instead of moving it
+
+## 020: Other Systems Need Explicit Profiles
+
+GobanFTP may grow beyond FTP in v1.0. Additional systems must enter through an
+explicit profile, adapter, or projection boundary. They must not silently change
+`GOFTP/1` replay, event ids, DAG construction, rule legality, SGF output, or
+projection rebuilding.
+
+Reason:
+
+- the v1.0 work should make the protocol-abuse surface larger without making
+  the v0.1 contract vague
+- every new system needs a written list of authoritative inputs and ignored
+  metadata before it can be trusted
+- transport quirks such as ordering, timestamps, object size, and payload bytes
+  must not become accidental consensus
+- if a new system needs different consensus inputs, it deserves a new protocol
+  version or explicit profile with fixtures

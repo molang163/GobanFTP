@@ -9,6 +9,11 @@ P0 through P8 are implemented for the v0.1 release. The v0.1 boundary freezes
 filename protocol, while result events, scoring, and signed consensus remain
 future work unless a later phase or decision records them first.
 
+The v1.0 direction is to let GobanFTP become visibly multi-system protocol
+abuse without making the v0.1 replay contract ambiguous. Other systems may be
+added as explicit profiles, adapters, or projection surfaces only after their
+replay inputs and ignored metadata are written down.
+
 ## Cross-Cutting Acceptance: Elegance Without Obscurity
 
 At every phase, an implementation is not complete merely because it works. It
@@ -195,3 +200,31 @@ Acceptance:
   FTP backend path already covered by mocks or gated live smoke tests
 - scoring, final result events, and signed consensus remain explicitly deferred
   to a future phase, protocol version, or profile
+
+## P9: v1.0 Multi-System Rites
+
+Goal: let the project abuse more than FTP while preserving the inspectable
+listing-first lesson that made v0.1 coherent.
+
+Tasks:
+
+- define what "other systems" means for v1.0 before adding code
+- keep FTP as the baseline `GOFTP/1` specimen
+- introduce new systems through explicit profiles or adapters, not hidden
+  conditionals inside replay
+- require each system to declare authoritative inputs, ignored metadata,
+  publish semantics, and failure diagnostics
+- add at least one fixture and one runnable smoke path for every new system
+- keep cross-system projections rebuildable from the declared authoritative
+  inputs
+- keep source art decorative and non-consensus even when more systems appear
+
+Acceptance:
+
+- `GOFTP/1` replay remains unchanged for v0.1 fixtures
+- every v1.0 system has docs that say what counts as truth and what remains
+  shadow
+- no system uses timestamps, server order, object size, file bytes, or transport
+  metadata as consensus unless a new protocol version or explicit profile says so
+- a reader can inspect the new system specimen and see how the abuse works
+- tests prove that deleting projections and sidecars does not change replay
