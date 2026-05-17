@@ -363,6 +363,16 @@ t/fixtures/sgf/expected-variations.sgf
 t/fixtures/sgf/game.name
 t/fixtures/sgf/main-events.jsonl
 t/fixtures/sgf/variation-events.jsonl
+t/fixtures/v1/cross-substrate/bad-event-id/ftp-goftp1/listing.names
+t/fixtures/v1/cross-substrate/bad-event-id/game.name
+t/fixtures/v1/cross-substrate/bad-event-id/local-goftp1/listing.names
+t/fixtures/v1/cross-substrate/fork/ftp-goftp1/listing.names
+t/fixtures/v1/cross-substrate/fork/game.name
+t/fixtures/v1/cross-substrate/fork/local-goftp1/listing.names
+t/fixtures/v1/cross-substrate/minimal/ftp-goftp1/listing.names
+t/fixtures/v1/cross-substrate/minimal/game.name
+t/fixtures/v1/cross-substrate/minimal/local-goftp1/listing.names
+t/fixtures/v1/cross-substrate/README.md
 t/fixtures/vectors/event-set-root.jsonl
 t/fixtures/vectors/README.md
 t/ftp-cli-parity.t
@@ -370,6 +380,7 @@ t/ftp-live-flow.t
 t/gamespec.t
 t/lib/GobanFTP/Test/RulesMechanics.pm
 t/lib/GobanFTP/Test/StoreContract.pm
+t/lib/GobanFTP/Test/WitnessHarness.pm
 t/listing.t
 t/play-flow-store.t
 t/play-watch.t
@@ -393,3 +404,4 @@ t/store-contract.t
 t/store-ftp-mock.t
 t/store-ftp.t
 t/store-local.t
+t/v1-cross-substrate.t
