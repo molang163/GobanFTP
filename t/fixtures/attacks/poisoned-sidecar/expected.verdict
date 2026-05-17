@@ -1,0 +1,17 @@
+attack=poisoned-sidecar
+mode=local
+command=project
+status=ok
+exit=0
+game=g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob
+events=3
+event_set_count=3
+event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461
+canonical_moves=3
+legal_moves=3
+canonical_ids=khjclcui7pejbv3m,bihb3re4k9hlucat,kcvtlonfje163p9q
+legal_ids=khjclcui7pejbv3m,bihb3re4k9hlucat,kcvtlonfje163p9q
+diagnostic.code=
+consensus_inputs=descriptor,events
+ignored_inputs=sidecar
+note=sidecar claims are shadows and cannot change replay

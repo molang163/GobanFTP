@@ -13,7 +13,7 @@ was weakened.
 
 ## Directory Purpose
 
-Planned test attack fixtures live under:
+Test attack fixtures live under:
 
 ```text
 t/fixtures/attacks/
@@ -70,6 +70,42 @@ Rules:
 
 Additional fields may be added when a case needs them, but they must be stable,
 public, and directly tied to the attack judgment.
+
+The test gallery also uses `mode=<local|listing>` and `command=<command-name>`
+to name the harness path. `local` fixtures are copied into a temporary game root
+before running the CLI. `listing` fixtures exercise raw observed names directly
+when the hostile condition, such as duplicate listing entries, cannot be
+represented by a normal filesystem directory.
+
+## Current Harness
+
+The runnable harness is:
+
+```text
+t/attack-fixtures.t
+```
+
+The first gallery slice covers:
+
+```text
+bad-payload
+poisoned-sidecar
+projection-poison
+tmp-poison
+bad-list-order
+duplicate-event
+bad-event-id
+future-version
+missing-parent
+fake-player
+fork-race
+```
+
+Each sample proves one of three outcomes:
+
+- ignored shadow input leaves replay and `event_set_root` unchanged
+- rejected filenames stay out of `event_set_root` and DAG replay
+- hash-valid but invalid packets stay visible and produce stable diagnostics
 
 ## Minimum Attack List
 
