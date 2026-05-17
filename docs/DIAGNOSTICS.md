@@ -23,6 +23,8 @@ gobanftp.watch
 gobanftp.<command>
 game
 events
+event_set_count
+event_set_root
 canonical_moves
 legal_moves
 canonical_ids
@@ -50,6 +52,11 @@ worldline.fork.child_ids
 for bounded polls. `worldline.status` is one of `main`, `fork`, or
 `validation`; fork snapshots include `worldline.fork.parent_id` and
 `worldline.fork.child_ids`.
+
+`event_set_count` is the number of direct event basenames accepted into the
+`GOFTP-EVENT-SET/1` root after filename parsing and event-id verification.
+`event_set_root` is the lowercase SHA-256 hex digest of that accepted event set.
+It is a witness field for the observed listing, not a replay success claim.
 
 Stderr diagnostics use one line per issue:
 

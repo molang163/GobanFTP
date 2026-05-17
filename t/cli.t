@@ -26,6 +26,9 @@ subtest 'verify reads only the local events listing and writes nothing' => sub {
     is $exit, 0, 'verify exits success';
     like $stdout, qr/^gobanftp\.verify=ok$/m, 'verify status is on stdout';
     like $stdout, qr/^events=3$/m, 'verify reports event listing count';
+    like $stdout, qr/^event_set_count=3$/m, 'verify reports accepted event-set count';
+    like $stdout, qr/^event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461$/m,
+        'verify reports the accepted event-set root';
     is $stderr, '', 'verify has no diagnostics';
     is_deeply [_dir_names(File::Spec->catdir($game_root, 'events'))], \@events_before, 'events are not modified';
     ok !-e File::Spec->catdir($game_root, 'projections'), 'verify does not write projections';
@@ -37,6 +40,9 @@ subtest 'replay prints a canonical line summary' => sub {
 
     is $exit, 0, 'replay exits success';
     like $stdout, qr/^gobanftp\.replay=ok$/m, 'replay status is on stdout';
+    like $stdout, qr/^event_set_count=3$/m, 'replay reports accepted event-set count';
+    like $stdout, qr/^event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461$/m,
+        'replay reports the accepted event-set root';
     like $stdout, qr/^canonical_moves=3$/m, 'replay reports canonical move count';
     like $stdout, qr/^canonical_ids=khjclcui7pejbv3m,bihb3re4k9hlucat,kcvtlonfje163p9q$/m,
         'replay reports canonical ids';
@@ -51,6 +57,7 @@ subtest 'sgf prints to stdout by default' => sub {
     like $stdout, qr/\A\(;/, 'sgf writes an SGF collection';
     like $stdout, qr/;B\[aa\]/, 'sgf includes black move';
     like $stdout, qr/;W\[bb\]/, 'sgf includes white move';
+    unlike $stdout, qr/^event_set_root=/m, 'plain sgf stdout is not polluted by event-set witness fields';
     is $stderr, '', 'sgf has no diagnostics';
     ok !-e File::Spec->catdir($game_root, 'projections'), 'plain sgf does not write projections';
 };
@@ -76,6 +83,7 @@ subtest 'sgf --variations prints fork trees from local and FTP listings' => sub 
 
     is $exit, 3, 'local sgf --variations preserves fork exit';
     is $stdout, $expected, 'local sgf --variations prints the variation tree';
+    unlike $stdout, qr/^event_set_root=/m, 'local sgf --variations stdout is pure SGF';
     like $stderr, qr/diagnostic .*code=fork/, 'local sgf --variations reports fork diagnostic';
     ok !-e File::Spec->catdir($game_root, 'projections'), 'plain sgf --variations does not write projections';
 
@@ -94,6 +102,7 @@ subtest 'sgf --variations prints fork trees from local and FTP listings' => sub 
 
     is $ftp_exit, 3, 'FTP sgf --variations preserves fork exit';
     is $ftp_stdout, $expected, 'FTP sgf --variations prints from the event listing';
+    unlike $ftp_stdout, qr/^event_set_root=/m, 'FTP sgf --variations stdout is pure SGF';
     like $ftp_stderr, qr/diagnostic .*code=fork/, 'FTP sgf --variations reports fork diagnostic';
     is_deeply $CliSgfFTP::LAST->{listed}, ["games/$game/events"], 'FTP sgf --variations only lists events';
 };
@@ -170,6 +179,9 @@ subtest 'project writes rebuildable projection files without changing events' =>
 
     is $exit, 0, 'project exits success';
     like $stdout, qr/^gobanftp\.project=ok$/m, 'project reports status';
+    like $stdout, qr/^event_set_count=3$/m, 'project reports accepted event-set count';
+    like $stdout, qr/^event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461$/m,
+        'project reports the accepted event-set root';
     like $stdout, qr/^listing=.*projections.*listing\.txt$/m, 'project reports listing transcript path';
     is $stderr, '', 'project has no diagnostics';
     ok -d File::Spec->catdir($game_root, qw(projections board)), 'board directory is created';
@@ -206,6 +218,8 @@ subtest 'project writes fork projections then exits conflict' => sub {
 
     is $exit, 3, 'project exits conflict after writing fork projections';
     like $stdout, qr/^gobanftp\.project=fork$/m, 'project reports fork status';
+    like $stdout, qr/^event_set_root=02dac396696a1a3806d89819aadf672d02399426106b25bbbd4f36d9dd178b76$/m,
+        'project reports the fork event-set root';
     like $stdout, qr/^sgf=.*projections.*main\.sgf$/m, 'project still reports SGF path';
     like $stdout, qr/^board=.*projections.*board\.txt$/m, 'project still reports board path';
     like $stdout, qr/^verdict=.*projections.*verdict\.txt$/m, 'project still reports verdict path';
@@ -231,6 +245,10 @@ subtest 'validation failures and forks use stable exit codes' => sub {
 
     is $bad_exit, 2, 'invalid event exits validation failure';
     like $bad_stdout, qr/^gobanftp\.verify=failed$/m, 'invalid verify status is failed';
+    like $bad_stdout, qr/^events=2$/m, 'invalid verify reports event-looking listing count';
+    like $bad_stdout, qr/^event_set_count=1$/m, 'invalid verify counts only accepted event basenames';
+    like $bad_stdout, qr/^event_set_root=ea12e445c106e3de17ae4e124c800f8433f04a0d7e37ab1de4e70a37e1b15d97$/m,
+        'invalid verify reports the accepted event-set root';
     like $bad_stderr, qr/diagnostic .*code=parse_event.*name=m1\.bad/, 'parse diagnostic is on stderr';
 
     my ($project_bad_root) = _make_game('invalid-events.names');
@@ -238,6 +256,7 @@ subtest 'validation failures and forks use stable exit codes' => sub {
 
     is $project_bad_exit, 2, 'invalid project exits validation failure';
     like $project_bad_stdout, qr/^gobanftp\.project=failed$/m, 'invalid project status is failed';
+    like $project_bad_stdout, qr/^event_set_count=1$/m, 'invalid project reports accepted event-set count';
     like $project_bad_stderr, qr/diagnostic .*code=parse_event.*name=m1\.bad/, 'project parse diagnostic is on stderr';
     ok !-e File::Spec->catdir($project_bad_root, 'projections'), 'invalid project does not write projections';
 
@@ -246,6 +265,8 @@ subtest 'validation failures and forks use stable exit codes' => sub {
 
     is $fork_exit, 3, 'fork exits conflict';
     like $fork_stdout, qr/^gobanftp\.verify=fork$/m, 'fork status is reported';
+    like $fork_stdout, qr/^event_set_root=02dac396696a1a3806d89819aadf672d02399426106b25bbbd4f36d9dd178b76$/m,
+        'fork verify reports the fork event-set root';
     like $fork_stderr, qr/diagnostic .*code=fork/, 'fork diagnostic is on stderr';
 };
 

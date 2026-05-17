@@ -8,6 +8,7 @@ use Carp qw(croak);
 use Scalar::Util qw(reftype);
 
 use GobanFTP::AckPublisher qw(build_ack_for_target);
+use GobanFTP::EventSetRoot qw(event_set_root_result);
 use GobanFTP::Listing qw(normalize_listing sort_event_basenames);
 use GobanFTP::GameSpec qw(build_basename parse_basename);
 use GobanFTP::MovePublisher qw(build_next_move_name normalize_action);
@@ -133,7 +134,7 @@ sub _command_verify {
     my $exit    = _result_exit($context->{replay_result});
     my $status  = $exit == EXIT_SUCCESS ? 'ok' : $exit == EXIT_CONFLICT ? 'fork' : 'failed';
 
-    _print_summary('verify', $status, $context);
+    _print_summary('verify', $status, $context, event_set => 1);
     _print_diagnostics($context->{replay_result});
 
     return $exit;
@@ -147,7 +148,7 @@ sub _command_replay {
     my $exit    = _result_exit($context->{replay_result});
     my $status  = $exit == EXIT_SUCCESS ? 'ok' : $exit == EXIT_CONFLICT ? 'fork' : 'failed';
 
-    _print_summary('replay', $status, $context);
+    _print_summary('replay', $status, $context, event_set => 1);
     print STDOUT 'canonical_ids=' . join(',', _canonical_ids($context->{replay_result})) . "\n";
     _print_diagnostics($context->{replay_result});
 
@@ -166,7 +167,7 @@ sub _command_project {
     $context = _reload_context($context);
     my $exit    = _result_exit($context->{replay_result});
     if ($exit != EXIT_SUCCESS && ($exit != EXIT_CONFLICT || $context->{store_kind} ne 'local')) {
-        _print_summary('project', $exit == EXIT_CONFLICT ? 'fork' : 'failed', $context);
+        _print_summary('project', $exit == EXIT_CONFLICT ? 'fork' : 'failed', $context, event_set => 1);
         _print_diagnostics($context->{replay_result});
         return $exit;
     }
@@ -178,7 +179,7 @@ sub _command_project {
         replay_result   => $context->{replay_result},
     );
 
-    _print_summary('project', $exit == EXIT_CONFLICT ? 'fork' : 'ok', $context);
+    _print_summary('project', $exit == EXIT_CONFLICT ? 'fork' : 'ok', $context, event_set => 1);
     print STDOUT "sgf=$written->{paths}{sgf}\n";
     print STDOUT "board=$written->{paths}{board}\n";
     print STDOUT "verdict=$written->{paths}{verdict}\n";
@@ -722,7 +723,12 @@ sub _publish_ack_result {
 sub _print_publish_result {
     my ($command, $result) = @_;
 
-    _print_summary($command, _status_for_exit($result->{exit}), $result->{context});
+    _print_summary(
+        $command,
+        _status_for_exit($result->{exit}),
+        $result->{context},
+        event_set => ($result->{stage} // '') ne 'candidate',
+    );
     _print_event_result($result);
     _print_diagnostics($result->{context}{replay_result});
 }
@@ -754,10 +760,15 @@ sub _reload_context {
         events          => \@events,
         defined($opts{policy}) ? (policy => $opts{policy}) : (),
     );
+    my $event_set = event_set_root_result(
+        game_descriptor => $context->{game_descriptor},
+        names           => \@events,
+    );
 
     return {
         %$context,
         events        => \@events,
+        event_set     => $event_set,
         replay_result => $result,
     };
 }
@@ -871,14 +882,25 @@ sub _descriptor_from_create_args {
 }
 
 sub _print_summary {
-    my ($command, $status, $context) = @_;
+    my ($command, $status, $context, %opts) = @_;
 
     my $result = $context->{replay_result};
     print STDOUT "gobanftp.$command=$status\n";
     print STDOUT "game=$context->{game_descriptor}\n";
     print STDOUT 'events=' . scalar(@{ $context->{events} }) . "\n";
+    _print_event_set_summary($context) if $opts{event_set};
     print STDOUT 'canonical_moves=' . scalar(_canonical_ids($result)) . "\n";
     print STDOUT 'legal_moves=' . scalar(_legal_ids($result)) . "\n";
+}
+
+sub _print_event_set_summary {
+    my ($context) = @_;
+
+    my $event_set = $context->{event_set};
+    return if ref($event_set) ne 'HASH';
+
+    print STDOUT "event_set_count=$event_set->{event_count}\n";
+    print STDOUT "event_set_root=$event_set->{event_set_root}\n";
 }
 
 sub _print_diagnostics {
@@ -896,7 +918,7 @@ sub _print_terminal_snapshot {
     my $exit   = _result_exit($result);
     my $status = $exit == EXIT_SUCCESS ? 'ok' : $exit == EXIT_CONFLICT ? 'fork' : 'failed';
 
-    _print_summary($command, $status, $context);
+    _print_summary($command, $status, $context, event_set => 1);
     print STDOUT "snapshot=$opts{snapshot}\n" if defined $opts{snapshot};
     _print_turn($result);
     _print_worldline($result);

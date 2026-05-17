@@ -31,6 +31,9 @@ subtest 'FTP CLI parity uses listings for sgf play and watch' => sub {
             is $exit, 0, 'play --once exits success';
             like $stdout, qr/^gobanftp\.play=ok$/m, 'play --once reports ok';
             like $stdout, qr/^events=0$/m, 'play --once sees the empty FTP event listing';
+            like $stdout, qr/^event_set_count=0$/m, 'play --once reports empty FTP event-set count';
+            like $stdout, qr/^event_set_root=e0534a852f47ec22884f56470d9dc5c408eceafb2a49b6c150b2d30553adf632$/m,
+                'play --once reports empty FTP event-set root';
             like $stdout, qr/^worldline\.status=main$/m, 'play --once renders a main worldline';
             is $stderr, '', 'play --once has no diagnostics';
         },
@@ -45,6 +48,9 @@ subtest 'FTP CLI parity uses listings for sgf play and watch' => sub {
             is $exit, 0, 'play --move exits success';
             like $stdout, qr/^gobanftp\.play=ok$/m, 'play --move reports ok';
             like $stdout, qr/^events=1$/m, 'play --move reloads the FTP listing after publish';
+            like $stdout, qr/^event_set_count=1$/m, 'play --move reports one accepted FTP event';
+            like $stdout, qr/^event_set_root=a121f302994452df5b810c38c1223f7f57203cbac7147d5e84cdb7c73a656afa$/m,
+                'play --move reports FTP event-set root after publish';
             like $stdout, qr/^canonical_moves=1$/m, 'play --move renders one canonical move';
             like $stdout, qr/^turn_player=bob$/m, 'play --move advances the turn';
             is $stderr, '', 'play --move has no diagnostics';
@@ -68,6 +74,8 @@ subtest 'FTP CLI parity uses listings for sgf play and watch' => sub {
             like $stdout, qr/^gobanftp\.watch=ok$/m, 'watch reports ok';
             like $stdout, qr/^snapshot=1$/m, 'watch reports the bounded snapshot';
             like $stdout, qr/^events=1$/m, 'watch sees the FTP event listing';
+            like $stdout, qr/^event_set_root=a121f302994452df5b810c38c1223f7f57203cbac7147d5e84cdb7c73a656afa$/m,
+                'watch reports the same FTP event-set root';
             like $stdout, qr/^worldline\.status=main$/m, 'watch renders the main worldline';
             is $stderr, '', 'watch has no diagnostics';
         },
@@ -81,6 +89,7 @@ subtest 'FTP CLI parity uses listings for sgf play and watch' => sub {
             is $exit, 0, 'sgf exits success';
             like $stdout, qr/\A\(;/, 'sgf prints an SGF collection';
             like $stdout, qr/;B\[aa\]/, 'sgf renders the FTP-listed move';
+            unlike $stdout, qr/^event_set_root=/m, 'sgf stdout is not polluted by event-set root';
             is $stderr, '', 'sgf has no diagnostics';
         },
     );
@@ -109,6 +118,8 @@ subtest 'FTP publish-ack fork exit and play --ack recovery match local CLI behav
             my ($exit, $stdout, $stderr) = _run_cli('play', '--move', 'aa', '--nonce', 'left', $GAME);
             is $exit, 0, 'initial play --move exits success';
             like $stdout, qr/^gobanftp\.play=ok$/m, 'initial play --move reports ok';
+            like $stdout, qr/^event_set_root=457bf74ec0a90ba0ad5d7c4a0006fac00f812c55320b7641b5bb89ab99a8b930$/m,
+                'initial play --move reports the FTP event-set root';
             is $stderr, '', 'initial play --move has no diagnostics';
             ($left_id) = $stdout =~ /^event_id=([0-9a-v]{16})$/m;
             like $left_id // '', qr/\A[0-9a-v]{16}\z/, 'initial play --move reports an event id';
@@ -134,6 +145,9 @@ subtest 'FTP publish-ack fork exit and play --ack recovery match local CLI behav
             is $exit, 3, 'publish-ack preserves the expected conservative fork exit';
             like $stdout, qr/^gobanftp\.publish-ack=fork$/m, 'publish-ack reports fork status';
             like $stdout, qr/^events=3$/m, 'publish-ack reloads both fork moves and the ack';
+            like $stdout, qr/^event_set_count=3$/m, 'publish-ack reports three accepted FTP events';
+            like $stdout, qr/^event_set_root=2d9400bd875b5288537dc0c034a040374bd4584b61228960caa74c43b6fff6a9$/m,
+                'publish-ack reports the FTP event-set root';
             like $stdout, qr/^event=a1\.t-\Q$left_id\E\.by-bob\.n-ackleft\.h-[0-9a-v]{16}$/m,
                 'publish-ack reports the FTP ack event basename';
             like $stderr, qr/diagnostic .*code=fork/, 'publish-ack emits the conservative fork diagnostic';
@@ -150,6 +164,9 @@ subtest 'FTP publish-ack fork exit and play --ack recovery match local CLI behav
                 'play --ack reports the FTP ack event basename';
             like $stdout, qr/^gobanftp\.play=ok$/m, 'play --ack reports ok';
             like $stdout, qr/^events=4$/m, 'play --ack reloads the FTP listing after publishing';
+            like $stdout, qr/^event_set_count=4$/m, 'play --ack reports four accepted FTP events';
+            like $stdout, qr/^event_set_root=dff317e62d82989489a16be3a420d9dad431629ac7d24f0d72bdbde5514c74d7$/m,
+                'play --ack reports the FTP event-set root';
             like $stdout, qr/^canonical_moves=1$/m, 'play --ack chooses one canonical fork child';
             like $stdout, qr/^worldline\.status=main$/m, 'play --ack renders a recovered worldline';
             like $stdout, qr/^worldline\.canonical_ids=\Q$left_id\E$/m, 'play --ack chooses the acked child';

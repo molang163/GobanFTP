@@ -69,6 +69,11 @@ event ids, and graph consistency.
 
 Must not write authoritative events or projections.
 
+The stdout summary includes `event_set_count=<n>` and
+`event_set_root=<sha256-hex>` for the observed authoritative listing. These
+fields describe the accepted filename event set; they do not mean replay
+succeeded.
+
 When `GOBANFTP_STORE=ftp`, the argument may be the game descriptor basename and
 the command reads the FTP `events/` listing.
 
@@ -77,6 +82,8 @@ the command reads the FTP `events/` listing.
 Replays valid event names and prints canonical line summary.
 
 Must not write authoritative events. May write no files.
+
+The stdout summary includes the same event-set witness fields as `verify`.
 
 When `GOBANFTP_STORE=ftp`, the argument may be the game descriptor basename and
 the command reads the FTP `events/` listing.
@@ -199,6 +206,8 @@ event_id=<event-id>
 gobanftp.play=ok
 game=<game-descriptor>
 events=<n>
+event_set_count=<n>
+event_set_root=<sha256-hex>
 canonical_moves=<n>
 legal_moves=<n>
 turn_color=<b|w>

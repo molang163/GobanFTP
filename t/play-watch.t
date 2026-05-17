@@ -24,6 +24,9 @@ subtest 'play --once renders a terminal snapshot without writing projections' =>
     is $exit, 0, 'play --once exits success';
     like $stdout, qr/^gobanftp\.play=ok$/m, 'play status is on stdout';
     like $stdout, qr/^events=0$/m, 'empty event listing is reported';
+    like $stdout, qr/^event_set_count=0$/m, 'empty event-set count is reported';
+    like $stdout, qr/^event_set_root=341de53d8c29e595f77a7cb0c923e23e308f96122c56211eaa68b191c22f1d80$/m,
+        'empty event-set root is reported';
     like $stdout, qr/^turn_color=b$/m, 'black is first to play';
     like $stdout, qr/^turn_player=alice$/m, 'black player is reported';
     like $stdout, qr/^worldline\.status=main$/m, 'clean worldline is reported';
@@ -44,6 +47,9 @@ subtest 'play --move publishes one move and renders the updated board' => sub {
         'published event is reported';
     like $stdout, qr/^gobanftp\.play=ok$/m, 'snapshot status is reported';
     like $stdout, qr/^events=1$/m, 'snapshot sees one event';
+    like $stdout, qr/^event_set_count=1$/m, 'snapshot reports one accepted event';
+    like $stdout, qr/^event_set_root=9fc9fada3fe9667b515dc90d117c5bea9b3537337236059ffa526872cf62a75f$/m,
+        'post-move event-set root is reported';
     like $stdout, qr/^canonical_moves=1$/m, 'one canonical move is shown';
     like $stdout, qr/^turn_color=w$/m, 'turn advances to white';
     like $stdout, qr/^turn_player=bob$/m, 'white player is reported';
@@ -94,6 +100,9 @@ subtest 'play --move renders the post-publish fork snapshot' => sub {
     my ($published_id) = $stdout =~ /^event_id=([0-9a-v]{16})$/m;
     ok defined($published_id), 'published event id is reported';
     like $stdout, qr/^gobanftp\.play=fork$/m, 'fork snapshot status is reported';
+    like $stdout, qr/^event_set_count=2$/m, 'post-publish fork reports two accepted events';
+    like $stdout, qr/^event_set_root=b682bdd142c6c64bad29c53dc0642c2a0082abf02b9c135d42271be01f78f6d2$/m,
+        'post-publish fork event-set root is reported';
     like $stdout, qr/^worldline\.status=fork$/m, 'post-publish worldline is rendered as fork';
     like $stdout, qr/^worldline\.fork\.parent_id=genesis$/m, 'fork parent is rendered';
     like $stdout, qr/^worldline\.fork\.child_ids=\Q@{[join ',', sort ($published_id, $fork_id)]}\E$/m,
@@ -112,6 +121,8 @@ subtest 'interactive play keeps running after an invalid candidate move' => sub 
     is $exit, 0, 'interactive play exits after q';
     like $stdout, qr/^gobanftp\.play=ok$/m, 'initial snapshot is rendered';
     like $stdout, qr/^gobanftp\.play=failed$/m, 'invalid candidate is reported';
+    is scalar(() = $stdout =~ /^event_set_root=/mg), 1,
+        'invalid candidate does not print an event-set root for the unpublished candidate';
     like $stdout, qr/^event=m1\.p000001\.b\.play-zz\.pa-genesis\.by-alice\.n-[a-z0-9_-]+\.h-[0-9a-v]{16}$/m,
         'candidate event name is reported without publishing';
     like $stderr, qr/diagnostic .*code=parse_event.*error=move\.point_bounds/, 'candidate diagnostic is reported';
@@ -138,6 +149,9 @@ subtest 'watch --max-polls renders a bounded listing-first snapshot' => sub {
     like $stdout, qr/^gobanftp\.watch=ok$/m, 'watch status is on stdout';
     like $stdout, qr/^snapshot=1$/m, 'snapshot number is reported';
     like $stdout, qr/^events=1$/m, 'watch sees the listing';
+    like $stdout, qr/^event_set_count=1$/m, 'watch reports one accepted event';
+    like $stdout, qr/^event_set_root=c09570907a06b5a77ef9539850e7b0050680af9d319ed9482c1d9feba0294434$/m,
+        'watch reports the event-set root';
     like $stdout, qr/^turn_color=w$/m, 'watch renders the next turn';
     is $stderr, '', 'watch has no diagnostics';
     is_deeply [_event_names($game_root)], [$event], 'watch does not change events';
@@ -171,6 +185,9 @@ subtest 'play --once reports forks as worldline state' => sub {
 
     is $exit, 3, 'fork exits conflict';
     like $stdout, qr/^gobanftp\.play=fork$/m, 'fork status is reported';
+    like $stdout, qr/^event_set_count=2$/m, 'fork reports two accepted events';
+    like $stdout, qr/^event_set_root=8c11f06c0e3be5507f7a62c2837fac1c7e75366ee1a60699c929635288b457ea$/m,
+        'fork event-set root is reported';
     like $stdout, qr/^worldline\.status=fork$/m, 'worldline fork status is reported';
     like $stdout, qr/^worldline\.fork\.parent_id=genesis$/m, 'fork parent is reported';
     like $stdout, qr/^worldline\.fork\.child_ids=\Q@{[join ',', sort ($left_id, $right_id)]}\E$/m,
@@ -209,6 +226,9 @@ subtest 'play --ack publishes an ack and renders an ack-assisted snapshot' => su
         'published ack event is reported';
     like $stdout, qr/^gobanftp\.play=ok$/m, 'ack-assisted snapshot status is ok';
     like $stdout, qr/^events=3$/m, 'snapshot sees both fork moves and the ack';
+    like $stdout, qr/^event_set_count=3$/m, 'ack-assisted snapshot reports three accepted events';
+    like $stdout, qr/^event_set_root=ec8872c7091745f06d760e4f971a2d87af244fcbda04d19bc7957a48c3bb8445$/m,
+        'ack-assisted snapshot reports the event-set root';
     like $stdout, qr/^canonical_moves=1$/m, 'ack-assisted snapshot chooses one canonical move';
     like $stdout, qr/^turn_color=w$/m, 'turn advances after the chosen black move';
     like $stdout, qr/^turn_player=bob$/m, 'white player is reported after recovery';
@@ -223,6 +243,8 @@ subtest 'play --ack publishes an ack and renders an ack-assisted snapshot' => su
 
     my ($once_exit, $once_stdout, $once_stderr) = _run_cli('play', '--once', $game_root);
     is $once_exit, 3, 'plain play --once remains conservative on the same listing';
+    like $once_stdout, qr/^event_set_root=ec8872c7091745f06d760e4f971a2d87af244fcbda04d19bc7957a48c3bb8445$/m,
+        'plain conservative replay sees the same event-set root';
     like $once_stdout, qr/^worldline\.status=fork$/m, 'plain play still reports the fork';
     like $once_stderr, qr/diagnostic .*code=fork/, 'plain play emits fork diagnostic';
 };

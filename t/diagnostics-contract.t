@@ -23,6 +23,7 @@ my @allowed_fields = qw(
 
 my @stdout_fields = qw(
     board canonical_ids canonical_moves event event_id events game
+    event_set_count event_set_root
     gobanftp.create-game gobanftp.play gobanftp.project
     gobanftp.publish-ack gobanftp.publish-move gobanftp.replay
     gobanftp.sgf gobanftp.verify gobanftp.watch legal_ids legal_moves
