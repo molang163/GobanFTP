@@ -12,6 +12,7 @@ legal_moves=0
 canonical_ids=
 legal_ids=
 diagnostic.code=parse_event
+diagnostic.class=event-id
 diagnostic.name=m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-0000000000000000
 diagnostic.error=event_id.mismatch
 consensus_inputs=descriptor,events

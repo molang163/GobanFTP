@@ -12,6 +12,7 @@ legal_moves=0
 canonical_ids=
 legal_ids=
 diagnostic.code=wrong_player
+diagnostic.class=rules
 diagnostic.event_id=273ib3koh8sa7ple
 diagnostic.parent_id=genesis
 diagnostic.color=b

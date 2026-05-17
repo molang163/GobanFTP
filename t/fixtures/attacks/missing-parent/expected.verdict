@@ -12,6 +12,7 @@ legal_moves=0
 canonical_ids=
 legal_ids=
 diagnostic.code=missing_parent
+diagnostic.class=dag
 diagnostic.event_id=om1iev3gf1oi04vo
 diagnostic.parent_id=9999999999999999
 consensus_inputs=descriptor,events

@@ -17,9 +17,11 @@ my $fixture_dir = "$FindBin::Bin/fixtures/e2e";
 
 my @allowed_fields = qw(
     child_ids code color error event_id expected_color expected_player
-    expected_ply name names parent_id parent_kind player ply reason target_id
-    target_kind
+    expected_ply index name names parent_id parent_kind player ply reason
+    stage target_id target_kind
 );
+
+my @allowed_classes = qw(parse event-id dag rules fork);
 
 my @stdout_fields = qw(
     board canonical_ids canonical_moves event event_id events game
@@ -49,6 +51,30 @@ subtest 'diagnostics document defines emitted fields and secret policy' => sub {
     for my $field (@allowed_fields) {
         like $docs, qr/^\Q$field\E$/m, "field is documented: $field";
     }
+
+    my @schema = _diagnostic_schema($docs);
+    ok @schema, 'diagnostic schema block is documented';
+
+    my %allowed_field = map { $_ => 1 } @allowed_fields;
+    my %allowed_class = map { $_ => 1 } @allowed_classes;
+    my %schema_code;
+    for my $row (@schema) {
+        $schema_code{ $row->{code} } = 1;
+        ok $allowed_class{ $row->{class} }, "schema class is documented: $row->{class}";
+
+        for my $field (@{ $row->{required} }, @{ $row->{optional} }) {
+            ok $allowed_field{$field}, "schema field is allowed: $row->{code}.$field";
+        }
+    }
+
+    for my $code (_known_codes($docs)) {
+        ok $schema_code{$code}, "known diagnostic code has schema: $code";
+    }
+
+    ok grep({ $_->{code} eq 'parse_event' && $_->{selector} eq 'error=event_id.*' && $_->{class} eq 'event-id' } @schema),
+        'parse_event event-id selector is documented';
+    ok grep({ $_->{code} eq 'parse_event' && $_->{selector} eq 'error=*' && $_->{class} eq 'parse' } @schema),
+        'parse_event parse selector is documented';
 };
 
 subtest 'CLI diagnostics use documented fields and do not echo ignored secrets' => sub {
@@ -78,17 +104,19 @@ subtest 'CLI diagnostics use documented fields and do not echo ignored secrets' 
         'diagnostics do not leak ignored sidecar tmp or environment secrets';
 
     my %allowed = map { $_ => 1 } @allowed_fields;
+    my @schema = _diagnostic_schema(_slurp($docs_path));
     for my $line (grep { /^diagnostic / } split /\n/, $stderr) {
         my @pairs = split /\s+/, $line;
         shift @pairs;
 
         my %fields;
         for my $pair (@pairs) {
-            my ($key) = split /=/, $pair, 2;
-            $fields{$key} = 1;
+            my ($key, $value) = split /=/, $pair, 2;
+            $fields{$key} = $value // '';
             ok $allowed{$key}, "diagnostic field is documented: $key";
         }
         ok $fields{code}, 'diagnostic line includes code';
+        _assert_schema_match(\%fields, \@schema);
     }
 };
 
@@ -192,6 +220,90 @@ sub _write_text {
     open my $fh, '>:encoding(UTF-8)', $path or die "write $path: $!";
     print {$fh} $text;
     close $fh or die "close $path: $!";
+}
+
+sub _diagnostic_schema {
+    my ($docs) = @_;
+
+    my ($block) = $docs =~ /^```diagnostic-schema\n(.*?)^```/ms;
+    die 'diagnostic-schema block not found' if !defined $block;
+
+    my @lines = grep { /\S/ } split /\n/, $block;
+    my $header = shift @lines // '';
+    die "bad diagnostic schema header: $header"
+        if $header ne 'code|selector|class|required|optional';
+
+    my @schema;
+    for my $line (@lines) {
+        my ($code, $selector, $class, $required, $optional) = split /\|/, $line, 5;
+        die "bad diagnostic schema line: $line"
+            if !defined($code) || !defined($selector) || !defined($class)
+                || !defined($required) || !defined($optional);
+
+        push @schema, {
+            code     => $code,
+            selector => $selector,
+            class    => $class,
+            required => [_schema_fields($required)],
+            optional => [_schema_fields($optional)],
+        };
+    }
+
+    return @schema;
+}
+
+sub _schema_fields {
+    my ($text) = @_;
+    return () if !defined($text) || $text eq '' || $text eq '-';
+    return split /,/, $text;
+}
+
+sub _known_codes {
+    my ($docs) = @_;
+
+    my ($block) = $docs =~ /Known `code` values include:\n\n```text\n(.*?)\n```/s;
+    die 'known code block not found' if !defined $block;
+    return grep { /\S/ } split /\n/, $block;
+}
+
+sub _assert_schema_match {
+    my ($diagnostic, $schema) = @_;
+
+    my $row = _schema_row($diagnostic, $schema);
+    ok defined($row), "diagnostic code has schema row: $diagnostic->{code}";
+    return if !defined $row;
+
+    for my $field (@{ $row->{required} }) {
+        ok exists($diagnostic->{$field}), "diagnostic includes required field: $field";
+    }
+}
+
+sub _schema_row {
+    my ($diagnostic, $schema) = @_;
+
+    my @candidates = grep { $_->{code} eq ($diagnostic->{code} // '') } @$schema;
+    for my $row (@candidates) {
+        return $row if _selector_matches($diagnostic, $row->{selector});
+    }
+
+    return undef;
+}
+
+sub _selector_matches {
+    my ($diagnostic, $selector) = @_;
+
+    return 1 if !defined($selector) || $selector eq '*';
+
+    if ($selector =~ /\A([a-z_]+)=(.*)\z/) {
+        my ($field, $want) = ($1, $2);
+        my $got = $diagnostic->{$field} // '';
+        return $got =~ /\A\Q$want\E\z/ if $want !~ /\*\z/;
+
+        my $prefix = substr($want, 0, -1);
+        return index($got, $prefix) == 0;
+    }
+
+    return 0;
 }
 
 package LeakyFTP;

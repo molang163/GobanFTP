@@ -12,6 +12,7 @@ legal_moves=2
 canonical_ids=
 legal_ids=o5g8u5cu913nedng,q65v2mhef9t3em7l
 diagnostic.code=fork
+diagnostic.class=fork
 diagnostic.parent_id=genesis
 diagnostic.child_ids=o5g8u5cu913nedng,q65v2mhef9t3em7l
 consensus_inputs=descriptor,events

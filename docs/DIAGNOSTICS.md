@@ -83,6 +83,7 @@ event_id
 expected_color
 expected_player
 expected_ply
+index
 name
 names
 parent_id
@@ -90,6 +91,7 @@ parent_kind
 player
 ply
 reason
+stage
 target_id
 target_kind
 ```
@@ -114,7 +116,51 @@ parent_kind      parsed kind of a bad parent event
 target_kind      parsed kind of a bad ack target event
 reason           rule engine reason string, or an ack target rejection reason
 error            parser, rule, or storage error class
+index            zero-based item index for malformed in-memory replay input
+stage            pipeline stage that produced the diagnostic
 ```
+
+## Diagnostic Schema
+
+The schema below is machine-readable by tests. `selector` refines a code when a
+single code can report different logical classes. `required` and `optional` are
+comma-joined stderr fields. A dash means no fields.
+
+```diagnostic-schema
+code|selector|class|required|optional
+parse_event|error=event_id.*|event-id|code,name,error|-
+parse_event|error=*|parse|code,name,error|-
+parse_game_descriptor|*|parse|code,error|-
+invalid_event_item|*|parse|code,index,stage|-
+event_id_collision|*|event-id|code,event_id,names|-
+missing_parent|*|dag|code,event_id,parent_id|-
+parent_not_move|*|dag|code,event_id,parent_id,parent_kind|-
+cycle|*|dag|code,event_id|-
+dangling_ack_target|*|dag|code,event_id,target_id|-
+ack_target_not_move|*|dag|code,event_id,target_id,target_kind|-
+ack_target_invalid|*|dag|code,target_id,reason,error|-
+wrong_color|*|rules|code,event_id,parent_id,expected_color,color|-
+wrong_player|*|rules|code,event_id,parent_id,color,expected_player,player|-
+wrong_ply|*|rules|code,event_id,parent_id,expected_ply,ply|-
+illegal_move|*|rules|code,event_id,parent_id,reason|-
+parent_not_legal|*|rules|code,event_id,parent_id|-
+ack_wrong_player|*|rules|code,event_id,expected_player,player|-
+rules|*|rules|code,error|-
+fork|*|fork|code,parent_id,child_ids|-
+```
+
+Current classes are:
+
+```text
+parse
+event-id
+dag
+rules
+fork
+```
+
+`storage` and `signature` are reserved v1 diagnostic classes. They are not
+emitted by current `diagnostic ...` replay lines.
 
 Unknown direct move or ack event versions under `events/`, for example `m2.*`,
 are reported as:

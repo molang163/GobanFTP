@@ -53,6 +53,7 @@ events=<normalized-event-count>
 canonical_moves=<count>
 legal_moves=<count>
 diagnostic.code=<code-or-empty>
+diagnostic.class=<class-or-empty>
 diagnostic.error=<error-or-empty>
 consensus_inputs=descriptor,events
 ignored_inputs=<comma-joined-ignored-surfaces>
@@ -64,6 +65,8 @@ Rules:
 - `attack` must match the fixture directory basename.
 - `status` must describe the replay or store outcome, not the attacker's intent.
 - `exit` must match the CLI exit code expected from the primary command.
+- `diagnostic.class` must match the diagnostics schema for the expected
+  diagnostic code, or be empty when the sample has no diagnostic.
 - `consensus_inputs` must stay `descriptor,events` for `GOFTP/1` core replay.
 - `ignored_inputs` names the misleading surfaces that were present but ignored.
 - `note` is explanatory text only. It is not test input.

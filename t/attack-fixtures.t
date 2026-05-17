@@ -19,6 +19,8 @@ use GobanFTP::Listing qw(event_basenames normalize_listing);
 use GobanFTP::Replay qw(replay);
 
 my $fixture_dir = "$FindBin::Bin/fixtures/attacks";
+my $docs_path   = "$FindBin::Bin/../docs/DIAGNOSTICS.md";
+my @diagnostic_schema = _diagnostic_schema(_slurp($docs_path));
 
 my @attacks = grep { -d File::Spec->catdir($fixture_dir, $_) }
     grep { $_ ne '.' && $_ ne '..' }
@@ -41,6 +43,7 @@ for my $attack (@attacks) {
         my $event_set = event_set_root_result(game_descriptor => $game, names => \@raw);
         is $event_set->{event_count}, 0 + $expected->{event_set_count}, 'event-set count';
         is $event_set->{event_set_root}, $expected->{event_set_root}, 'event-set root';
+        _assert_event_set_diagnostics($event_set->{diagnostics}, $expected);
 
         my $result = replay(game_descriptor => $game, events => \@events);
         _assert_replay_result($result, $expected);
@@ -135,17 +138,22 @@ sub _assert_diagnostics {
     my $code = $expected->{'diagnostic.code'} // '';
     if ($code eq '') {
         is_deeply $diagnostics, [], 'no diagnostics';
+        is $expected->{'diagnostic.class'} // '', '', 'no diagnostic class';
         return;
     }
 
+    ok exists($expected->{'diagnostic.class'}), 'diagnostic class is recorded in verdict';
     my ($match) = grep { ($_->{code} // '') eq $code } @$diagnostics;
     ok defined($match), "diagnostic code $code is present";
     return if !defined $match;
 
+    _assert_schema_match($match);
+    is _diagnostic_class($match), $expected->{'diagnostic.class'}, 'diagnostic class';
+
     for my $key (sort keys %$expected) {
         next if $key !~ /\Adiagnostic\.(.+)\z/;
         my $field = $1;
-        next if $field eq 'code';
+        next if $field eq 'code' || $field eq 'class';
         my $want = $expected->{$key};
         if (ref($match->{$field}) eq 'ARRAY') {
             is join(',', @{ $match->{$field} }), $want, "diagnostic $field";
@@ -162,13 +170,30 @@ sub _assert_diagnostic_line {
     my $code = $expected->{'diagnostic.code'};
     like $stderr, qr/^diagnostic .*code=\Q$code\E/m, "CLI diagnostic code $code";
 
+    my $line = (grep { /^diagnostic / && /\bcode=\Q$code\E\b/ } split /\n/, $stderr)[0] // '';
+    my %fields = _diagnostic_line_fields($line);
+    _assert_schema_match(\%fields);
+    is _diagnostic_class(\%fields), $expected->{'diagnostic.class'}, 'CLI diagnostic class';
+
     for my $key (sort keys %$expected) {
         next if $key !~ /\Adiagnostic\.(.+)\z/;
         my $field = $1;
-        next if $field eq 'code';
+        next if $field eq 'code' || $field eq 'class';
         my $want = $expected->{$key};
         like $stderr, qr/^diagnostic .*\Q$field=$want\E/m, "CLI diagnostic $field";
     }
+}
+
+sub _assert_event_set_diagnostics {
+    my ($diagnostics, $expected) = @_;
+
+    my $code = $expected->{'diagnostic.code'} // '';
+    if ($code ne 'parse_event') {
+        is_deeply $diagnostics, [], 'event-set root has no rejected-name diagnostics';
+        return;
+    }
+
+    _assert_diagnostics($diagnostics, $expected);
 }
 
 sub _materialize_local_game {
@@ -313,4 +338,102 @@ sub _write_text {
     open my $fh, '>:encoding(UTF-8)', $path or die "write $path: $!";
     print {$fh} $text;
     close $fh or die "close $path: $!";
+}
+
+sub _diagnostic_line_fields {
+    my ($line) = @_;
+
+    my @pairs = split /\s+/, $line;
+    shift @pairs if @pairs && $pairs[0] eq 'diagnostic';
+
+    my %fields;
+    for my $pair (@pairs) {
+        my ($key, $value) = split /=/, $pair, 2;
+        $fields{$key} = $value // '' if defined $key;
+    }
+
+    return %fields;
+}
+
+sub _diagnostic_schema {
+    my ($docs) = @_;
+
+    my ($block) = $docs =~ /^```diagnostic-schema\n(.*?)^```/ms;
+    die 'diagnostic-schema block not found' if !defined $block;
+
+    my @lines = grep { /\S/ } split /\n/, $block;
+    my $header = shift @lines // '';
+    die "bad diagnostic schema header: $header"
+        if $header ne 'code|selector|class|required|optional';
+
+    my @schema;
+    for my $line (@lines) {
+        my ($code, $selector, $class, $required, $optional) = split /\|/, $line, 5;
+        die "bad diagnostic schema line: $line"
+            if !defined($code) || !defined($selector) || !defined($class)
+                || !defined($required) || !defined($optional);
+
+        push @schema, {
+            code     => $code,
+            selector => $selector,
+            class    => $class,
+            required => [_schema_fields($required)],
+            optional => [_schema_fields($optional)],
+        };
+    }
+
+    return @schema;
+}
+
+sub _schema_fields {
+    my ($text) = @_;
+    return () if !defined($text) || $text eq '' || $text eq '-';
+    return split /,/, $text;
+}
+
+sub _assert_schema_match {
+    my ($diagnostic) = @_;
+
+    my $row = _schema_row($diagnostic);
+    ok defined($row), "diagnostic code has schema row: $diagnostic->{code}";
+    return if !defined $row;
+
+    for my $field (@{ $row->{required} }) {
+        ok exists($diagnostic->{$field}), "diagnostic includes required field: $field";
+    }
+}
+
+sub _diagnostic_class {
+    my ($diagnostic) = @_;
+
+    my $row = _schema_row($diagnostic);
+    return defined($row) ? $row->{class} : undef;
+}
+
+sub _schema_row {
+    my ($diagnostic) = @_;
+
+    my @candidates = grep { $_->{code} eq ($diagnostic->{code} // '') } @diagnostic_schema;
+    for my $row (@candidates) {
+        return $row if _selector_matches($diagnostic, $row->{selector});
+    }
+
+    return undef;
+}
+
+sub _selector_matches {
+    my ($diagnostic, $selector) = @_;
+
+    return 1 if !defined($selector) || $selector eq '*';
+
+    if ($selector =~ /\A([a-z_]+)=(.*)\z/) {
+        my ($field, $want) = ($1, $2);
+        my $got = $diagnostic->{$field} // '';
+        return $got =~ /\A\Q$want\E\z/ if $want !~ /\*\z/;
+
+        my $prefix = substr($want, 0, -1);
+        return index($got, $prefix) == 0;
+    }
+
+    return 0;
 }

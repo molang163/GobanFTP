@@ -12,6 +12,7 @@ legal_moves=0
 canonical_ids=
 legal_ids=
 diagnostic.code=parse_event
+diagnostic.class=parse
 diagnostic.name=m2.future-version
 diagnostic.error=event.version
 consensus_inputs=descriptor,events

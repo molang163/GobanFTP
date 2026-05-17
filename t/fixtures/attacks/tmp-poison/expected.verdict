@@ -12,6 +12,7 @@ legal_moves=3
 canonical_ids=khjclcui7pejbv3m,bihb3re4k9hlucat,kcvtlonfje163p9q
 legal_ids=khjclcui7pejbv3m,bihb3re4k9hlucat,kcvtlonfje163p9q
 diagnostic.code=
+diagnostic.class=
 consensus_inputs=descriptor,events
 ignored_inputs=tmp
 note=temporary publish debris is outside replay
