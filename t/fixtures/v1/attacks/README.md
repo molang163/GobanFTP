@@ -16,9 +16,10 @@ expected.verdict
 The verdict names the attacked profile, the baseline profile, the expected
 accepted event set root, replay status, canonical ids, legal ids, diagnostic
 classes, ignored inputs, and the public judgment for the specimen.
-`webdav-metadata-poison` and `git-tree-path-metadata-poison` are also promoted
-into `t/fixtures/vectors/v1-non-consensus-poison.jsonl` as public
-baseline/poison golden vectors.
+`webdav-metadata-poison`, `dns-owner-poison`, and
+`git-tree-path-metadata-poison` are also promoted into
+`t/fixtures/vectors/v1-non-consensus-poison.jsonl` as public baseline/poison
+golden vectors.
 
 Current specimens:
 

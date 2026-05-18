@@ -155,6 +155,11 @@ The DNS specimen `dns-owner-poison` attacks TXT records that carry tempting
 noise, sidecar records, non-TXT records, and duplicate answers. The expected
 witness remains the current-game one-event baseline; a wrong-owner event that
 enters the accepted set changes the root and fails the fixture.
+It is also promoted into
+`t/fixtures/vectors/v1-non-consensus-poison.jsonl` as
+`dns-owner-poison-public-vector`, binding the real fixture `input_names` to
+unchanged event-set preimage, root, replay, board, projection, and SGF truth.
+This is evidence for the record-listing normalization boundary only.
 
 The Git-tree specimen `git-tree-path-metadata-poison` attacks commit metadata,
 refs, tags, remotes, mode, object id, object type, object size, `tmp/`, sidecar,

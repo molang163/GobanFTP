@@ -225,6 +225,11 @@ Key completed boundaries:
   The boundary does not include live DNS, AXFR, DNSSEC trust, provider APIs,
   dynamic update, record publishing, or consensus use of TTL, order, cache age,
   DNSSEC status, or provider metadata.
+- `dns-owner-poison` is now promoted into
+  `t/fixtures/vectors/v1-non-consensus-poison.jsonl` as
+  `dns-owner-poison-public-vector`, binding the real fixture input names to
+  unchanged event-set preimage, root, replay, board, projection text, and SGF
+  truth.
 - The P14a release-gate dry run predates the later Git-tree and DNS-record
   runtime read admissions. Treat it as historical evidence, not as the final
   release matrix for the current HEAD. The next release-route proof slice must
@@ -234,17 +239,22 @@ Key completed boundaries:
 
 ## Last Verified
 
-Latest verification after promoting the Git-tree public non-consensus poison
-vector:
+Latest verification after promoting the DNS owner-poison public non-consensus
+poison vector:
 
 ```text
-prove -lr t/v1-golden-vectors.t t/v1-profile-attack-fixtures.t
+git diff --check
+perl -MExtUtils::Manifest=fullcheck -e 'fullcheck()'
+prove -lr t/v1-golden-vectors.t t/v1-profile-attack-fixtures.t \
+  t/v1-cross-substrate.t t/store-dns-record.t t/dns-cli-parity.t
+prove -lr t
 ```
 
 Result:
 
 ```text
-Files=2, Tests=120, all successful.
+Targeted: Files=5, Tests=133, all successful.
+Full: Files=73, Tests=991, all successful.
 ```
 
 Earlier verification after expanding v1 replay-invariant behavior vectors:
@@ -374,12 +384,12 @@ after entering v1.0/P14 development:
   pretend a normal basename collision exists unless a real GOFTP/1 hash
   collision passes filename verification
 - `t/fixtures/vectors/v1-non-consensus-poison.jsonl` now carries public
-  baseline/poison vectors for `webdav-metadata-poison` and
+  baseline/poison vectors for `webdav-metadata-poison`, `dns-owner-poison`, and
   `git-tree-path-metadata-poison`, binding them to real fixture listings and
   proving ignored evidence leaves event-set preimage, root, replay, board,
   projection text, and SGF truth unchanged
-- next proof slice should expand public non-consensus poison vectors across the
-  remaining core and profile attack specimens
+- next proof slice should expand any remaining public non-consensus poison
+  coverage across core and profile attack specimens
 - continue the P14 claim audit for the admitted read boundaries now present at
   HEAD, especially `git-tree-goftp1` and `dns-record-goftp1`
 - that slice must not add or claim Git publish, live DNS, AXFR, DNSSEC trust,

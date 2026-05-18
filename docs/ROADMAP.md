@@ -24,13 +24,13 @@ diagnostics, and rendered projection text, and replay-invariant vectors now
 cover ordinary rule, DAG, ACK, terminal, malformed, and ack-assisted fork
 behavior. Event-id collision is now covered as a synthetic DAG-boundary vector,
 not as an ordinary basename collision claim. Public non-consensus poison
-vectors now bind baseline/poison witness pairs to the WebDAV metadata-poison
-and Git-tree path/metadata-poison fixtures, including real fixture
-`input_names` and unchanged event-set preimage, root, replay, board,
-projection, and SGF truth. The next proof slice should expand that poison
-vector set across the remaining core and profile specimens. This is not Git
-publish, Git remote fetch, live DNS, DNS publish, hosted Web UI, interactive
-TUI, or a v1.0/P14 completion claim.
+vectors now bind baseline/poison witness pairs to the WebDAV metadata-poison,
+DNS owner-poison, and Git-tree path/metadata-poison fixtures, including real
+fixture `input_names` and unchanged event-set preimage, root, replay, board,
+projection, and SGF truth. The next proof slice should continue the claim audit
+and expand any remaining poison coverage outside these public profile rows.
+This is not Git publish, Git remote fetch, live DNS, DNS publish, hosted Web UI,
+interactive TUI, or a v1.0/P14 completion claim.
 
 ## Cross-Cutting Acceptance: Elegance Without Obscurity
 
@@ -477,11 +477,11 @@ matrix, generated artifact list, skipped gates, and manifest-skip correction.
 It is a release-route checkpoint, not a v1.0 tag or P14 completion claim.
 The final artifact identity and tag preconditions are tracked in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
-The immediate follow-up is to expand the public non-consensus poison vector set
-and continue the P14 claim audit around the read-only Git-tree and DNS-record
-runtime admissions, not to add Git publish, live DNS, AXFR, DNSSEC trust,
-provider APIs, dynamic update, DNS publish, hosted Web UI, interactive TUI, or a
-v1.0/P14 completion claim.
+The immediate follow-up is to continue the P14 claim audit around the read-only
+Git-tree and DNS-record runtime admissions and expand any remaining public
+non-consensus poison coverage, not to add Git publish, live DNS, AXFR, DNSSEC
+trust, provider APIs, dynamic update, DNS publish, hosted Web UI, interactive
+TUI, or a v1.0/P14 completion claim.
 
 Acceptance:
 

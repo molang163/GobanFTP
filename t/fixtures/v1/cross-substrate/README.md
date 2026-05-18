@@ -21,7 +21,9 @@ and `projections/`. `git-tree-goftp1` uses Git-like tree entries with mode,
 object id, type, and path metadata; only the path component may expose direct
 `events/<event-basename>` children. `dns-record-goftp1` uses one synthetic DNS
 record row per line. The harness extracts event basenames from the declared TXT
-`event=` value and ignores TTL, owner names, answer order, and non-TXT records.
+`event=` value only when the owner belongs to the current game descriptor.
+Wrong or missing owners cannot inject events; TTL, answer order, and non-TXT
+records remain outside witness truth.
 `webdav-goftp1` uses one synthetic PROPFIND resource row per line. The harness
 extracts direct event basenames from `href` path segments and ignores ETag,
 Last-Modified, Content-Length, Content-Type, sidecar resources, collection rows,

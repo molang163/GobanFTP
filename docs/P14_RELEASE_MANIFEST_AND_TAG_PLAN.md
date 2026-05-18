@@ -285,6 +285,7 @@ hosted Web UI is complete
 interactive mouse/keyboard TUI is complete
 Git publish support is implemented
 live DNS / AXFR / DNSSEC trust / provider API support is implemented
+DNS dynamic update or DNS record publishing is implemented
 production key lifecycle is complete
 publish authentication policy is complete
 final scoring/result events are part of GOFTP/1
