@@ -32,6 +32,9 @@ Revision history for GobanFTP
   - Reworked the README into a release-shaped showcase entrypoint while keeping
     `v0.1`, `v1.0/P14`, signed-HMAC, WebDAV, and deferred-surface boundaries
     explicit.
+  - Added a signed-HMAC injected-event fixture proving an unsigned event with a
+    valid filename event id is rejected by the signed profile gate while the
+    accepted signed chain keeps the same root, replay, board, and SGF.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

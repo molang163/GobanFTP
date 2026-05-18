@@ -84,6 +84,47 @@ subtest 'v1 witness verifies signed-HMAC fixture attestations' => sub {
     like $stdout, qr/^rejected_count=0$/m, 'has no signed rejection';
 };
 
+subtest 'v1 witness rejects signed-HMAC event injection without changing accepted truth' => sub {
+    my $fixture = File::Spec->catdir($signed_dir, 'injected-event');
+    my $attestations = File::Spec->catfile(
+        $fixture,
+        'signed-hmac-goftp1',
+        'attestations.jsonl',
+    );
+
+    my ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'signed-hmac-goftp1',
+        '--fixture', $fixture,
+        '--attestations', $attestations,
+        '--trusted-hmac-key', "fixture-key-1=$fixture_key",
+    );
+
+    is $exit, 2, 'signed injection exits validation failure';
+    like $stdout, qr/^gobanftp\.v1\.witness=failed$/m, 'status is failed';
+    like $stdout, qr/^raw_count=10$/m, 'prints hostile raw listing count';
+    like $stdout, qr/^normalized_count=4$/m, 'normalizes the injected event';
+    like $stdout, qr/^attestation_count=3$/m, 'attestation count stays at the signed baseline';
+    like $stdout, qr/^trusted_hmac_key_ids=fixture-key-1$/m, 'prints public trusted key selector';
+    like $stdout, qr/^accepted_count=3$/m, 'accepts the valid signed chain';
+    like $stdout, qr/^rejected_count=1$/m, 'rejects only the unsigned injection';
+    like $stdout, qr/^rejected_codes=missing_signature$/m, 'prints missing-signature rejection';
+    like $stdout, qr/^rejected_classes=signature$/m, 'prints signature rejection class';
+    like $stdout,
+        qr/^event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461$/m,
+        'accepted event_set_root matches valid baseline';
+    like $stdout, qr/^replay_status=ok$/m, 'accepted signed set still replays';
+    like $stdout,
+        qr/^canonical_ids=khjclcui7pejbv3m,bihb3re4k9hlucat,kcvtlonfje163p9q$/m,
+        'canonical ids match valid baseline';
+    like $stdout, qr/^signature\.status=failed$/m, 'signature status is failed';
+    like $stderr, qr/^diagnostic .*code=missing_signature/m, 'diagnostic code is on stderr';
+    like $stderr, qr/\bname=m1[.]p000004[.]w[.]play-cc[.]pa-kcvtlonfje163p9q[.]by-bob[.]n-inject1[.]h-nr55esqpd0ika4bt\b/,
+        'diagnostic names the injected event';
+    like $stderr, qr/\bevent_id=nr55esqpd0ika4bt\b/, 'diagnostic reports injected event id';
+    unlike $stdout . $stderr, qr/\Q$fixture_key\E/, 'HMAC secret is never printed';
+};
+
 subtest 'v1 witness reports signed-HMAC gate failures as diagnostics' => sub {
     my $fixture = File::Spec->catdir($signed_dir, 'wrong-signature');
     my $attestations = File::Spec->catfile(

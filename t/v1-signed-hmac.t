@@ -27,6 +27,9 @@ my @minimal_events = qw(
     m1.p000003.b.pass.pa-bihb3re4k9hlucat.by-alice.n-chain3.h-kcvtlonfje163p9q
 );
 
+my $injected_event =
+    'm1.p000004.w.play-cc.pa-kcvtlonfje163p9q.by-bob.n-inject1.h-nr55esqpd0ika4bt';
+
 my $minimal_root = '599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461';
 my $empty_root   = 'c8bdfd7e8dc55bdef0a4571923d9ae370c876aa106ad666d125f8151dc05185d';
 
@@ -48,6 +51,40 @@ subtest 'signed-hmac-goftp1 accepts only valid HMAC-attested events' => sub {
     is $witness->{canonical_tip}, 'kcvtlonfje163p9q', 'canonical tip comes from signed events';
     is_deeply $witness->{diagnostic_classes}, [], 'no replay diagnostics';
     _assert_every_accepted_event_has_attestation($witness, $attestations);
+};
+
+subtest 'signed-HMAC rejects an unsigned event injection without changing accepted truth' => sub {
+    my ($baseline) = _witness_for_case('valid', 'signed-hmac-goftp1');
+    my ($witness)  = _witness_for_case('injected-event', 'signed-hmac-goftp1');
+
+    is $witness->{normalized_count}, 4, 'normalizes the signed chain plus injected event';
+    ok grep({ $_ eq $injected_event } @{ $witness->{normalized_events} }),
+        'the injected event reaches the signed profile gate';
+    is $witness->{accepted_count}, 3, 'accepts only the valid signed chain';
+    is_deeply $witness->{accepted_events}, \@minimal_events,
+        'accepted events ignore the unsigned injection';
+    is_deeply $witness->{accepted_events}, $baseline->{accepted_events},
+        'accepted events match valid baseline';
+    is $witness->{event_set_root}, $baseline->{event_set_root}, 'event_set_root matches valid baseline';
+    is $witness->{canonical_tip}, $baseline->{canonical_tip}, 'canonical tip matches valid baseline';
+    is_deeply $witness->{canonical_ids}, $baseline->{canonical_ids},
+        'canonical ids match valid baseline';
+    is_deeply $witness->{legal_ids}, $baseline->{legal_ids}, 'legal ids match valid baseline';
+    is $witness->{board_hash}, $baseline->{board_hash}, 'board hash matches valid baseline';
+    is $witness->{sgf_hash}, $baseline->{sgf_hash}, 'SGF hash matches valid baseline';
+    is $witness->{variations_sgf_hash}, $baseline->{variations_sgf_hash},
+        'variations SGF hash matches valid baseline';
+    is $witness->{rejected_count}, 1, 'records the injected event rejection';
+    is_deeply $witness->{rejected_codes}, ['missing_signature'],
+        'records stable missing-signature code';
+    is_deeply $witness->{rejected_classes}, ['signature'],
+        'maps injection rejection to signature class';
+    is $witness->{rejected_diagnostics}[0]{name}, $injected_event,
+        'diagnostic names the injected event';
+    is $witness->{rejected_diagnostics}[0]{event_id}, 'nr55esqpd0ika4bt',
+        'diagnostic records the injected event id';
+    is $witness->{replay_status}, 'ok', 'accepted signed chain still replays';
+    is_deeply $witness->{diagnostic_classes}, [], 'replay diagnostics remain clean';
 };
 
 my @negative_cases = (

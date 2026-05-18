@@ -109,7 +109,7 @@ for my $vector (@vectors) {
     };
 }
 
-for my $case (qw(valid missing-signature wrong-signature payload-mismatch game-descriptor-mismatch untrusted-key-id malformed-signature)) {
+for my $case (qw(valid injected-event missing-signature wrong-signature payload-mismatch game-descriptor-mismatch untrusted-key-id malformed-signature)) {
     ok $seen_id{"signed-hmac-$case"}, "$case signed-HMAC vector is present";
 }
 

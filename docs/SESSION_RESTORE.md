@@ -14,7 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
-- docs: rewrite README as P14 showcase entrypoint
+- test: add signed HMAC injected event fixture
 ```
 
 Confirm the latest commit with `git log --oneline -5` when resuming.
@@ -22,6 +22,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD test: add signed HMAC injected event fixture
 HEAD docs: rewrite README as P14 showcase entrypoint
 81e0fee test: add dns owner poison profile attack
 c763103 test: add bad mtime attack fixture
@@ -39,13 +40,17 @@ fc7f6a2 test: add WebDAV href traversal attack fixture
 
 Key completed boundaries:
 
+- `signed-hmac-goftp1` now has an injected-event fixture: an event basename with
+  a valid filename event id reaches the signed profile gate, is rejected for
+  `missing_signature`, and the accepted signed chain keeps the same root,
+  replay, board, and SGF as the valid baseline.
 - README is now a release-shaped showcase entrypoint: it opens with the hard
   GOFTP/1 contract, three-minute proof path, shrine/race demonstration, current
   implemented surfaces, proof gates, and the `v1.0/P14` release-freeze shape
   without claiming P14 is already tagged.
-- `signed-hmac-goftp1` now has golden-vector fixtures for valid, missing,
-  wrong, payload-mismatched, game-descriptor-mismatched, untrusted, and
-  malformed attestations.
+- `signed-hmac-goftp1` now has golden-vector fixtures for valid,
+  injected-event, missing, wrong, payload-mismatched, game-descriptor-mismatched,
+  untrusted, and malformed attestations.
 - CLI witness covers signed-HMAC failure status, stable signature diagnostics,
   and HMAC secret redaction.
 - WebDAV profile attack fixtures cover metadata poison and href traversal.
@@ -67,17 +72,18 @@ Key completed boundaries:
 
 ## Last Verified
 
-After the README showcase rewrite, these passed:
+After the signed-HMAC injected-event fixture, these passed:
 
 ```text
 git diff --check
+prove -lr t/v1-signed-hmac.t t/v1-cli-witness.t t/v1-signed-hmac-golden-vectors.t
 prove -lr t
 ```
 
 Full test result:
 
 ```text
-Files=62, Tests=845, all successful.
+Files=62, Tests=849, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -99,8 +105,8 @@ Immediate next implementation:
 ```text
 after showing the README, continue the v1.0 route:
 - pick the next small proof gate by multi-agent discussion
-- likely candidates are another P10 profile attack fixture, P11 witness compare
-  hardening, or a first P12 signed/auth key-lifecycle CLI/documentation slice
+- likely candidates are a P10 `git-tree-goftp1` path/metadata poison profile
+  attack fixture or a first narrow P12 key lifecycle slice
 - keep every change behavior-tested and update Changes plus this restore file
 ```
 
@@ -109,7 +115,7 @@ Likely files:
 ```text
 t/fixtures/v1/attacks/
 t/v1-profile-attack-fixtures.t
-lib/GobanFTP/Witness.pm
+lib/GobanFTP/Profile/Adapter.pm
 script/gobanftp
 Changes
 docs/SESSION_RESTORE.md
@@ -122,6 +128,6 @@ When resuming:
 1. Read `AGENTS.md`.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `docs: rewrite README as P14 showcase entrypoint`.
+4. Confirm HEAD includes `test: add signed HMAC injected event fixture`.
 5. If the user asks to continue, open multi-agent discussion first, then choose
    one small executable step.

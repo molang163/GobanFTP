@@ -1,0 +1,10 @@
+events/m1.p000003.b.pass.pa-bihb3re4k9hlucat.by-alice.n-chain3.h-kcvtlonfje163p9q
+sidecar/signed-hmac/chain1.attestation.json
+tmp/pending.part
+events/m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m/child
+events/m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m
+events/m1.p000004.w.play-cc.pa-kcvtlonfje163p9q.by-bob.n-inject1.h-nr55esqpd0ika4bt
+events/m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat
+sidecar/signed-hmac/injected.attestation.json
+sidecar/signed-hmac/chain2.attestation.json
+sidecar/signed-hmac/chain3.attestation.json

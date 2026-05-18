@@ -440,6 +440,9 @@ t/fixtures/v1/attacks/webdav-metadata-poison/webdav-goftp1/listing.names
 t/fixtures/v1/signed-hmac/game-descriptor-mismatch/game.name
 t/fixtures/v1/signed-hmac/game-descriptor-mismatch/signed-hmac-goftp1/attestations.jsonl
 t/fixtures/v1/signed-hmac/game-descriptor-mismatch/signed-hmac-goftp1/listing.names
+t/fixtures/v1/signed-hmac/injected-event/game.name
+t/fixtures/v1/signed-hmac/injected-event/signed-hmac-goftp1/attestations.jsonl
+t/fixtures/v1/signed-hmac/injected-event/signed-hmac-goftp1/listing.names
 t/fixtures/v1/signed-hmac/malformed-signature/game.name
 t/fixtures/v1/signed-hmac/malformed-signature/signed-hmac-goftp1/attestations.jsonl
 t/fixtures/v1/signed-hmac/malformed-signature/signed-hmac-goftp1/listing.names
