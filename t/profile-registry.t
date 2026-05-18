@@ -41,10 +41,10 @@ my %expected = (
         auth_stance    => 'unsigned',
     },
     'dns-record-goftp1' => {
-        profile_status => 'planned',
-        substrate      => 'DNS-like record fixture',
+        profile_status => 'implemented',
+        substrate      => 'DNS-like declared record set',
         adapter_id     => 'dns-record-listing-goftp1',
-        adapter_status => 'read-normalizer',
+        adapter_status => 'implemented-read-only',
         auth_stance    => 'unsigned',
     },
     'webdav-goftp1' => {

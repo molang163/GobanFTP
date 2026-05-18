@@ -88,6 +88,7 @@ lib/GobanFTP/
   Store/Local.pm    local filesystem backend
   Store/FTP.pm      FTP backend
   Store/GitTree.pm  read-only Git tree backend
+  Store/DNSRecord.pm read-only DNS-like record-set backend
   Store/WebDAV.pm   WebDAV backend
   Surface/WitnessView.pm witness/projection-only inspection renderer
   SGF.pm            SGF export
@@ -151,13 +152,16 @@ mkdir(path)
 exists_name(path, name)
 ```
 
-`Store::Local`, `Store::FTP`, `Store::GitTree`, and `Store::WebDAV` are
-implemented behind the same interface. Local replay remains the simplest
-debugging path; FTP, Git tree, and WebDAV tests should preserve the same
-listing-first behavior instead of adding server-metadata dependencies. FTP
-publishes through `tmp/` plus `RNTO`; Git tree is read-only and enumerates a
-declared tree snapshot; WebDAV publishes through a zero-byte `tmp/` resource
-plus `MOVE` and confirms with a fresh `PROPFIND Depth: 1`.
+`Store::Local`, `Store::FTP`, `Store::GitTree`, `Store::DNSRecord`, and
+`Store::WebDAV` are implemented behind the same interface. Local replay remains
+the simplest debugging path; FTP, Git tree, DNS record admission, and WebDAV
+tests should preserve the same listing-first behavior instead of adding
+server-metadata dependencies. FTP publishes through `tmp/` plus `RNTO`; Git
+tree is read-only and enumerates a declared tree snapshot; DNS record admission
+is read-only over a local or otherwise declared record file and does not perform
+live DNS, AXFR, DNSSEC trust evaluation, provider API access, dynamic update, or
+publish; WebDAV publishes through a zero-byte `tmp/` resource plus `MOVE` and
+confirms with a fresh `PROPFIND Depth: 1`.
 
 `get(path)` may exist for sidecars and diagnostics, but it must not be required
 for core replay.

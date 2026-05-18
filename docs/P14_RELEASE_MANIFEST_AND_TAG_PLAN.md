@@ -266,8 +266,8 @@ Allowed v1.0 development claims after the final matrix passes:
 GOFTP/1 descriptor and direct events/ basenames remain authoritative
 event ids remain filename-context derived
 event_set_root is stable across accepted event basenames
-local, FTP, and WebDAV runtime stores are implemented
-Git-like and DNS-like fixture/read-normalizer proofs are present
+local, FTP, Git-tree, DNS-record, and WebDAV runtime read paths are implemented
+Git-like and DNS-like fixture/read-normalizer proofs remain present
 signed-hmac-goftp1 has an explicit per-event HMAC acceptance gate
 public key and trust fixture reports are advisory outside signed profiles
 text, static HTML, and static terminal witness surfaces are read-only displays
@@ -283,8 +283,8 @@ v1.0 is complete
 P14 is complete
 hosted Web UI is complete
 interactive mouse/keyboard TUI is complete
-Git runtime store is implemented
-DNS runtime store is implemented
+Git publish support is implemented
+live DNS / AXFR / DNSSEC trust / provider API support is implemented
 production key lifecycle is complete
 publish authentication policy is complete
 final scoring/result events are part of GOFTP/1

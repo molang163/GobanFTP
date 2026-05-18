@@ -137,9 +137,9 @@ resource path, or display label.
 
 Unsigned `GOFTP/1` remains unchanged. Baseline profiles do not read signatures,
 HMACs, bearer tokens, sidecar claims, or key metadata as replay input. For
-`local-goftp1`, `ftp-goftp1`, `git-tree-goftp1`, `webdav-goftp1`, and the
-planned unsigned DNS substrate profile, sidecar signatures are still ignored
-input and may only be shown as advisory attestations.
+`local-goftp1`, `ftp-goftp1`, `git-tree-goftp1`, `dns-record-goftp1`, and
+`webdav-goftp1`, sidecar signatures are still ignored input and may only be
+shown as advisory attestations.
 
 Auth material has three separate meanings:
 
@@ -496,17 +496,20 @@ GOBANFTP_FTP_TEST=1 prove -l t/store-ftp.t t/ftp-live-flow.t
 ## Additional Profiles
 
 The profiles below are v1.0 substrate targets beyond local and FTP. Git now has
-a read-only runtime store boundary and CLI parity tests. DNS remains a planned
-read-normalizer. WebDAV has a runtime store boundary, publish semantics, mock
-store tests, and CLI parity tests; live credentials are still deliberately
-outside the default test suite.
+a read-only runtime store boundary and CLI parity tests. DNS has a read-only
+runtime record-file store boundary over local or otherwise declared record
+sets; it is not a live DNS transport or publishing backend. WebDAV has a
+runtime store boundary, publish semantics, mock store tests, and CLI parity
+tests; live credentials are still deliberately outside the default test suite.
 
 The production registry names these profiles so witness fixtures can compare
 substrates through one API. `GobanFTP::Profile::Adapter` continues to normalize
 fixture-like Git, DNS, and WebDAV listing presentations into visible names.
 Runtime store admission is separate: Git is implemented as a read-only runtime
-store, while DNS remains planned until it has an adapter/store boundary,
-enumeration semantics, fixtures, and smoke commands.
+store, while DNS is admitted only as a read-only record-file store boundary.
+DNS admission reads the declared record-set presentation from
+`GOBANFTP_DNS_RECORD_FILE` and never performs live lookups, AXFR, DNSSEC trust
+evaluation, provider API calls, dynamic zone updates, or publication.
 
 ### `git-tree-goftp1`
 
@@ -595,7 +598,8 @@ GOBANFTP_STORE=git-tree GOBANFTP_GIT_REPO=<repo> perl -Ilib script/gobanftp veri
 Status:
 
 ```text
-planned
+implemented
+runtime writes: read-only
 ```
 
 Consensus version:
@@ -607,7 +611,7 @@ GOFTP-PROFILE/dns-record-goftp1/1
 Substrate:
 
 ```text
-DNS-like enumerable record set
+DNS-like local or declared record file
 ```
 
 Authoritative inputs:
@@ -625,7 +629,10 @@ record order
 answer order
 resolver cache age
 authoritative server identity
-DNSSEC status unless a signed profile declares it authoritative
+DNSSEC status
+DNSSEC trust chain or validation result
+live DNS response metadata
+zone/provider API metadata
 record type outside the profile declaration
 presentation whitespace
 ```
@@ -633,7 +640,7 @@ presentation whitespace
 Read algorithm:
 
 ```text
-enumerate the declared record set
+read the local or otherwise declared record set from GOBANFTP_DNS_RECORD_FILE
 extract event basename strings from the declared label/value slot
 lowercase DNS presentation names before decoding
 reject any label encoding that cannot round-trip to one GOFTP/1 ASCII basename
@@ -643,22 +650,39 @@ normalize and verify GOFTP/1 event basenames
 Publish algorithm:
 
 ```text
-planned: publish one record carrying the event basename through the zone update mechanism
-visibility is the next enumerated record set, not TTL or answer order
+read-only in the current runtime admission
+create-game, publish-move, publish-ack, provider API calls, dynamic DNS update,
+AXFR, and zone-file writes are outside this profile
+future DNS publish semantics require a separate explicit profile or revision
+and must not make TTL, answer order, cache state, DNSSEC trust, or provider
+metadata replay inputs
 ```
 
 Auth stance:
 
 ```text
-zone credentials protect publishing only
-DNSSEC is advisory unless a signed profile says otherwise
+DNSSEC and zone/provider credentials are advisory or operational metadata only
+unsigned GOFTP/1 replay remains valid
+any future DNSSEC trust story requires a separate profile id or revision and is
+outside `dns-record-goftp1`
 ```
 
 Required fixtures:
 
 ```text
-t/fixtures/profiles/dns-record-goftp1/
-t/fixtures/attacks/dns-record-goftp1/
+t/profile-adapter.t
+t/profile-registry.t
+t/store-dns-record.t
+t/dns-cli-parity.t
+t/v1-cross-substrate.t
+t/v1-profile-attack-fixtures.t
+t/fixtures/v1/cross-substrate/*/dns-record-goftp1/listing.names
+t/fixtures/v1/attacks/dns-owner-poison/dns-record-goftp1/listing.names
+GOBANFTP_DNS_OWNER_SUFFIX=<optional-owner-suffix>
+GOBANFTP_STORE=dns-record GOBANFTP_DNS_RECORD_FILE=<record-file> \
+  perl -Ilib script/gobanftp verify <game>
+perl -Ilib script/gobanftp v1 witness --profile dns-record-goftp1 \
+  --fixture <fixture-dir>
 ```
 
 ### `webdav-goftp1`

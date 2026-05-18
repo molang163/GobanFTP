@@ -325,9 +325,10 @@ Reason:
 - unsigned `GOFTP/1` and baseline profiles can move out of test-only harnesses
   without changing event filename grammar, event id preimages, DAG replay, rules,
   SGF, or projection semantics
-- Git and DNS are useful v1.0 proof fixtures as read-normalizers and remain
-  planned until full adapter/store and publish contracts exist; WebDAV has an
-  admitted runtime store while its fixture read-normalizer remains part of the
+- Git and DNS are useful v1.0 proof fixtures as read-normalizers; both now have
+  read-only runtime admission, while DNS publish, live DNS, AXFR, DNSSEC trust,
+  and provider APIs remain outside the current profile. WebDAV has an admitted
+  runtime store while its fixture read-normalizer remains part of the
   cross-substrate witness matrix
 - bad event-looking basenames must still reach replay diagnostics even if the
   event-set root gate rejects them, because rejected truth should be visible

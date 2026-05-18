@@ -13,7 +13,12 @@ The v1.0 route is to turn that boundary into a proof machine: explicit
 profiles, adapter contracts, hostile fixtures, cross-system witnesses, optional
 signed/auth profiles, and reader-facing surfaces. WebDAV is the first admitted
 non-FTP write-capable runtime store on that route, and Git tree is admitted as a
-read-only runtime store. `GOFTP/1` remains unchanged.
+read-only runtime store. DNS record admission is read-only over local or
+otherwise declared record files, with no live DNS, AXFR, DNSSEC trust, provider
+API, dynamic update, or publish path. `GOFTP/1` remains unchanged.
+
+The next route work is golden-vector expansion and P14 claim audit: prove the
+newly admitted boundaries without declaring the v1.0/P14 freeze complete.
 
 ## Cross-Cutting Acceptance: Elegance Without Obscurity
 
@@ -279,8 +284,8 @@ Tasks:
   descriptor grammar, event filename grammar, event id preimages, DAG replay,
   rule legality, SGF export, or projection rebuilding
 - use WebDAV as the first non-FTP write-capable runtime store, admit Git tree
-  as read-only runtime evidence, then add the remaining named v1.0 profiles
-  behind the same adapter contract
+  as read-only runtime evidence, and admit DNS only as read-only local/declared
+  record-file evidence behind the same adapter contract
 - require any profile that needs different consensus inputs to declare a new
   profile or protocol version instead of changing `GOFTP/1`
 
@@ -328,6 +333,10 @@ Acceptance:
 Current implemented proof: `webdav-publish-failure` covers existing-final
 idempotence, delayed WebDAV `MOVE` visibility, hard `HTTP 423 Locked` publish
 failure, zero-byte temporary payloads, retry bounds, and tmp debris exclusion.
+DNS record admission has no publish-failure class yet because it has no publish
+path. `t/store-dns-record.t` and `t/dns-cli-parity.t` cover local record-file
+read admission and read-only publish rejection; TTL, order, cache, DNSSEC, live
+DNS, AXFR, and provider API behavior must stay outside consensus claims.
 
 ## P11: Cross-System Witness And `event_set_root`
 
@@ -456,6 +465,8 @@ matrix, generated artifact list, skipped gates, and manifest-skip correction.
 It is a release-route checkpoint, not a v1.0 tag or P14 completion claim.
 The final artifact identity and tag preconditions are tracked in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
+The immediate follow-up is to refresh golden vectors and audit P14 claims around
+the read-only DNS admission boundary, not to add live DNS or publish support.
 
 Acceptance:
 

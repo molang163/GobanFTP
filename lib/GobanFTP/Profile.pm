@@ -48,11 +48,11 @@ my %PROFILES = (
     },
     'dns-record-goftp1' => {
         profile_id     => 'dns-record-goftp1',
-        profile_status => 'planned',
+        profile_status => 'implemented',
         consensus_version => 'GOFTP-PROFILE/dns-record-goftp1/1',
-        substrate      => 'DNS-like record fixture',
+        substrate      => 'DNS-like declared record set',
         adapter_id     => 'dns-record-listing-goftp1',
-        adapter_status => 'read-normalizer',
+        adapter_status => 'implemented-read-only',
         auth_stance    => 'unsigned',
     },
     'webdav-goftp1' => {

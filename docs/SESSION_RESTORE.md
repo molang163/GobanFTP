@@ -194,9 +194,14 @@ Key completed boundaries:
 - Unsigned v1 witness golden vectors now freeze profile consensus version,
   adapter id, raw and normalized counts, normalized events, accepted and
   rejected counts, and diagnostic count.
-- The DNS profile adapter requires the TXT owner to belong to the current game
-  descriptor, and `dns-owner-poison` proves wrong-owner or ownerless TXT records
-  cannot smuggle events into the witness.
+- `dns-record-goftp1` is documented as read-only runtime admission over local or
+  otherwise declared record files via `GOBANFTP_STORE=dns-record` and
+  `GOBANFTP_DNS_RECORD_FILE`. The DNS profile adapter requires the TXT owner to
+  belong to the current game descriptor, and `dns-owner-poison` proves
+  wrong-owner or ownerless TXT records cannot smuggle events into the witness.
+  The boundary does not include live DNS, AXFR, DNSSEC trust, provider APIs,
+  dynamic update, record publishing, or consensus use of TTL, order, cache age,
+  DNSSEC status, or provider metadata.
 - Ruleset seal, v1 witness CLI, and v1 compare CLI are already implemented.
 
 ## Last Verified
@@ -299,8 +304,12 @@ Immediate next implementation:
 after entering v1.0/P14 development:
 - do not push or publish v0.2 artifacts; v0.2 was skipped as a public release
 - `git-tree-goftp1` runtime read admission is implemented as a read-only store
-- next implementation slice is `dns-record-goftp1` runtime read admission or
-  another v1.0 proof-machine gap chosen by the current route discussion
+- `dns-record-goftp1` runtime admission is read-only over local/declared record
+  files only; do not add or claim live DNS, AXFR, DNSSEC trust, provider API,
+  dynamic update, or record publish support
+- next slice is golden vectors plus P14 claim audit around admitted profile
+  boundaries, unless current route discussion deliberately chooses another
+  proof-machine gap
 - do not tag v1.0 until the final clean-checkout P14 matrix passes
 - do not let display, source art, Web assets, terminal formatting, or interactive
   input feed replay or event-set roots

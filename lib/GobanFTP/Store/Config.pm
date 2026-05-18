@@ -11,6 +11,7 @@ use File::Basename qw(basename dirname);
 use File::Spec;
 
 use GobanFTP::GameSpec qw(parse_basename);
+use GobanFTP::Store::DNSRecord;
 use GobanFTP::Store::FTP;
 use GobanFTP::Store::GitTree;
 use GobanFTP::Store::Local;
@@ -22,8 +23,12 @@ sub store_mode {
     my $mode = lc($ENV{GOBANFTP_STORE} // 'local');
     $mode = 'local' if $mode eq '';
 
-    croak 'GOBANFTP_STORE must be local, ftp, git-tree, or webdav'
-        if $mode ne 'local' && $mode ne 'ftp' && $mode ne 'git-tree' && $mode ne 'webdav';
+    croak 'GOBANFTP_STORE must be local, ftp, git-tree, dns-record, or webdav'
+        if $mode ne 'local'
+        && $mode ne 'ftp'
+        && $mode ne 'git-tree'
+        && $mode ne 'dns-record'
+        && $mode ne 'webdav';
 
     return $mode;
 }
@@ -35,9 +40,10 @@ sub store_from_env {
     return GobanFTP::Store::Local->new(root => _local_root()) if $mode eq 'local';
     return _ftp_store_from_env() if $mode eq 'ftp';
     return _git_tree_store_from_env() if $mode eq 'git-tree';
+    return _dns_record_store_from_env() if $mode eq 'dns-record';
     return _webdav_store_from_env() if $mode eq 'webdav';
 
-    croak 'GOBANFTP_STORE must be local, ftp, git-tree, or webdav';
+    croak 'GOBANFTP_STORE must be local, ftp, git-tree, dns-record, or webdav';
 }
 
 sub context_for_descriptor {
@@ -48,7 +54,7 @@ sub context_for_descriptor {
     my $mode = store_mode();
     my $store = store_from_env(mode => $mode);
 
-    if ($mode eq 'ftp' || $mode eq 'git-tree' || $mode eq 'webdav') {
+    if ($mode eq 'ftp' || $mode eq 'git-tree' || $mode eq 'dns-record' || $mode eq 'webdav') {
         return {
             store           => $store,
             store_kind      => $mode,
@@ -76,6 +82,7 @@ sub context_for_game_arg {
     my $mode = store_mode();
     return _ftp_context_for_arg($game_arg) if $mode eq 'ftp';
     return _git_tree_context_for_arg($game_arg) if $mode eq 'git-tree';
+    return _dns_record_context_for_arg($game_arg) if $mode eq 'dns-record';
     return _webdav_context_for_arg($game_arg) if $mode eq 'webdav';
     return _local_context_for_arg($game_arg, %args);
 }
@@ -122,6 +129,22 @@ sub _git_tree_context_for_arg {
     return {
         store           => $store,
         store_kind      => 'git-tree',
+        game_descriptor => $descriptor,
+        store_game_root => $descriptor,
+        game_root       => $descriptor,
+    };
+}
+
+sub _dns_record_context_for_arg {
+    my ($game_arg) = @_;
+
+    my $descriptor = basename($game_arg);
+    _assert_descriptor($descriptor);
+    my $store = store_from_env(mode => 'dns-record');
+
+    return {
+        store           => $store,
+        store_kind      => 'dns-record',
         game_descriptor => $descriptor,
         store_game_root => $descriptor,
         game_root       => $descriptor,
@@ -266,6 +289,21 @@ sub _git_tree_store_from_env {
         if defined($ENV{GOBANFTP_GIT_BINARY}) && $ENV{GOBANFTP_GIT_BINARY} ne '';
 
     return GobanFTP::Store::GitTree->new(%args);
+}
+
+sub _dns_record_store_from_env {
+    my $record_file = $ENV{GOBANFTP_DNS_RECORD_FILE};
+    croak 'GOBANFTP_DNS_RECORD_FILE is required for GOBANFTP_STORE=dns-record'
+        if !defined($record_file) || $record_file eq '';
+
+    my %args = (
+        record_file => $record_file,
+    );
+
+    $args{owner_suffix} = $ENV{GOBANFTP_DNS_OWNER_SUFFIX}
+        if defined($ENV{GOBANFTP_DNS_OWNER_SUFFIX}) && $ENV{GOBANFTP_DNS_OWNER_SUFFIX} ne '';
+
+    return GobanFTP::Store::DNSRecord->new(%args);
 }
 
 sub _env_bool {

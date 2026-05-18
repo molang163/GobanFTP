@@ -199,22 +199,26 @@ Implemented in this release line:
 - local filesystem store
 - FTP store with mock coverage and gated live tests
 - read-only Git tree store with runtime CLI parity coverage
+- read-only DNS record admission over local or declared record-file inputs
 - WebDAV store with mock and CLI parity coverage
 - CLI create, verify, replay, project, SGF, publish-move, publish-ack, play,
   and watch flows
 - explicit ack-assisted fork recovery
 - v1 profile registry and witness output
-- `local-goftp1`, `ftp-goftp1`, `git-tree-goftp1`, and `webdav-goftp1`
-  substrate profiles
+- `local-goftp1`, `ftp-goftp1`, `git-tree-goftp1`, `dns-record-goftp1`, and
+  `webdav-goftp1` substrate profiles
 - `signed-hmac-goftp1` per-event HMAC witness acceptance gate
 - core, v1, and profile attack fixture galleries
 - executable source-art oracle smoke
 
 Implemented does not mean every future ritual is complete. `git-tree-goftp1` is
-read-only at runtime, while `dns-record-goftp1` remains a planned profile
-contract with read-normalizer fixtures. Production key lifecycle, publish
-authentication policy, final scoring/result events, and the full `v1.0/P14`
-freeze remain release-route work.
+read-only at runtime, and `dns-record-goftp1` is admitted only as read-only
+runtime normalization of a local or otherwise declared record file. DNS
+admission does not query live DNS, run AXFR, trust DNSSEC, call provider APIs,
+or publish records, and TTL, answer order, cache age, DNSSEC status, and
+provider metadata stay outside consensus. Production key lifecycle, publish
+authentication policy, final scoring/result events, golden vector expansion,
+P14 claim audit, and the full `v1.0/P14` freeze remain release-route work.
 
 Unsigned `GOFTP/1` remains valid and unchanged. A signed/auth profile can reject
 events only when that explicit profile is selected; sidecar signatures do not
@@ -303,9 +307,9 @@ Those names are the game. The file contents are not.
 
 ## Stores
 
-Local is the default store. FTP, read-only Git tree, and WebDAV run the same
-listing-first command surface without reading event file contents, blob bytes,
-or resource bodies.
+Local is the default store. FTP, read-only Git tree, read-only DNS record-file
+admission, and WebDAV run the same listing-first boundary without reading event
+file contents, blob bytes, resource bodies, or DNS transport metadata.
 
 FTP mode:
 
@@ -343,10 +347,25 @@ GOBANFTP_GIT_TREEISH
 GOBANFTP_GIT_BINARY
 ```
 
+DNS record mode:
+
+```text
+GOBANFTP_STORE=dns-record
+GOBANFTP_DNS_RECORD_FILE
+GOBANFTP_DNS_OWNER_SUFFIX
+```
+
 Git tree replay reads direct child names from `<treeish>:<game>/events` and
 ignores blob bytes, commit metadata, refs, branches, tags, sidecars,
 projections, and tmp entries. Git tree mode is read-only for now; publish
 commands fail at the storage boundary.
+
+DNS record admission reads only a local or otherwise declared record-file
+presentation for `dns-record-goftp1`, supplied at runtime by
+`GOBANFTP_DNS_RECORD_FILE`. It is not a live DNS resolver, AXFR client, DNSSEC
+validator, provider API client, dynamic update client, or publishing backend.
+TTLs, record order, answer order, cache age, DNSSEC status, authoritative
+server identity, and provider metadata are ignored before `event_set_root`.
 
 WebDAV replay reads `events/` with `PROPFIND Depth: 1` and uses only direct href
 basenames. Publishing writes a zero-byte temporary resource under `tmp/`, moves
@@ -392,6 +411,12 @@ Git tree store and CLI parity, real temporary repository:
 
 ```sh
 prove -lr t/store-git-tree.t
+```
+
+DNS record store and CLI parity, local record-file only:
+
+```sh
+prove -lr t/store-dns-record.t t/dns-cli-parity.t
 ```
 
 v1 profiles, witnesses, and compare commands:

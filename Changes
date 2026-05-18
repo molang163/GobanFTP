@@ -7,6 +7,11 @@ Revision history for GobanFTP
     `GOBANFTP_STORE=git-tree`, enumerating direct Git tree children under
     `<game>/events` while keeping blob bytes, commit metadata, sidecars,
     projections, tmp entries, and Git publish semantics outside consensus.
+  - Promoted `dns-record-goftp1` to read-only runtime admission over local or
+    otherwise declared record files through `GOBANFTP_STORE=dns-record`, while
+    excluding live DNS, AXFR, DNSSEC trust, provider APIs, dynamic updates,
+    record publishing, TTLs, ordering, cache state, and provider metadata from
+    consensus claims.
   - Added a mock-tested WebDAV store backend that reads `events/` with
     `PROPFIND Depth: 1` and publishes by zero-byte `tmp/` resource plus `MOVE`
     and fresh `PROPFIND` confirmation.

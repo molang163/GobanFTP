@@ -59,6 +59,23 @@ defaults to `HEAD`, and `GOBANFTP_GIT_BINARY` defaults to `git`. Replay uses
 direct child names from `<treeish>:<game>/events`; blob bytes, commit metadata,
 refs, branches, and tags are not replay inputs.
 
+Set `GOBANFTP_STORE=dns-record` to read a local or otherwise declared DNS-like
+record file. DNS record mode is read-only; it can verify, replay, print SGF, and
+run bounded play/watch inspection, but publish and create commands fail with
+storage exit code `4`. It uses:
+
+```text
+GOBANFTP_DNS_RECORD_FILE
+GOBANFTP_DNS_OWNER_SUFFIX
+```
+
+`GOBANFTP_DNS_RECORD_FILE` is required in DNS record mode.
+`GOBANFTP_DNS_OWNER_SUFFIX` is optional. The CLI reads only the declared record
+file and does not query live DNS, request AXFR, validate DNSSEC trust, call
+provider APIs, use resolver cache state, or publish DNS records. TTL, record
+order, answer order, cache age, DNSSEC status, authoritative server identity,
+and provider metadata are not replay inputs.
+
 Set `GOBANFTP_STORE=webdav` to use WebDAV. WebDAV event commands read and
 write game descriptor collections and `events/` names under
 `GOBANFTP_WEBDAV_URL` and use:
@@ -251,6 +268,13 @@ Builds a read-only v1 witness from fixture files. The command reads:
 <fixture-dir>/<profile-id>/listing.names
 ```
 
+For `dns-record-goftp1`, `listing.names` is the local or otherwise declared
+record set admitted for the fixture witness. The CLI does not query live DNS,
+request AXFR, validate DNSSEC trust, call provider APIs, use resolver cache
+state, or publish DNS records. TTL, record order, answer order, cache age,
+DNSSEC status, authoritative server identity, and provider metadata are ignored
+before `event_set_root`.
+
 For `signed-hmac-goftp1`, pass public attestation records with
 `--attestations` and one or more explicit verifier keys with
 `--trusted-hmac-key <id=key>`. The key id is public, must be a single
@@ -327,11 +351,13 @@ subset. The command reads the same `game.name` and per-profile `listing.names`
 files as `v1 witness`.
 
 This is a fixture/read-normalizer proof command. It demonstrates that the
-declared fixture presentations normalize to the same root; it does not claim
-that planned Git or DNS profiles are fully admitted substrate adapters. WebDAV
-has a runtime store path, but this compare command still reads fixture rows
-rather than contacting a WebDAV server. `signed-hmac-goftp1` is excluded from
-this compare matrix because it needs explicit attestation and trust inputs.
+declared fixture presentations normalize to the same root. Git tree and DNS
+record profiles have read-only runtime admission boundaries, but this compare
+command still reads fixture rows rather than opening a Git repository,
+contacting DNS, or contacting a WebDAV server. DNS comparison is limited to the
+local or declared record set and has no live DNS, AXFR, DNSSEC trust, provider
+API, or publish behavior. `signed-hmac-goftp1` is excluded from this compare
+matrix because it needs explicit attestation and trust inputs.
 
 On equality, exits `0` and writes fields such as:
 
