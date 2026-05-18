@@ -1,0 +1,8 @@
+tmp/fork-ack.part
+events/m1.p000001.b.play-bb.pa-genesis.by-alice.n-forkright.h-o5g8u5cu913nedng
+sidecar/q65v2mhef9t3em7l.sig
+events/a1.t-q65v2mhef9t3em7l.by-bob.n-ackleft.h-9sajrdhalb66mjh7
+projections/sgf/main.sgf
+events/m1.p000001.b.play-aa.pa-genesis.by-alice.n-forkleft.h-q65v2mhef9t3em7l
+events/a1.t-q65v2mhef9t3em7l.by-bob.n-ackleft.h-9sajrdhalb66mjh7
+events/a1.t-q65v2mhef9t3em7l.by-bob.n-ackleft.h-9sajrdhalb66mjh7/child

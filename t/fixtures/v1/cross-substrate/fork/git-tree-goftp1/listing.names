@@ -1,0 +1,7 @@
+040000 tree 1111111111111111111111111111111111111111	events
+100644 blob 2222222222222222222222222222222222222222	tmp/race.part
+100644 blob 3333333333333333333333333333333333333333	sidecar/o5g8u5cu913nedng.sig
+100644 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa blob events/m1.p000001.b.play-bb.pa-genesis.by-alice.n-forkright.h-o5g8u5cu913nedng
+100644 blob 4444444444444444444444444444444444444444	projections/sgf/main.sgf
+100755 blob bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb	events/m1.p000001.b.play-aa.pa-genesis.by-alice.n-forkleft.h-q65v2mhef9t3em7l
+040000 tree cccccccccccccccccccccccccccccccccccccccc	events/m1.p000001.b.play-bb.pa-genesis.by-alice.n-forkright.h-o5g8u5cu913nedng/child

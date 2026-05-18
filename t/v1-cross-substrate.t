@@ -13,7 +13,7 @@ use GobanFTP::Test::WitnessHarness qw(witness_for_listing);
 
 my $fixture_dir = "$FindBin::Bin/fixtures/v1/cross-substrate";
 my $schema_path = "$FindBin::Bin/../docs/DIAGNOSTICS.md";
-my @profiles = qw(local-goftp1 ftp-goftp1);
+my @profiles = qw(local-goftp1 ftp-goftp1 git-tree-goftp1 dns-record-goftp1 webdav-goftp1);
 
 my %expected = (
     minimal => {
@@ -34,6 +34,15 @@ my %expected = (
         diagnostics   => ['fork'],
         rejected_classes => [],
     },
+    'fork-with-ack' => {
+        status        => 'fork',
+        root          => '3e8226ada6d09e4da60d6fe423fb918d464d0e2a7b7b6f5d377784ff90eeb215',
+        accepted      => 3,
+        rejected      => 0,
+        canonical_tip => 'genesis',
+        diagnostics   => ['fork'],
+        rejected_classes => [],
+    },
     'bad-event-id' => {
         status        => 'validation',
         root          => 'c8bdfd7e8dc55bdef0a4571923d9ae370c876aa106ad666d125f8151dc05185d',
@@ -45,7 +54,7 @@ my %expected = (
     },
 );
 
-for my $case (qw(minimal fork bad-event-id)) {
+for my $case (qw(minimal fork fork-with-ack bad-event-id)) {
     subtest $case => sub {
         my $case_dir = File::Spec->catdir($fixture_dir, $case);
         my $game = _read_single(File::Spec->catfile($case_dir, 'game.name'));
@@ -102,6 +111,18 @@ for my $case (qw(minimal fork bad-event-id)) {
             "$case FTP fixture has ignored shadow names";
         ok $witness{'ftp-goftp1'}{normalized_count} >= $witness{'ftp-goftp1'}{accepted_count},
             "$case FTP normalization can see duplicates before acceptance dedupe";
+        ok $witness{'git-tree-goftp1'}{raw_count} > $witness{'local-goftp1'}{raw_count},
+            "$case Git tree fixture has ignored metadata entries";
+        ok $witness{'git-tree-goftp1'}{normalized_count} >= $witness{'git-tree-goftp1'}{accepted_count},
+            "$case Git tree normalization preserves accepted events";
+        ok $witness{'dns-record-goftp1'}{raw_count} > $witness{'local-goftp1'}{raw_count},
+            "$case DNS record fixture has ignored metadata rows";
+        ok $witness{'dns-record-goftp1'}{normalized_count} >= $witness{'dns-record-goftp1'}{accepted_count},
+            "$case DNS record normalization preserves accepted events";
+        ok $witness{'webdav-goftp1'}{raw_count} > $witness{'local-goftp1'}{raw_count},
+            "$case WebDAV fixture has ignored metadata rows";
+        ok $witness{'webdav-goftp1'}{normalized_count} >= $witness{'webdav-goftp1'}{accepted_count},
+            "$case WebDAV normalization can see duplicates before acceptance dedupe";
     };
 }
 

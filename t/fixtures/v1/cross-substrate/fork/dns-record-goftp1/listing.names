@@ -1,0 +1,6 @@
+ttl=3600 type=TXT owner=right.events.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. event=m1.p000001.b.play-bb.pa-genesis.by-alice.n-forkright.h-o5g8u5cu913nedng
+ttl=60 type=TXT owner=tmp.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. tmp=race.part
+ttl=300 type=TXT owner=left.events.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. event=m1.p000001.b.play-aa.pa-genesis.by-alice.n-forkleft.h-q65v2mhef9t3em7l
+ttl=20 type=TXT owner=sidecar.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. sidecar=o5g8u5cu913nedng.sig
+ttl=5 type=AAAA owner=events.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. address=2001:db8::1
+ttl=1 type=TXT owner=right-again.events.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. event="m1.p000001.b.play-bb.pa-genesis.by-alice.n-forkright.h-o5g8u5cu913nedng"

@@ -1,0 +1,6 @@
+ttl=30 type=TXT owner=right.events.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. event=m1.p000001.b.play-bb.pa-genesis.by-alice.n-forkright.h-o5g8u5cu913nedng
+ttl=15 type=TXT owner=ack.events.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. event=a1.t-q65v2mhef9t3em7l.by-bob.n-ackleft.h-9sajrdhalb66mjh7
+ttl=600 type=TXT owner=sidecar.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. sidecar=q65v2mhef9t3em7l.sig
+ttl=45 type=TXT owner=left.events.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. event=m1.p000001.b.play-aa.pa-genesis.by-alice.n-forkleft.h-q65v2mhef9t3em7l
+ttl=1 type=TXT owner=ack-duplicate.events.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. event="a1.t-q65v2mhef9t3em7l.by-bob.n-ackleft.h-9sajrdhalb66mjh7"
+ttl=300 type=MX owner=g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. preference=10 exchange=mail.example.
