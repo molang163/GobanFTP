@@ -1,0 +1,88 @@
+use v5.34;
+use strict;
+use warnings;
+
+use Digest::SHA qw(sha256_hex);
+use FindBin;
+use File::Spec;
+use Test::More;
+
+use lib "$FindBin::Bin/../lib";
+
+use GobanFTP::CLI;
+
+my $fixture = File::Spec->catdir(
+    "$FindBin::Bin/fixtures/v1/cross-substrate",
+    'minimal',
+);
+
+subtest 'minimal witness text surface is frozen' => sub {
+    my ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'local-goftp1',
+        '--fixture', $fixture,
+        '--surface', 'text',
+    );
+
+    is $exit, 0, 'text surface exits success';
+    is $stderr, '', 'text surface has no diagnostics';
+    is length($stdout), 3157, 'text surface byte length is frozen';
+    is sha256_hex($stdout),
+        '8d9f53fa8998ef1567adc39946bebad813ecd9f1692a018427aca4e5e946c1de',
+        'text surface digest is frozen';
+    like $stdout, qr/\AGOFTP-WITNESS-SURFACE\/1\n/, 'text surface starts with surface header';
+    like $stdout,
+        qr/^event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461$/m,
+        'text surface keeps root visible';
+    like $stdout, qr/^--- projection[.]sgf_main ---$/m,
+        'text surface keeps canonical SGF section';
+    unlike $stdout, qr/^--- projection[.]sgf ---$/m,
+        'text surface omits duplicate SGF aliases';
+};
+
+subtest 'minimal witness HTML surface is frozen' => sub {
+    my ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'local-goftp1',
+        '--fixture', $fixture,
+        '--surface', 'html',
+    );
+
+    is $exit, 0, 'HTML surface exits success';
+    is $stderr, '', 'HTML surface has no diagnostics';
+    is length($stdout), 5391, 'HTML surface byte length is frozen';
+    is sha256_hex($stdout),
+        '8a3321639f9a754935f0f17df1d5f07f56439506cbcd5aec61957f57fb230efd',
+        'HTML surface digest is frozen';
+    like $stdout, qr/\A<!doctype html>\n/, 'HTML surface starts with doctype';
+    like $stdout,
+        qr/<dt>event_set_root<\/dt><dd>599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461<\/dd>/,
+        'HTML surface keeps root visible';
+    like $stdout, qr/<h2>projection[.]board<\/h2>/,
+        'HTML surface includes board projection';
+    like $stdout, qr/<h2>projection[.]sgf_main<\/h2>/,
+        'HTML surface keeps canonical SGF section';
+    unlike $stdout, qr/<h2>projection[.]sgf<\/h2>/,
+        'HTML surface omits duplicate SGF aliases';
+    unlike $stdout, qr/^gobanftp[.]v1[.]witness=/m,
+        'HTML surface does not mix in default key/value output';
+};
+
+done_testing;
+
+sub _run_cli {
+    my (@args) = @_;
+
+    my ($stdout, $stderr) = ('', '');
+    open my $out_fh, '>', \$stdout or die "open stdout scalar: $!";
+    open my $err_fh, '>', \$stderr or die "open stderr scalar: $!";
+
+    my $exit;
+    {
+        local *STDOUT = $out_fh;
+        local *STDERR = $err_fh;
+        $exit = GobanFTP::CLI->run(@args);
+    }
+
+    return ($exit, $stdout, $stderr);
+}

@@ -70,6 +70,8 @@ Revision history for GobanFTP
   - Added `gobanftp v1 witness --surface text|html` as a read-only CLI
     inspection surface over the existing witness result and its already-rendered
     projection text.
+  - Added a golden smoke for the minimal `v1 witness --surface` text and static
+    HTML outputs, freezing their digests and canonical projection sections.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

@@ -134,6 +134,10 @@ The `v1 witness --surface text|html` CLI path is such a surface. It can emit
 plain text or static HTML for inspection, while exit codes and diagnostics still
 come from the witness and profile gates.
 
+The minimal surface smoke freezes text and static HTML output digests as a
+reader-facing proof artifact. It is not a hosted Web UI and does not add any
+input to replay.
+
 ## v1.0 Surface Gate
 
 Before v1.0 release, source-art work should demonstrate:
