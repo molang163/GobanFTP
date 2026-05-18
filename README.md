@@ -118,6 +118,15 @@ For a guided three-minute viewing path, read:
 docs/SHOWCASE.md
 ```
 
+Verify that path with:
+
+```sh
+prove -lr t/showcase-demo.t
+```
+
+The gate is local and read-only: it checks the shrine, the race fixture, the
+source-art oracle smoke, and an unsigned `local-goftp1` v1 witness.
+
 The browsable specimen is here:
 
 ```text

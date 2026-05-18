@@ -476,6 +476,7 @@ t/rules-play.t
 t/ruleset-seal.t
 t/rules-superko.t
 t/sgf.t
+t/showcase-demo.t
 t/source-art.t
 t/store-contract.t
 t/store-ftp-mock.t

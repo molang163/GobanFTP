@@ -1,6 +1,6 @@
 # GobanFTP Showcase
 
-This is the short viewing path for the v0.1 hardening/showcase release.
+This is the short viewing path for the hardening/showcase release line.
 
 GobanFTP is already the object:
 
@@ -47,9 +47,9 @@ projections/board/current.txt
 projections/sgf/main.sgf
 ```
 
-`projections/oracle/listing.txt` is the transcript-shaped reveal: `NLST
-events/` exposes the event basenames; `RETR`, `SIZE`, and `MDTM` remain outside
-GOFTP/1 replay.
+`projections/oracle/listing.txt` is the transcript-shaped reveal: `NLST events/`
+exposes the event basenames; `RETR`, `SIZE`, and `MDTM` remain outside GOFTP/1
+replay.
 
 ## 2. Verify The Shrine
 
@@ -60,7 +60,7 @@ GOBANFTP_ROOT=examples/fixtures/ftp-shrine \
 perl -Ilib script/gobanftp replay g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
 ```
 
-Expected result:
+Output includes:
 
 ```text
 gobanftp.replay=ok
@@ -123,13 +123,26 @@ perl -c oracle/goban.pl
 perl oracle/goban.pl --smoke
 ```
 
-Expected result:
+Output includes:
 
 ```text
 oracle/goban.pl syntax OK
 gobanftp.oracle=ok
 rules.move=ok
 ```
+
+## 5. Run The Showcase Gate
+
+The release smoke for this viewing path is:
+
+```sh
+prove -lr t/showcase-demo.t
+```
+
+It runs the public local command surface: shrine replay, race replay, source-art
+oracle smoke, and the unsigned `local-goftp1` v1 witness. The witness smoke
+keeps v1 proof machinery visible without moving signed consensus into the
+three-minute path.
 
 ## Boundaries
 
@@ -138,3 +151,6 @@ files, or tmp entries as consensus inputs.
 
 Do not add scoring, final result events, signed consensus, or inline assembly
 to v0.1. Those belong in a later phase, protocol version, or explicit profile.
+
+Live FTP, WebDAV, signed-HMAC negative matrices, and distribution packaging are
+release gates, not part of the three-minute viewing path.

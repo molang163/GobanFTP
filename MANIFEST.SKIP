@@ -16,3 +16,6 @@
 (?:^|/)[^/]+\.tmp$
 (?:^|/)[^/]+\.bak$
 (?:^|/)\.gobanftp-tmp-[^/]+$
+
+# Local agent memory for resuming work; not part of release artifacts.
+^docs/SESSION_RESTORE\.md$

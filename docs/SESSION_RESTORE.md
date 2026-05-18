@@ -10,13 +10,13 @@ One-line resume command:
 
 Repository: `/run/media/molang/linux-dev/GobanFTP`
 
-Current HEAD:
+Current HEAD expectation:
 
 ```text
-c763103 test: add bad mtime attack fixture
+at or after the showcase gate commit: test: add showcase demo smoke gate
 ```
 
-Working tree was clean when this file was written.
+Confirm the latest commit with `git log --oneline -5` when resuming.
 
 ## Recent Completed Work
 
@@ -43,22 +43,24 @@ Key completed boundaries:
 - `bad-mtime` is now a core attack fixture. The harness applies real event-file
   mtimes with `utime`, confirms they were applied, runs CLI verification, and
   confirms the mtimes remain unchanged.
+- A showcase smoke gate now locks the public clean shrine, race shrine,
+  source-art oracle smoke, and unsigned `local-goftp1` v1 witness path.
 - Ruleset seal, v1 witness CLI, and v1 compare CLI are already implemented.
 
 ## Last Verified
 
-After `c763103`, these passed:
+After the showcase gate commit, these passed:
 
 ```text
-prove -lr t/attack-fixtures.t t/v1-attack-fixtures.t
-prove -lr t/attack-fixtures.t t/v1-attack-fixtures.t t/listing.t t/replay-input-boundary.t t/store-ftp-mock.t t/store-webdav-mock.t t/e2e-ftp-mock.t
+prove -lr t/showcase-demo.t
+prove -lr t/showcase-demo.t t/example-ftp-shrine.t t/example-ftp-race-shrine.t t/source-art.t t/v1-cli-witness.t t/witness-api.t t/v1-cross-substrate.t
 prove -lr t
 ```
 
 Full test result:
 
 ```text
-Files=61, Tests=803, all successful.
+Files=62, Tests=808, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -75,32 +77,23 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 
 ## Next Step
 
-Do not continue signed-HMAC negative fixture expansion unless a concrete bug is
-found. That matrix is currently strong enough for v1 proof work.
-
-Recommended next discussion target:
+Immediate next implementation:
 
 ```text
-Choose between:
-1. expand v1 cross-substrate golden vectors in small batches
-2. add the next core/profile attack fixture
-3. harden the three-minute demo shrine into a reproducible showcase path
+expand v1 cross-substrate golden vectors in a small batch:
+- future-version
+- missing-parent
+- wrong-player
 ```
 
-Best immediate implementation candidate:
+Likely files:
 
 ```text
-solidify docs/SHOWCASE.md and/or add a small demo verification test that locks
-the shrine, race, oracle smoke, and v1 witness commands as the public viewing
-path.
-```
-
-Alternative proof-hardening candidate:
-
-```text
-add the next small attack fixture before the large golden-vector matrix, likely
-an FTP/local profile noise specimen or another core poison case with real
-harness behavior.
+t/fixtures/v1/cross-substrate/
+t/v1-cross-substrate.t
+t/v1-golden-vectors.t
+t/fixtures/vectors/v1-witness.jsonl
+docs/V1_DOD.md or docs/ROADMAP.md only if the acceptance language changes
 ```
 
 ## Restore Procedure
@@ -110,7 +103,6 @@ When resuming:
 1. Read `AGENTS.md`.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD is at or after `c763103`.
+4. Confirm HEAD includes `test: add showcase demo smoke gate`.
 5. If the user asks to continue, open multi-agent discussion first, then choose
    one small executable step.
-
