@@ -36,10 +36,15 @@ my @stdout_fields = qw(
     canonical_tip diagnostic_codes diagnostic_classes diagnostic_count
     board_hash sgf_hash variations_sgf_hash attestation_count
     trusted_hmac_key_ids signature.status event_set_count event_set_root
+    trust.status trust.public_key_count trust.record_count
+    trust.trusted_count trust.trusted_key_ids trust.rotated_count
+    trust.rotated_key_ids trust.revoked_count trust.revoked_key_ids
+    trust.expired_count trust.expired_key_ids
     gobanftp.create-game gobanftp.play gobanftp.project
     gobanftp.publish-ack gobanftp.publish-move gobanftp.replay
     gobanftp.sgf gobanftp.verify gobanftp.v1.compare-replay
-    gobanftp.v1.compare-roots gobanftp.v1.keyid gobanftp.v1.witness gobanftp.watch legal_ids legal_moves
+    gobanftp.v1.compare-roots gobanftp.v1.keyid gobanftp.v1.trust-report
+    gobanftp.v1.witness gobanftp.watch legal_ids legal_moves
     listing root sgf snapshot store turn_color turn_player verdict worldline.status
     worldline.canonical_ids worldline.legal_ids worldline.fork.parent_id
     worldline.fork.child_ids

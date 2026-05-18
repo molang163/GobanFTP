@@ -4,10 +4,10 @@ This directory is reserved for public auth and trust fixtures. It must not
 contain real private keys, signing seeds, passwords, tokens, HMAC secrets, or
 credential URLs.
 
-Fixtures exercise `gobanftp v1 keyid --fixture` plus future `attest` and
-`trust-report` plumbing without creating a real private key system. All fixture
-key material is public and non-authoritative unless a future signed profile
-explicitly says otherwise.
+Fixtures exercise `gobanftp v1 keyid --fixture`,
+`gobanftp v1 trust-report --fixture`, plus future `attest` plumbing without
+creating a real private key system. All fixture key material is public and
+non-authoritative unless a future signed profile explicitly says otherwise.
 
 The `hmac/` vectors use public test keys to lock down deterministic
 HMAC-SHA256 framing. They are test vectors, not credentials, and must not be
@@ -57,7 +57,7 @@ k1.jk4bs0r77srdlpds260hka9fpp49clpg
 ## Suggested Case Layout
 
 ```text
-t/fixtures/auth/<case>/
+t/fixtures/auth/trust-report/<case>/
   game.name
   listing.names
   keys/
@@ -85,7 +85,7 @@ Rules:
 
 - `key_id` must match the key id derived from the referenced public key record.
 - `principal` is public, for example `player:alice` or `observer:referee`.
-- `status` is `trusted`, `revoked`, `expired`, or `unknown`.
+- `status` is `trusted`, `rotated`, `revoked`, or `expired`.
 - `-` means absent for date and reason fields.
 - Trust records are not replay inputs for unsigned profiles.
 
@@ -112,6 +112,6 @@ Old unsigned games remain valid GOFTP/1 games. Verify them with:
 script/gobanftp verify <game-root|game-descriptor>
 ```
 
-Future trust reports may say `unsigned`, `untrusted`, or `no_attestation` for
-these games, but unsigned replay must still use only the game descriptor
-basename and direct accepted `events/` basenames.
+Trust reports may say `unsigned`, `untrusted`, or `advisory` for these games,
+but unsigned replay must still use only the game descriptor basename and direct
+accepted `events/` basenames.

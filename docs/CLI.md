@@ -191,13 +191,14 @@ game_descriptor_basename || "\0" ||
 event_basename || "\0"
 ```
 
-Future `trust-report` is read-only. It may summarize public trust files,
-public key records, and public attestations, but it must first run the normal
-profile replay boundary and report the observed `event_set_root`.
+`v1 trust-report --fixture` is implemented as a read-only fixture command. It
+summarizes public trust files and public key records, but it first runs the
+normal profile replay boundary and reports the observed `event_set_root`.
+Production `trust-report` and attestation reporting remain reserved until a
+real signed/auth suite is selected.
 
 ```text
-gobanftp trust-report [--trust-file <trust.tsv>] <game-root|game-descriptor>
-gobanftp trust-report --fixture <fixture-dir>
+gobanftp v1 trust-report --fixture <fixture-dir>
 ```
 
 Unsigned old games are verified exactly as before:
@@ -210,6 +211,20 @@ If a trust report is run for an unsigned old game, the consensus result is still
 the normal `verify` result. Missing trust material is reported as unsigned or
 untrusted advisory state, not as replay failure. Only an explicit signed profile
 may turn missing, bad, stale, or revoked signatures into validation failures.
+
+The fixture form reads:
+
+```text
+<fixture-dir>/game.name
+<fixture-dir>/listing.names
+<fixture-dir>/keys/*.pub
+<fixture-dir>/trust.tsv
+```
+
+`keys/` and `trust.tsv` are optional. `trust.tsv` is advisory only and supports
+`trusted`, `rotated`, `revoked`, and `expired` status rows. The command does not
+parse `attestations.tsv`, does not enforce signed-HMAC revocation, and does not
+use wall-clock time for expiry decisions.
 
 ### `gobanftp v1 witness --profile <profile-id> --fixture <fixture-dir> [--attestations <jsonl>] [--trusted-hmac-key <id=key>]`
 

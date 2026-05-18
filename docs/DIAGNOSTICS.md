@@ -22,6 +22,7 @@ gobanftp.verify
 gobanftp.v1.compare-replay
 gobanftp.v1.compare-roots
 gobanftp.v1.keyid
+gobanftp.v1.trust-report
 gobanftp.v1.witness
 gobanftp.watch
 gobanftp.<command>
@@ -77,6 +78,17 @@ variations_sgf_hash
 attestation_count
 trusted_hmac_key_ids
 signature.status
+trust.status
+trust.public_key_count
+trust.record_count
+trust.trusted_count
+trust.trusted_key_ids
+trust.rotated_count
+trust.rotated_key_ids
+trust.revoked_count
+trust.revoked_key_ids
+trust.expired_count
+trust.expired_key_ids
 snapshot
 store
 root
@@ -207,6 +219,7 @@ parse_event|error=event_id.*|event-id|code,name,error|-
 parse_event|error=*|parse|code,name,error|-
 parse_game_descriptor|*|parse|code,error|-
 parse_public_key|*|parse|code,error|-
+parse_trust|*|parse|code,error|-
 invalid_event_item|*|parse|code,index,stage|-
 event_id_collision|*|event-id|code,event_id,names|-
 missing_parent|*|dag|code,event_id,parent_id|-
@@ -310,6 +323,7 @@ parent_not_move
 parse_event
 parse_game_descriptor
 parse_public_key
+parse_trust
 rules
 untrusted_signature
 wrong_signature

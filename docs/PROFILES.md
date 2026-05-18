@@ -189,8 +189,8 @@ record shape. It derives a public `k1.` identity only; it does not create trust,
 signatures, private keys, or signed-profile acceptance.
 
 Trust fixtures are line-oriented public data. They may say which key ids are
-trusted, revoked, or expired for a fixture, but they are not GOFTP/1 replay
-inputs. Suggested TSV shape:
+trusted, rotated, revoked, or expired for a fixture, but they are not GOFTP/1
+replay inputs. Suggested TSV shape:
 
 ```text
 GOFTP-TRUST/1
@@ -202,9 +202,10 @@ Attestation fixtures are also public data. Public-key fixture signatures must
 be visibly non-cryptographic placeholders, for example `fixture:<hex>`, until a
 real suite is selected. HMAC fixture vectors may use public test keys for
 deterministic parser and witness tests, but those fixture keys are not
-production secrets. A read-only `trust-report` may summarize this material, but
-old unsigned games remain verified by the unsigned profile. Missing trust
-material is advisory state, not replay failure.
+production secrets. `gobanftp v1 trust-report --fixture <fixture-dir>` can
+summarize public key records and `GOFTP-TRUST/1` rows, but old unsigned games
+remain verified by the unsigned profile. Missing, untrusted, rotated, revoked,
+or expired trust material is advisory state, not replay failure.
 
 A signed/auth profile is an explicit profile with its own `profile_id`,
 `consensus_version`, trust input, acceptance gate, fixtures, and diagnostics. It

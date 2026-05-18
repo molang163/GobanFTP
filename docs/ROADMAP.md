@@ -382,7 +382,9 @@ Acceptance:
 Current implemented proof: fixture-only public key identity is available through
 `gobanftp v1 keyid --fixture`. It derives `GOFTP-KEY/1` `k1.` ids from public
 fixture records and does not create trust, private keys, signatures, or replay
-inputs.
+inputs. Fixture-only trust reporting is available through
+`gobanftp v1 trust-report --fixture`; it reports public key and trust TSV state
+after the normal unsigned witness and does not enforce signed trust.
 
 ## P13: Source-Art, TUI, And Web Surfaces
 

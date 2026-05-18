@@ -46,6 +46,9 @@ Revision history for GobanFTP
   - Added fixture-only `gobanftp v1 keyid --fixture` support for `GOFTP-KEY/1`
     public key ids, keeping public key metadata separate from HMAC secrets,
     signatures, trust, and unsigned replay truth.
+  - Added fixture-only `gobanftp v1 trust-report --fixture` support for public
+    trust TSV summaries, proving trusted, rotated, revoked, and expired key
+    rows remain advisory and do not alter unsigned witness truth.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

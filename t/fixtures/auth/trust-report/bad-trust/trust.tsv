@@ -1,0 +1,3 @@
+GOFTP-TRUST/1
+key_id	suite	principal	role	status	not_before	not_after	revoked_at	reason
+k1.jk4bs0r77srdlpds260hka9fpp49clpg	fixture-ed25519-v1	player:alice	player	unknown	2026-01-01	-	-	do not leak this phrase

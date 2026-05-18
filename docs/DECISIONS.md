@@ -409,3 +409,23 @@ Reason:
   sidecars, and attestations
 - fixture key ids provide a testable auth surface without pretending that a real
   Ed25519 lifecycle or production private-key store exists
+
+## 029: Fixture Trust Reports Are Advisory
+
+`gobanftp v1 trust-report --fixture` reads a fixture game descriptor, raw local
+listing, public fixture keys, and optional `GOFTP-TRUST/1` TSV rows. It runs the
+normal `local-goftp1` witness first and reports trust state after that witness.
+Trust rows can describe `trusted`, `rotated`, `revoked`, and `expired` key ids,
+but this command does not parse attestations and does not enforce signed-HMAC
+revocation or expiry.
+
+Reason:
+
+- v1.0 needs a public vocabulary for key lifecycle before signed profiles can
+  enforce revoked or expired keys
+- revoked or expired public trust rows must not make old unsigned `GOFTP/1`
+  games fail
+- the event set root, replay status, board hash, and SGF remain consequences of
+  accepted event basenames, not trust metadata
+- fixture trust reporting can expose lifecycle state without creating a real
+  private-key system or production trust store

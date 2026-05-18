@@ -12,6 +12,7 @@ use Scalar::Util qw(reftype);
 
 use GobanFTP::AckPublisher qw(build_ack_for_target);
 use GobanFTP::Auth::KeyID qw(parse_public_key_record);
+use GobanFTP::Auth::TrustReport qw(trust_report_summary);
 use GobanFTP::EventSetRoot qw(event_set_root_result);
 use GobanFTP::Listing qw(normalize_listing sort_event_basenames);
 use GobanFTP::GameSpec qw(build_basename parse_basename);
@@ -590,6 +591,7 @@ sub _command_v1 {
 
     my $subcommand = shift @argv;
     return _command_v1_keyid(@argv) if $subcommand eq 'keyid';
+    return _command_v1_trust_report(@argv) if $subcommand eq 'trust-report';
     return _command_v1_witness(@argv) if $subcommand eq 'witness';
     return _command_v1_compare('compare-roots', @argv)
         if $subcommand eq 'compare-roots';
@@ -645,6 +647,63 @@ sub _command_v1_keyid {
 
     _print_v1_keyid($record);
     return EXIT_SUCCESS;
+}
+
+sub _command_v1_trust_report {
+    my (@argv) = @_;
+
+    my $usage = 'usage: v1 trust-report --fixture fixture-dir';
+    my %opts;
+
+    while (@argv) {
+        my $option = shift @argv;
+        my ($name, $value);
+
+        if ($option =~ /\A--([^=]+)=(.*)\z/) {
+            ($name, $value) = ($1, $2);
+        }
+        elsif ($option =~ /\A--(.+)\z/) {
+            $name = $1;
+            die $usage if !@argv;
+            $value = shift @argv;
+        }
+        else {
+            die $usage;
+        }
+
+        if ($name eq 'fixture') {
+            $opts{fixture} = $value;
+            next;
+        }
+
+        die $usage;
+    }
+
+    die $usage if !defined($opts{fixture}) || $opts{fixture} eq '';
+
+    my ($fixture_id, $witness, $trust) = eval {
+        _v1_trust_report_from_fixture($opts{fixture});
+    };
+    if (!$witness) {
+        my $error = _clean_error($@ || 'trust_report');
+        if ($error =~ s/\A(parse_public_key|parse_trust)://) {
+            my $code = $1;
+            print STDOUT "gobanftp.v1.trust-report=failed\n";
+            print STDERR _diagnostic_line({
+                code  => $code,
+                error => $error,
+            }), "\n";
+            return EXIT_VALIDATION;
+        }
+        die $error;
+    }
+
+    my $exit = _v1_witness_exit($witness);
+    my $status = _status_for_exit($exit);
+    _print_v1_trust_report($fixture_id, $witness, $trust, $status);
+    _print_v1_witness_diagnostics($witness, []);
+
+    return $exit;
 }
 
 sub _command_v1_witness {
@@ -966,6 +1025,59 @@ sub _v1_witness_from_fixture {
         [sort keys %trusted_hmac_keys],
         [values %trusted_hmac_keys],
     );
+}
+
+sub _v1_trust_report_from_fixture {
+    my ($fixture) = @_;
+
+    my $game = _read_single_nonblank(File::Spec->catfile($fixture, 'game.name'));
+    my @raw_names = _read_nonblank_lines(File::Spec->catfile($fixture, 'listing.names'));
+    my $witness = witness_for_listing(
+        profile_id      => 'local-goftp1',
+        game_descriptor => $game,
+        raw_names       => \@raw_names,
+    );
+
+    my @public_keys = _v1_public_keys_from_fixture($fixture);
+    my $trust_path = File::Spec->catfile($fixture, 'trust.tsv');
+    my $trust_tsv = -e $trust_path ? _read_text_file($trust_path) : undef;
+    my $trust = eval {
+        trust_report_summary(
+            public_keys => \@public_keys,
+            defined($trust_tsv) ? (trust_tsv => $trust_tsv) : (),
+        );
+    };
+    if (!$trust) {
+        my $error = _clean_error($@ || 'parse_trust');
+        die $error =~ /\Aparse_/ ? $error : "parse_trust:$error";
+    }
+
+    return (_safe_fixture_id($fixture), $witness, $trust);
+}
+
+sub _v1_public_keys_from_fixture {
+    my ($fixture) = @_;
+
+    my $keys_dir = File::Spec->catdir($fixture, 'keys');
+    return () if !-e $keys_dir;
+    die "storage: $keys_dir is not a directory" if !-d $keys_dir;
+
+    opendir my $dh, $keys_dir or die "storage: opendir $keys_dir: $!";
+    my @files = sort grep { /[.]pub\z/ } readdir $dh;
+    closedir $dh or die "storage: closedir $keys_dir: $!";
+
+    my @public_keys;
+    for my $file (@files) {
+        my $path = File::Spec->catfile($keys_dir, $file);
+        my $record = eval { parse_public_key_record(_read_text_file($path)) };
+        if (!$record) {
+            my $error = _clean_error($@ || 'parse_public_key');
+            die "parse_public_key:$error";
+        }
+        push @public_keys, $record;
+    }
+
+    return @public_keys;
 }
 
 sub _v1_compare_from_fixture {
@@ -1374,6 +1486,50 @@ sub _print_v1_keyid {
     }
 }
 
+sub _print_v1_trust_report {
+    my ($fixture_id, $witness, $trust, $status) = @_;
+
+    print STDOUT "gobanftp.v1.trust-report=$status\n";
+    print STDOUT "fixture_id=$fixture_id\n";
+    for my $field (qw(
+        profile_id
+        profile_consensus_version
+        adapter_id
+        game_descriptor
+        raw_count
+        normalized_count
+        accepted_count
+        rejected_count
+        rejected_codes
+        rejected_classes
+        event_set_root
+        replay_status
+        diagnostic_codes
+        diagnostic_classes
+        diagnostic_count
+    )) {
+        next if !exists $witness->{$field};
+        print STDOUT "$field=" . _stdout_value($witness->{$field}) . "\n";
+    }
+
+    for my $field (qw(
+        status
+        public_key_count
+        record_count
+        trusted_count
+        trusted_key_ids
+        rotated_count
+        rotated_key_ids
+        revoked_count
+        revoked_key_ids
+        expired_count
+        expired_key_ids
+    )) {
+        print STDOUT "trust.$field=" . _stdout_value($trust->{$field}) . "\n";
+    }
+    print STDOUT "signature.status=unsigned\n";
+}
+
 sub _stdout_value {
     my ($value) = @_;
     return join(',', @$value) if ref($value) eq 'ARRAY';
@@ -1574,6 +1730,7 @@ sub _is_public_token {
 sub _v1_usage {
     return join "\n",
         'usage: v1 keyid --fixture public-key-file',
+        'usage: v1 trust-report --fixture fixture-dir',
         'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]',
         'usage: v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]',
         'usage: v1 compare-replay --fixture fixture-dir [--profiles profile-id,...]';
@@ -1672,6 +1829,7 @@ commands:
   play [--once] [--move move|--ack event-id] [--nonce n] <game-root|game-descriptor>
   watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>
   v1 keyid --fixture public-key-file
+  v1 trust-report --fixture fixture-dir
   v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]
   v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]
   v1 compare-replay --fixture fixture-dir [--profiles profile-id,...]

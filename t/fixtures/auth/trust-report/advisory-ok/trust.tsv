@@ -1,0 +1,6 @@
+GOFTP-TRUST/1
+key_id	suite	principal	role	status	not_before	not_after	revoked_at	reason
+k1.jk4bs0r77srdlpds260hka9fpp49clpg	fixture-ed25519-v1	player:alice	player	trusted	2026-01-01	-	-	fixture
+k1.j0bq17f7tnre2rmihg81jnv8ud1r1crd	fixture-ed25519-v1	player:bob	player	rotated	2026-01-01	2026-03-01	-	rotated
+k1.b9qqr423d7t8utun0q6f9nbt9o5jcita	fixture-ed25519-v1	observer:referee	observer	revoked	2026-01-01	-	2026-04-01	compromised
+k1.8fqoc7krroqkucq5avbaa48qoi7p882a	fixture-ed25519-v1	player:carol	player	expired	2026-01-01	2026-02-01	-	expired
