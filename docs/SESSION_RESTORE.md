@@ -13,7 +13,9 @@ Repository: `/run/media/molang/linux-dev/GobanFTP`
 Current HEAD expectation:
 
 ```text
-at or after the showcase gate commit: test: add showcase demo smoke gate
+at or after:
+- test: add v1 cross-substrate validation vectors
+- test: expand unsigned v1 witness golden fields
 ```
 
 Confirm the latest commit with `git log --oneline -5` when resuming.
@@ -22,6 +24,8 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 
 ```text
 c763103 test: add bad mtime attack fixture
+cab85ad test: add v1 cross-substrate validation vectors
+0bdbf42 test: add showcase demo smoke gate
 ba17df8 test: add signed HMAC game descriptor mismatch fixture
 60bc2c7 test: add signed HMAC payload mismatch fixture
 fc7f6a2 test: add WebDAV href traversal attack fixture
@@ -45,22 +49,28 @@ Key completed boundaries:
   confirms the mtimes remain unchanged.
 - A showcase smoke gate now locks the public clean shrine, race shrine,
   source-art oracle smoke, and unsigned `local-goftp1` v1 witness path.
+- v1 cross-substrate witness vectors now cover minimal, fork, fork-with-ack,
+  bad-event-id, future-version, missing-parent, and wrong-player across local,
+  FTP, Git-like, DNS-like, and WebDAV-like profiles.
+- Unsigned v1 witness golden vectors now freeze profile consensus version,
+  adapter id, raw and normalized counts, normalized events, accepted and
+  rejected counts, and diagnostic count.
 - Ruleset seal, v1 witness CLI, and v1 compare CLI are already implemented.
 
 ## Last Verified
 
-After the showcase gate commit, these passed:
+After the unsigned witness golden-field expansion, these passed:
 
 ```text
-prove -lr t/showcase-demo.t
-prove -lr t/showcase-demo.t t/example-ftp-shrine.t t/example-ftp-race-shrine.t t/source-art.t t/v1-cli-witness.t t/witness-api.t t/v1-cross-substrate.t
+prove -lr t/v1-golden-vectors.t t/v1-cross-substrate.t t/v1-signed-hmac-golden-vectors.t
+prove -lr t/v1-golden-vectors.t t/v1-cross-substrate.t t/v1-signed-hmac-golden-vectors.t t/v1-cli-compare.t t/v1-cli-witness.t t/witness-api.t t/diagnostics-contract.t
 prove -lr t
 ```
 
 Full test result:
 
 ```text
-Files=62, Tests=808, all successful.
+Files=62, Tests=841, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -80,20 +90,22 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-expand v1 cross-substrate golden vectors in a small batch:
-- future-version
-- missing-parent
-- wrong-player
+short P10 pass:
+- add the next v1 profile-level attack fixture
+- keep it behavior-tested, not only structurally present
+- prefer a WebDAV or cross-profile poison case that proves ignored metadata
+  cannot change event_set_root, replay status, board hash, SGF hash, or
+  diagnostics class
 ```
 
 Likely files:
 
 ```text
-t/fixtures/v1/cross-substrate/
-t/v1-cross-substrate.t
-t/v1-golden-vectors.t
-t/fixtures/vectors/v1-witness.jsonl
-docs/V1_DOD.md or docs/ROADMAP.md only if the acceptance language changes
+t/fixtures/v1/attacks/
+t/v1-profile-attack-fixtures.t
+t/v1-attack-fixtures.t
+t/fixtures/vectors/ if the attack becomes a witness vector
+Changes
 ```
 
 ## Restore Procedure
@@ -103,6 +115,6 @@ When resuming:
 1. Read `AGENTS.md`.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `test: add showcase demo smoke gate`.
+4. Confirm HEAD includes `test: expand unsigned v1 witness golden fields`.
 5. If the user asks to continue, open multi-agent discussion first, then choose
    one small executable step.

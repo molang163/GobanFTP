@@ -319,7 +319,15 @@ signed profile signature failure
 Each vector must state the input names and expected:
 
 ```text
+profile consensus version
+adapter id
+raw input count
+normalized event count
+normalized event names
+accepted event count
+rejected input count
 event_set_root
+diagnostic count
 diagnostics class
 canonical ids
 legal ids

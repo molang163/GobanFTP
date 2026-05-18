@@ -331,9 +331,11 @@ sets are the same.
 Tasks:
 
 - define the `event_set_root` preimage, encoding, and diagnostic output
-- write witness output that includes profile id, adapter id, game descriptor,
-  accepted event count, rejected input count, `event_set_root`, canonical tip,
-  replay status, board hash, SGF hash, and relevant diagnostic codes
+- write witness output that includes profile id, profile consensus version,
+  adapter id, game descriptor, raw input count, normalized event count,
+  normalized event names, accepted event count, rejected input count,
+  `event_set_root`, canonical tip, replay status, board hash, SGF hash, and
+  relevant diagnostic counts and codes
 - create cross-system witness fixtures with the same accepted event set in FTP
   and each implemented v1.0 substrate
 - add a forked witness fixture so branch visibility and conservative fork status

@@ -18,13 +18,20 @@ my $schema_path = "$FindBin::Bin/../docs/DIAGNOSTICS.md";
 
 my @witness_fields = qw(
     profile_id
+    profile_consensus_version
+    adapter_id
     game_descriptor
     ruleset_id
     ruleset_semver
     ruleset_seal_version
     ruleset_fixture_digest
     ruleset_seal
+    raw_count
+    normalized_count
+    normalized_events
+    accepted_count
     accepted_events
+    rejected_count
     rejected_codes
     rejected_classes
     event_set_root
@@ -34,6 +41,7 @@ my @witness_fields = qw(
     legal_ids
     diagnostic_codes
     diagnostic_classes
+    diagnostic_count
     board_hash
     sgf_hash
     variations_sgf_hash
