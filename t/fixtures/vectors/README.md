@@ -34,11 +34,12 @@ and ACK targets that are themselves ACKs.
 for non-consensus evidence. Each row declares its own `ignored_inputs`,
 `evidence_markers`, and optional `poisoned_order`, then binds the embedded
 `input_names` back to real fixture listings. Current rows promote the WebDAV
-metadata-poison, DNS owner-poison, and Git-tree path/metadata-poison fixtures.
-They prove accepted events, event-set preimage, event-set root, canonical ids,
-board hash, projection text, and SGF hashes stay identical when only ignored
-evidence changes. These rows prove the evidence stays outside truth; they do
-not make content, mtime, sidecar, projection, tmp, TTL/order rows, Git
+metadata-poison, WebDAV href-traversal, DNS owner-poison, and Git-tree
+path/metadata-poison fixtures. They prove accepted events, event-set preimage,
+event-set root, canonical ids, board hash, projection text, and SGF hashes stay
+identical when only ignored evidence changes. These rows prove the evidence
+stays outside truth; they do not make content, mtime, sidecar, projection, tmp,
+WebDAV dot segments, encoded slash/backslash href rows, TTL/order rows, Git
 commit/ref/object metadata, or transport metadata replay inputs. DNS owner
 labels are used only for current-game record scoping, not as replay truth. These
 vectors do not claim Git publish or remote fetch support, live DNS, AXFR, DNSSEC

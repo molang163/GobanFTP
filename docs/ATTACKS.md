@@ -149,6 +149,12 @@ percent-encoded dot segments, encoded slash, and encoded backslash inside href
 paths. The expected witness remains a one-event baseline; any traversal href
 that smuggles the second move into the accepted set changes the root and fails
 the fixture.
+It is also promoted into
+`t/fixtures/vectors/v1-non-consensus-poison.jsonl` as
+`webdav-href-traversal-public-vector`, binding the real fixture `input_names`
+to unchanged one-event event-set preimage, root, replay, board, projection, and
+SGF truth. This is evidence for the WebDAV read/listing href normalization
+boundary only.
 
 The DNS specimen `dns-owner-poison` attacks TXT records that carry tempting
 `event=` values under the wrong game owner, records without an owner, TTL/order

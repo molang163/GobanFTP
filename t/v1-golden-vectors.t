@@ -238,6 +238,7 @@ for my $vector (@poison_vectors) {
 
 for my $case (qw(
     webdav-metadata-poison-public-vector
+    webdav-href-traversal-public-vector
     dns-owner-poison-public-vector
     git-tree-path-metadata-poison-public-vector
 )) {

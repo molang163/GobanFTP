@@ -120,6 +120,10 @@ Revision history for GobanFTP
   - Added the first public non-consensus-poison golden vector, binding the
     WebDAV metadata-poison fixture to unchanged event-set preimage, root,
     replay, board, projection text, and SGF truth.
+  - Added a WebDAV href-traversal public non-consensus-poison golden vector,
+    binding raw and percent-encoded traversal href fixture input names to
+    unchanged one-event event-set preimage, root, replay, board, projection
+    text, and SGF truth.
   - Added a DNS owner-poison public non-consensus-poison golden vector, binding
     real record fixture input names to unchanged event-set preimage, root,
     replay, board, projection text, and SGF truth.

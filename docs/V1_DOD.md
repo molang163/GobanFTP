@@ -351,16 +351,18 @@ collision, which is not safely representable as an ordinary public replay
 basename without a real hash collision. Event-id collision is instead frozen by
 a synthetic DAG-boundary vector with no `event_set_root`, board, SGF, or replay
 status claim. The current non-consensus-poison vectors bind the WebDAV
-metadata-poison, DNS owner-poison, and Git-tree path/metadata-poison fixtures to
-real baseline/poison `input_names`. They prove sidecar, projection, tmp,
-resource-body row fields, metadata, recursive hrefs, wrong-game hrefs,
-duplicate hrefs, percent-encoding hazards, wrong or missing DNS owners, DNS
-TTL/order rows, non-TXT DNS rows, and Git commit/ref/object/path metadata stay
-outside event-set and replay truth. DNS owner labels are a current-game record
-scoping filter, not replay truth. The next vector slice must expand any
-remaining public poison coverage while keeping `git-tree-goftp1` and
-`dns-record-goftp1` read-only and avoiding any claim of Git publish, live DNS,
-AXFR, DNSSEC trust, provider APIs, dynamic update, or DNS record publishing.
+metadata-poison, WebDAV href-traversal, DNS owner-poison, and Git-tree
+path/metadata-poison fixtures to real baseline/poison `input_names`. They prove
+sidecar, projection, tmp, resource-body row fields, metadata, recursive hrefs,
+wrong-game hrefs, duplicate hrefs, percent-encoding hazards, raw and
+percent-encoded WebDAV dot segments, encoded slash/backslash href rows, wrong
+or missing DNS owners, DNS TTL/order rows, non-TXT DNS rows, and Git
+commit/ref/object/path metadata stay outside event-set and replay truth. DNS
+owner labels are a current-game record scoping filter, not replay truth. The
+next vector slice must expand any remaining public poison coverage while
+keeping `git-tree-goftp1` and `dns-record-goftp1` read-only and avoiding any
+claim of Git publish, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic
+update, or DNS record publishing.
 
 ## Release Gates
 
