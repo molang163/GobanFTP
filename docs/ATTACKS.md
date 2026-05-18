@@ -1,7 +1,7 @@
 # Attack Fixture Gallery
 
-The attack fixture gallery is a planned proof set for hostile or misleading
-listings. It exists to show that GobanFTP keeps the `GOFTP/1` replay boundary
+The attack fixture gallery is a proof set for hostile or misleading listings.
+It exists to show that GobanFTP keeps the `GOFTP/1` replay boundary
 boring under pressure: game descriptor basenames and direct `events/` child
 basenames are authoritative; metadata, payloads, sidecars, projections, and
 temporary files are not.
@@ -46,10 +46,14 @@ The verdict uses one `key=value` field per line:
 
 ```text
 attack=<attack-name>
+mode=<local|listing>
+command=<command-name>
 status=<ok|ignored|validation|fork|storage>
 exit=<0|2|3|4>
 game=<game-descriptor>
 events=<normalized-event-count>
+event_set_count=<accepted-root-input-count>
+event_set_root=<lowercase-sha256-hex>
 canonical_moves=<count>
 legal_moves=<count>
 diagnostic.code=<code-or-empty>
@@ -63,8 +67,13 @@ note=<short-human-readable-judgment>
 Rules:
 
 - `attack` must match the fixture directory basename.
+- `mode` must name the harness path. The current modes are `local` and
+  `listing`.
+- `command` must name the command path under judgment.
 - `status` must describe the replay or store outcome, not the attacker's intent.
 - `exit` must match the CLI exit code expected from the primary command.
+- `event_set_count` and `event_set_root` must witness the accepted direct event
+  basename set used for `GOFTP-EVENT-SET/1`.
 - `diagnostic.class` must match the diagnostics schema for the expected
   diagnostic code, or be empty when the sample has no diagnostic.
 - `consensus_inputs` must stay `descriptor,events` for `GOFTP/1` core replay.
@@ -74,11 +83,18 @@ Rules:
 Additional fields may be added when a case needs them, but they must be stable,
 public, and directly tied to the attack judgment.
 
-The test gallery also uses `mode=<local|listing>` and `command=<command-name>`
-to name the harness path. `local` fixtures are copied into a temporary game root
-before running the CLI. `listing` fixtures exercise raw observed names directly
-when the hostile condition, such as duplicate listing entries, cannot be
-represented by a normal filesystem directory.
+Every attack fixture must contain:
+
+```text
+game.name
+listing.names
+expected.verdict
+```
+
+`local` fixtures are copied into a temporary game root before running the CLI.
+`listing` fixtures exercise raw observed names directly when the hostile
+condition, such as duplicate listing entries, cannot be represented by a normal
+filesystem directory.
 
 ## Current Harness
 
@@ -88,13 +104,21 @@ The runnable harness is:
 t/attack-fixtures.t
 ```
 
-The first gallery slice covers:
+The v1 gallery gate is:
+
+```text
+t/v1-attack-fixtures.t
+```
+
+It is intentionally structural: it checks that the gallery contains the v1
+specimens and that each specimen declares the required files and verdict fields.
+It does not change replay semantics, and it does not make signatures consensus
+input for unsigned `GOFTP/1`.
+
+The v1 gallery must contain at least:
 
 ```text
 bad-payload
-poisoned-sidecar
-projection-poison
-tmp-poison
 bad-list-order
 duplicate-event
 bad-event-id
@@ -102,6 +126,10 @@ future-version
 missing-parent
 fake-player
 fork-race
+poisoned-sidecar
+projection-poison
+tmp-poison
+dangling-ack
 ```
 
 Each sample proves one of three outcomes:
@@ -138,6 +166,15 @@ different result if server order were trusted.
 Expected outcome: replay normalizes and sorts basenames before parsing. Verdict
 status should be `ok`; `ignored_inputs` should include `listing-order`.
 
+### `bad-event-id`
+
+Attack: an event basename has otherwise tempting fields but an event id that
+does not match the descriptor-bound GOFTP/1 hash.
+
+Expected outcome: event-id verification rejects the name before DAG replay. The
+bad basename stays out of `event_set_root`; the verdict should report a stable
+event-id diagnostic class.
+
 ### `duplicate-event`
 
 Attack: the same event basename appears more than once in a raw listing or is
@@ -146,6 +183,14 @@ published again.
 Expected outcome: duplicate identical names are idempotent and do not create
 extra moves. Verdict status should be `ok`; the normalized event count should
 include the name once.
+
+### `future-version`
+
+Attack: a direct event-looking name uses an unsupported future event version.
+
+Expected outcome: the name remains observable but is excluded from
+`event_set_root` and replay. The verdict should report a stable parse diagnostic
+class for the unknown version.
 
 ### `missing-parent`
 
@@ -183,6 +228,23 @@ player, or result than the filename listing proves.
 Expected outcome: filename events win. Core replay ignores the poisoned sidecar
 and produces the same board as if `sidecar/` were absent. Verdict status should
 be `ok` or `ignored`; `ignored_inputs` should include `sidecar`.
+
+### `projection-poison`
+
+Attack: cached board, verdict, transcript, or SGF projections claim a different
+state than the authoritative event names.
+
+Expected outcome: projections are rebuilt from direct event basenames. Verdict
+status should be `ok` or `ignored`; `ignored_inputs` should include
+`projections`.
+
+### `tmp-poison`
+
+Attack: temporary publish debris, partial uploads, or pending files are visible
+near the game tree and look tempting to replay code.
+
+Expected outcome: temporary surfaces are ignored. Verdict status should be `ok`
+or `ignored`; `ignored_inputs` should include `tmp`.
 
 ### `unicode-name`
 
@@ -222,6 +284,14 @@ Expected outcome: conservative replay stops at the fork and exits `3`. The
 verdict should report `fork`, the parent id, and the competing child ids.
 Ack-assisted recovery may be demonstrated separately, but default replay must
 not silently choose a winner.
+
+### `dangling-ack`
+
+Attack: an ack event references a target id that is absent from the listing.
+
+Expected outcome: the hash-valid ack enters `event_set_root`, but DAG replay
+rejects it with a stable dangling-ack diagnostic. The fixture must not rely on
+real signatures.
 
 ## Admission Criteria
 

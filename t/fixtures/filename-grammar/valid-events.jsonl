@@ -2,3 +2,4 @@
 {"id":"second_white_play","name":"m1.p000002.w.play-ee.pa-f98qai37nace5spg.by-bob.n-q9az.h-5ivvsvtid3j6u1pg","kind":"move","fields":{"ply":"000002","color":"w","action":"play-ee","point":"ee","parent":"f98qai37nace5spg","player":"bob","nonce":"q9az","event_id":"5ivvsvtid3j6u1pg"}}
 {"id":"third_black_pass","name":"m1.p000003.b.pass.pa-5ivvsvtid3j6u1pg.by-alice.n-p4ss.h-gtkuj3ipflsaif1s","kind":"move","fields":{"ply":"000003","color":"b","action":"pass","parent":"5ivvsvtid3j6u1pg","player":"alice","nonce":"p4ss","event_id":"gtkuj3ipflsaif1s"}}
 {"id":"white_ack_first_move","name":"a1.t-f98qai37nace5spg.by-bob.n-s7p2.h-tim1sb5lpmd0d4q5","kind":"ack","fields":{"target":"f98qai37nace5spg","player":"bob","nonce":"s7p2","event_id":"tim1sb5lpmd0d4q5"}}
+{"id":"alice_ack_second_move","name":"a1.t-5ivvsvtid3j6u1pg.by-alice.n-a8ck.h-pin8nroo77b8lsr9","kind":"ack","fields":{"target":"5ivvsvtid3j6u1pg","player":"alice","nonce":"a8ck","event_id":"pin8nroo77b8lsr9"}}

@@ -10,6 +10,8 @@
 {"id":"event_id_mismatch","name":"m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v.h-0000000000000000","error":"event_id.mismatch"}
 {"id":"bad_parent_length","name":"m1.p000002.w.play-ee.pa-f98.by-bob.n-q9az.h-5ivvsvtid3j6u1pg","error":"move.parent"}
 {"id":"bad_ack_target_length","name":"a1.t-f98.by-bob.n-s7p2.h-tim1sb5lpmd0d4q5","error":"ack.target"}
+{"id":"bad_ack_target_alphabet","name":"a1.t-zzzzzzzzzzzzzzzz.by-bob.n-s7p2.h-tim1sb5lpmd0d4q5","error":"ack.target"}
+{"id":"ack_event_id_mismatch","name":"a1.t-5ivvsvtid3j6u1pg.by-alice.n-a8ck.h-0000000000000000","error":"event_id.mismatch"}
 {"id":"empty_nonce","name":"m1.p000001.b.play-dd.pa-genesis.by-alice.n-.h-f98qai37nace5spg","error":"event.nonce"}
 {"id":"extra_field","name":"m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v.extra.h-f98qai37nace5spg","error":"event.field_count"}
 {"id":"illegal_slash","name":"m1.p000001.b.play-dd.pa-genesis.by-alice/n-k31v.h-f98qai37nace5spg","error":"filename.charset"}

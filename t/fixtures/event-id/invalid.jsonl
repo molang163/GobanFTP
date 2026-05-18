@@ -1,3 +1,4 @@
 {"id":"mismatch","game":"g1.id-minimal.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob","name":"m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v.h-0000000000000000","error":"event_id.mismatch"}
+{"id":"ack_mismatch","game":"g1.id-minimal.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob","name":"a1.t-5ivvsvtid3j6u1pg.by-alice.n-a8ck.h-0000000000000000","error":"event_id.mismatch"}
 {"id":"bad_alphabet","game":"g1.id-minimal.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob","name":"m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v.h-wwwwwwwwwwwwwwww","error":"event_id.alphabet"}
 {"id":"too_short","game":"g1.id-minimal.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob","name":"m1.p000001.b.play-dd.pa-genesis.by-alice.n-k31v.h-f98qai37nace5sp","error":"event_id.length"}
