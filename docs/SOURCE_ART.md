@@ -114,6 +114,13 @@ perl oracle/goban.pl --smoke
 prove -l t/source-art.t
 ```
 
+The smoke command is allowed to display proof fields, but it must obtain them
+through `GobanFTP::Witness`. It may print profile id, adapter id,
+`event_set_root`, replay status, canonical tip, board hash, SGF hash, and
+diagnostic count. It must not become a second implementation of filename
+parsing, event id calculation, DAG replay, rules, projection hashing, or
+storage normalization.
+
 Additional source-art tests should assert behavior, not layout trivia. A changed
 border must not fail a protocol test. A changed glyph must not alter any replay
 fixture. Art can be beautiful; data stays boring.

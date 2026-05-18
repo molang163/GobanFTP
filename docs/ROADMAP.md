@@ -401,7 +401,8 @@ consensus.
 Tasks:
 
 - extend source-art smoke paths to display or invoke witness checks while keeping
-  source art decorative
+  source art decorative. The first smoke path now displays `GobanFTP::Witness`
+  fields while leaving the executable board glyphs outside replay truth.
 - define and apply the source-art motif register in `docs/SOURCE_ART.md`,
   including altar, goban, hash seal, DAG tree, FTP gate, projection mirror,
   witness eye, root monolith, signature seal, observatory surfaces, and a small

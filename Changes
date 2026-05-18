@@ -61,6 +61,9 @@ Revision history for GobanFTP
   - Added a signed-HMAC public-trust bridge poison fixture proving public
     `GOFTP-TRUST/1` rows cannot authorize `k1.` HMAC selectors or revoke
     explicit HMAC selectors, while unsigned replay remains unchanged.
+  - Routed the executable source-art smoke surface through `GobanFTP::Witness`,
+    so it displays `event_set_root`, replay status, board hash, SGF hash, and
+    diagnostics without owning protocol truth.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

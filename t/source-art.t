@@ -13,6 +13,7 @@ use GobanFTP::Oracle::Smoke qw(smoke_report);
 
 my $root = "$FindBin::Bin/..";
 my $script = "$root/oracle/goban.pl";
+my $smoke_module = "$root/lib/GobanFTP/Oracle/Smoke.pm";
 
 ok -f $script, 'source-art oracle exists';
 
@@ -25,6 +26,12 @@ unlike $source, qr/^\s*use\s+GobanFTP::(?:DAG|EventID|Filename::Grammar|GameSpec
     'source-art wrapper does not import protocol, replay, rules, SGF, projection, or store modules directly';
 unlike $source, qr/\b(?:event_id_for|parse_event|build\(|apply_move|GOFTP-EVENT|m1\.|a1\.|g1\.id-)\b/,
     'source-art wrapper does not embed protocol or rule implementation traces';
+
+my $smoke_source = _slurp($smoke_module);
+like $smoke_source, qr/GobanFTP::Witness/, 'smoke module delegates replay truth to Witness';
+unlike $smoke_source,
+    qr/^\s*use\s+GobanFTP::(?:DAG|EventID|Filename::Grammar|GameSpec|Projection|Replay|Rules|SGF|Store|EventSetRoot)\b/m,
+    'smoke module does not import consensus engines directly';
 
 my @board = _executable_board_from($source);
 is scalar(@board), 9, 'source-art wrapper contains nine executable goban rows';
@@ -46,6 +53,24 @@ is $smoke_status, 0, 'source-art oracle --smoke succeeds without requiring Inlin
 
 like $smoke_out, qr/^gobanftp\.oracle=ok$/m, 'smoke reports oracle status';
 like $smoke_out, qr/^rules\.move=ok$/m, 'smoke reaches rules module';
+like $smoke_out, qr/^profile_id=local-goftp1$/m, 'smoke reports witness profile';
+like $smoke_out, qr/^adapter_id=local-listing-goftp1$/m, 'smoke reports witness adapter';
+like $smoke_out, qr/^accepted_count=1$/m, 'smoke reports accepted witness count';
+like $smoke_out,
+    qr/^event_set_root=7b329a82474f5297e1bd42c85801b510ed170e99b013f337e04e1f848bed267d$/m,
+    'smoke reports witness event_set_root';
+like $smoke_out, qr/^replay_status=ok$/m, 'smoke reports witness replay status';
+like $smoke_out, qr/^canonical_tip=nnj11k89biuv36dk$/m, 'smoke reports witness canonical tip';
+like $smoke_out,
+    qr/^board_hash=2a86a2fe1efb4a3fab88b8bbe889023bd6e96684739e8331fe9052760818dd04$/m,
+    'smoke reports witness board hash';
+like $smoke_out,
+    qr/^sgf_hash=a4a7248b452f722852d7895c8f738c35eea3f947759b3adc8403a4d366369b95$/m,
+    'smoke reports witness SGF hash';
+like $smoke_out,
+    qr/^variations_sgf_hash=a4a7248b452f722852d7895c8f738c35eea3f947759b3adc8403a4d366369b95$/m,
+    'smoke reports witness variations SGF hash';
+like $smoke_out, qr/^diagnostic_count=0$/m, 'smoke reports witness diagnostics count';
 like $smoke_out, qr/^inline_c=(?:missing|skip|ok value=361)$/m, 'Inline::C smoke is optional';
 
 my @module_report = smoke_report(visual_board => _alternate_visual_board());
@@ -53,10 +78,38 @@ like join("\n", @module_report), qr/^gobanftp\.oracle=ok$/m,
     'smoke module can run without the source-art wrapper';
 
 my @wrapper_report = split /\n/, $smoke_out;
-for my $field (qw(game.size event.id rules.move)) {
+my @truth_fields = qw(
+    game.size
+    event.id
+    rules.move
+    profile_id
+    adapter_id
+    accepted_count
+    event_set_root
+    replay_status
+    canonical_tip
+    board_hash
+    sgf_hash
+    variations_sgf_hash
+    diagnostic_count
+);
+for my $field (@truth_fields) {
     is _field(\@module_report, $field), _field(\@wrapper_report, $field),
         "visual glyphs do not change $field";
 }
+
+my @no_inline_report;
+{
+    no warnings 'redefine';
+    local *GobanFTP::Oracle::Smoke::inline_c_smoke = sub { 'forced value=0' };
+    @no_inline_report = smoke_report(visual_board => _alternate_visual_board());
+}
+for my $field (@truth_fields) {
+    is _field(\@no_inline_report, $field), _field(\@wrapper_report, $field),
+        "Inline::C availability does not change $field";
+}
+is _field(\@no_inline_report, 'inline_c'), 'forced value=0',
+    'Inline::C smoke line can vary independently';
 
 my ($help_status, $help_out, $help_err) = run_cmd($^X, $script, '--help');
 is $help_status, 0, 'source-art oracle --help exits 0';

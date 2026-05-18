@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- test: route source-art smoke through witness
 - test: add signed HMAC public trust poison fixture
 ```
 
@@ -22,6 +23,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD test: route source-art smoke through witness
 HEAD test: add signed HMAC public trust poison fixture
 HEAD test: freeze signed HMAC lifecycle vectors
 HEAD feat: enforce signed HMAC lifecycle status
@@ -81,6 +83,11 @@ Key completed boundaries:
   metadata that points at HMAC selectors. The test proves those rows cannot
   authorize `k1.` HMAC selectors, cannot revoke `fixture-key-1`, and do not
   change unsigned `local-goftp1` replay.
+- P13a source-art witness smoke is implemented: `oracle/goban.pl --smoke`
+  still remains an executable source-art wrapper, but the smoke module now gets
+  protocol proof fields from `GobanFTP::Witness`. The test proves visual board
+  glyphs and Inline::C availability do not change `event_set_root`,
+  replay status, canonical tip, board hash, SGF hash, or diagnostic count.
 - WebDAV publish failure now has a fixture and CLI parity gate proving
   existing-final idempotence, delayed `MOVE` visibility, hard `HTTP 423 Locked`
   failure, bounded retries, zero-byte temporary resources, tmp debris exclusion,
@@ -121,9 +128,13 @@ Key completed boundaries:
 
 ## Last Verified
 
-After signed-HMAC public trust bridge poison, these passed:
+After source-art witness smoke, these passed:
 
 ```text
+perl -Ilib -c lib/GobanFTP/Oracle/Smoke.pm
+perl -Ilib oracle/goban.pl --smoke
+prove -lr t/source-art.t
+prove -lr t/source-art.t t/witness-api.t t/v1-cli-witness.t t/showcase-demo.t
 perl -Ilib -c lib/GobanFTP/Auth/TrustReport.pm
 perl -Ilib -c lib/GobanFTP/Profile/SignedHMAC.pm
 perl -Ilib -c lib/GobanFTP/Witness.pm
@@ -144,7 +155,7 @@ prove -lr t
 Full test result:
 
 ```text
-Files=67, Tests=892, all successful.
+Files=67, Tests=928, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -164,11 +175,11 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-after showing the README, continue the v1.0 route:
-- pick the next small proof gate by multi-agent discussion
-- likely candidate is P13 source-art/TUI/Web inspection
-- start with a small terminal or source-art inspection smoke that displays
-  witness fields derived from `GobanFTP::Witness`
+after P13a source-art witness smoke, continue the v1.0 route:
+- pick the next small proof gate by implementation review
+- likely candidate is P13b witness/projection-only surface rendering
+- start with a small `GobanFTP::Surface::*` or static viewer module that only
+  consumes a `GobanFTP::Witness` hash and projection text
 - do not let display, source art, Web assets, or terminal formatting feed
   replay or event-set roots
 - keep unsigned `GOFTP/1` and `local-goftp1` replay unchanged
@@ -182,6 +193,8 @@ lib/GobanFTP/Auth/TrustReport.pm
 lib/GobanFTP/Profile/SignedHMAC.pm
 lib/GobanFTP/Witness.pm
 lib/GobanFTP/CLI.pm
+lib/GobanFTP/Oracle/Smoke.pm
+oracle/goban.pl
 lib/GobanFTP/Diagnostics.pm
 t/fixtures/auth/
 t/fixtures/v1/signed-hmac/
@@ -189,11 +202,13 @@ t/fixtures/vectors/v1-signed-hmac-witness.jsonl
 t/v1-signed-hmac.t
 t/v1-signed-hmac-golden-vectors.t
 t/v1-cli-witness.t
+t/source-art.t
 t/cli-auth-trust-report.t
 t/diagnostics-contract.t
 docs/PROFILES.md
 docs/CLI.md
 docs/DIAGNOSTICS.md
+docs/SOURCE_ART.md
 Changes
 docs/SESSION_RESTORE.md
 ```
@@ -202,10 +217,10 @@ docs/SESSION_RESTORE.md
 
 When resuming:
 
-1. Read `AGENTS.md` if present; otherwise continue with this file and the AI
+1. Read `AGENTS.md` if present; otherwise continue with this file and the
    maintainer guide supplied in the session context.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `test: add signed HMAC public trust poison fixture`.
-5. If the user asks to continue, open multi-agent discussion first, then choose
-   one small executable step.
+4. Confirm HEAD includes `test: route source-art smoke through witness`.
+5. If the user asks to continue, review the next step first, then choose one
+   small executable step.

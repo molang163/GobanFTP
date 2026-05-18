@@ -7,10 +7,7 @@ use warnings;
 use Exporter qw(import);
 use File::Temp qw(tempdir);
 
-use GobanFTP::DAG qw(build);
-use GobanFTP::Filename::Grammar qw(event_id_for parse_event);
-use GobanFTP::GameSpec qw(parse_basename);
-use GobanFTP::Rules;
+use GobanFTP::Witness qw(witness_for_listing);
 
 our @EXPORT_OK = qw(run_smoke smoke_report inline_c_smoke);
 
@@ -27,33 +24,38 @@ sub smoke_report {
     my (%args) = @_;
 
     my $game = 'g1.id-smoke.s9.r-chinese-area-v1.k6500.pb-black.pw-white';
-    my ($spec, $spec_error) = parse_basename($game);
-    die "gamespec: $spec_error\n" if defined $spec_error;
+    my $event = 'm1.p000001.b.play-aa.pa-genesis.by-black.n-smoke.h-nnj11k89biuv36dk';
 
     if (exists $args{visual_board}) {
         die "source-art: board shape mismatch\n"
-            if !_visual_board_is($args{visual_board}, $spec->{size});
+            if !_visual_board_is($args{visual_board}, 9);
     }
 
-    my $event_without_hash = 'm1.p000001.b.play-aa.pa-genesis.by-black.n-smoke';
-    my $event_name = $event_without_hash . '.h-' . event_id_for($game, $event_without_hash);
-
-    my ($event, $event_error) = parse_event($event_name, game_descriptor => $game);
-    die "event: $event_error\n" if defined $event_error;
-
-    my $dag = build(events => [{ name => $event_name, event => $event }]);
-    my @moves = $dag->topological_move_ids;
-    die "dag: expected one smoke move\n" if @moves != 1;
-
-    my $rules = GobanFTP::Rules->new(size => $spec->{size}, rules => $spec->{rules});
-    my $state = $rules->apply_move($rules->initial_state, $event);
-    die "rules: $state->{reason}\n" if !$state->{ok};
+    my $witness = witness_for_listing(
+        profile_id      => 'local-goftp1',
+        game_descriptor => $game,
+        raw_names       => [$event],
+    );
+    die "witness: replay_status=$witness->{replay_status}\n"
+        if $witness->{replay_status} ne 'ok';
+    die "witness: expected one accepted event\n"
+        if $witness->{accepted_count} != 1;
 
     return (
         'gobanftp.oracle=ok',
-        "game.size=$spec->{size}",
-        "event.id=$moves[0]",
+        'game.size=9',
+        "event.id=$witness->{canonical_tip}",
         'rules.move=ok',
+        "profile_id=$witness->{profile_id}",
+        "adapter_id=$witness->{adapter_id}",
+        "accepted_count=$witness->{accepted_count}",
+        "event_set_root=$witness->{event_set_root}",
+        "replay_status=$witness->{replay_status}",
+        "canonical_tip=$witness->{canonical_tip}",
+        "board_hash=$witness->{board_hash}",
+        "sgf_hash=$witness->{sgf_hash}",
+        "variations_sgf_hash=$witness->{variations_sgf_hash}",
+        "diagnostic_count=$witness->{diagnostic_count}",
         'inline_c=' . inline_c_smoke(),
     );
 }

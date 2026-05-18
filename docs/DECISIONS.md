@@ -487,3 +487,25 @@ Reason:
   validity
 - the signed profile can harden without changing `GOFTP/1`, `local-goftp1`, or
   cross-substrate unsigned witnesses
+
+## 032: Source-Art Smoke Displays Witness Truth
+
+The executable source-art wrapper may display protocol proof fields, but it
+must receive those fields from `GobanFTP::Witness`. The smoke path can show
+profile id, adapter id, `event_set_root`, replay status, canonical tip, board
+hash, SGF hash, and diagnostic count. It must not own filename grammar, event
+id calculation, DAG replay, rules, projection hashing, storage normalization,
+or signed profile acceptance.
+
+Visual board glyphs and Inline::C availability are presentation/smoke inputs
+only. Tests must prove they do not change the witness truth fields.
+
+Reason:
+
+- P13 needs a visible proof surface before larger TUI or Web work
+- source art should reveal the proof machine without becoming another protocol
+  implementation
+- `GobanFTP::Witness` is already the v1 read-only assembly point for profile
+  truth
+- optional acceleration and decorative glyphs must remain outside replay,
+  `event_set_root`, board hash, SGF hash, and diagnostics
