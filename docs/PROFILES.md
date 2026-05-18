@@ -711,6 +711,7 @@ Fixtures and smoke:
 t/store-webdav-mock.t
 t/webdav-cli-parity.t
 t/fixtures/v1/cross-substrate/*/webdav-goftp1/listing.names
+t/fixtures/v1/publish-failures/webdav-publish-failure/
 GOBANFTP_STORE=webdav GOBANFTP_WEBDAV_URL=<url> perl -Ilib script/gobanftp play --once <game>
 ```
 

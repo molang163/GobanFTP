@@ -323,6 +323,10 @@ Acceptance:
   SGF, or projections
 - publish failures are classified without inventing hidden consensus rules
 
+Current implemented proof: `webdav-publish-failure` covers existing-final
+idempotence, delayed WebDAV `MOVE` visibility, hard `HTTP 423 Locked` publish
+failure, zero-byte temporary payloads, retry bounds, and tmp debris exclusion.
+
 ## P11: Cross-System Witness And `event_set_root`
 
 Goal: prove that different systems expose the same game when their accepted event

@@ -14,7 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
-- test: add git tree metadata poison fixture
+- test: add WebDAV publish failure fixture
 ```
 
 Confirm the latest commit with `git log --oneline -5` when resuming.
@@ -22,6 +22,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD test: add WebDAV publish failure fixture
 HEAD test: add git tree metadata poison fixture
 HEAD test: add signed HMAC injected event fixture
 HEAD docs: rewrite README as P14 showcase entrypoint
@@ -41,6 +42,10 @@ fc7f6a2 test: add WebDAV href traversal attack fixture
 
 Key completed boundaries:
 
+- WebDAV publish failure now has a fixture and CLI parity gate proving
+  existing-final idempotence, delayed `MOVE` visibility, hard `HTTP 423 Locked`
+  failure, bounded retries, zero-byte temporary resources, tmp debris exclusion,
+  listing-first confirmation, and bearer-token redaction.
 - `git-tree-goftp1` now has a profile attack fixture proving commit metadata,
   refs, tags, remotes, mode, object id, object type, object size, `tmp/`,
   sidecar, projection, recursive path, wrong-game path, duplicate entry, and
@@ -77,20 +82,19 @@ Key completed boundaries:
 
 ## Last Verified
 
-After the Git-tree path/metadata poison fixture, these passed:
+After the WebDAV publish failure fixture, these passed:
 
 ```text
 git diff --check
-prove -lr t/profile-adapter.t t/v1-profile-attack-fixtures.t
+prove -lr t/v1-profile-publish-fixtures.t t/webdav-cli-parity.t t/store-webdav-mock.t
 prove -lr t/profile-adapter.t t/v1-profile-attack-fixtures.t t/v1-cross-substrate.t t/v1-golden-vectors.t
-prove -lr t/v1-signed-hmac.t t/v1-cli-witness.t t/v1-signed-hmac-golden-vectors.t
 prove -lr t
 ```
 
 Full test result:
 
 ```text
-Files=62, Tests=851, all successful.
+Files=63, Tests=862, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -112,18 +116,22 @@ Immediate next implementation:
 ```text
 after showing the README, continue the v1.0 route:
 - pick the next small proof gate by multi-agent discussion
-- likely candidates are the next P10 substrate/profile attack fixture, a
-  profile publish-failure fixture, or a first narrow P12 key lifecycle slice
+- likely candidate is a first narrow P12 key lifecycle slice for
+  signed-hmac-goftp1: public fixture key ids, trust-report/keyid CLI output, and
+  revocation/rotation fixture behavior without changing unsigned GOFTP/1 truth
 - keep every change behavior-tested and update Changes plus this restore file
 ```
 
 Likely files:
 
 ```text
-t/fixtures/v1/attacks/
-t/v1-profile-attack-fixtures.t
-lib/GobanFTP/Profile/Adapter.pm
-docs/ATTACKS.md
+lib/GobanFTP/Auth/HMAC.pm
+lib/GobanFTP/CLI.pm
+t/fixtures/v1/signed-hmac/
+t/v1-signed-hmac.t
+t/v1-cli-witness.t
+t/v1-signed-hmac-golden-vectors.t
+docs/PROFILES.md
 Changes
 docs/SESSION_RESTORE.md
 ```
@@ -135,6 +143,6 @@ When resuming:
 1. Read `AGENTS.md`.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `test: add git tree metadata poison fixture`.
+4. Confirm HEAD includes `test: add WebDAV publish failure fixture`.
 5. If the user asks to continue, open multi-agent discussion first, then choose
    one small executable step.

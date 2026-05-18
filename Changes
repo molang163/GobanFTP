@@ -39,6 +39,10 @@ Revision history for GobanFTP
     refs, modes, object ids, object sizes, sidecars, projections, tmp entries,
     recursive paths, wrong-game paths, and duplicates do not change the profile
     witness.
+  - Added a WebDAV publish-failure fixture and CLI parity gates proving existing
+    final names, delayed MOVE visibility, hard 423 failures, zero-byte temporary
+    payloads, retry bounds, and tmp debris do not create hidden witness truth or
+    leak bearer tokens.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

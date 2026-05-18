@@ -158,6 +158,19 @@ path surfaces. The expected witness remains the clean three-event baseline; a
 metadata or path row that changes the accepted event set changes the root and
 fails the fixture.
 
+Publish-failure specimens live under:
+
+```text
+t/fixtures/v1/publish-failures/
+```
+
+The first publish specimen is `webdav-publish-failure`, which proves that an
+existing final event name is idempotent, a lost WebDAV `MOVE` response succeeds
+only after a fresh `PROPFIND` sees the final event, and a hard `HTTP 423 Locked`
+failure leaves only `tmp/` debris outside witness truth. The paired CLI gate
+also checks bounded retries, zero-byte temporary resources, and bearer-token
+redaction.
+
 The v1 gallery must contain at least:
 
 ```text

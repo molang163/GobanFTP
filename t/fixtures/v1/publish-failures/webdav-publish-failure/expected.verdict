@@ -1,0 +1,13 @@
+case=webdav-publish-failure
+profile=webdav-goftp1
+status=ok
+game=g1.id-webdav-publish.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob
+event=m1.p000001.b.play-aa.pa-genesis.by-alice.n-pub1.h-nlpuo6hqn50jh8qo
+event_id=nlpuo6hqn50jh8qo
+published_event_set_root=03c106e063cea8959b5f6cd71e4fdf8cac72a86e78f0f439c4ef4df0bbd20ff5
+empty_event_set_root=5690d72ef591cff0a4befb2e2a645d1bbe7ae94195ded34c1279581e687172b4
+success_accepted_count=1
+failure_accepted_count=0
+hard_failure_error=move g1.id-webdav-publish.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob/tmp/alice-pub1.part to g1.id-webdav-publish.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob/events/m1.p000001.b.play-aa.pa-genesis.by-alice.n-pub1.h-nlpuo6hqn50jh8qo failed: HTTP 423 Locked
+ignored_inputs=webdav-tmp,webdav-put-payload,webdav-move-response,webdav-delayed-visibility,existing-final-name
+note=WebDAV publish failures are classified without letting temporary resources or payload bytes become witness truth

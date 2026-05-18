@@ -246,6 +246,103 @@ subtest 'WebDAV publish-ack fork exit and play --ack recovery match local CLI be
     _assert_no_forbidden_webdav_reads('ack parity stays listing-first');
 };
 
+subtest 'WebDAV publish-move confirms a lost MOVE response through fresh PROPFIND' => sub {
+    WebDAVCliParityHTTP->reset;
+
+    local %ENV = %ENV;
+    _webdav_env();
+
+    my ($create_exit, $create_stdout, $create_stderr) = _run_cli('create-game', $GAME);
+    is $create_exit, 0, 'delayed setup create-game succeeds';
+    like $create_stdout, qr/^store=webdav$/m, 'delayed setup selects WebDAV store';
+    is $create_stderr, '', 'delayed setup has no diagnostics';
+
+    WebDAVCliParityHTTP->delay_next_move_confirm(after_propfinds => 2);
+
+    my ($event);
+    my @publish_calls = _assert_command_uses_webdav_listing(
+        'publish-move delayed MOVE confirm',
+        sub {
+            my ($exit, $stdout, $stderr) = _run_cli('publish-move', '--nonce', 'delayed', $GAME, 'aa');
+            is $exit, 0, 'publish-move succeeds after delayed WebDAV visibility';
+            like $stdout, qr/^gobanftp\.publish-move=ok$/m, 'publish-move reports ok';
+            like $stdout, qr/^events=1$/m, 'publish-move reloads the delayed final event';
+            like $stdout, qr/^event_set_count=1$/m, 'publish-move accepts one event after delayed confirm';
+            like $stdout, qr/^canonical_moves=1$/m, 'publish-move renders one canonical move';
+            is $stderr, '', 'delayed confirm has no diagnostics';
+            unlike $stdout . $stderr, qr/\Q$TOKEN\E/, 'delayed confirm does not print the WebDAV token';
+
+            ($event) = $stdout =~ /^event=(m1\..+)$/m;
+            like $event // '',
+                qr/\Am1\.p000001\.b\.play-aa\.pa-genesis\.by-alice\.n-delayed\.h-[0-9a-v]{16}\z/,
+                'publish-move reports the delayed WebDAV event basename';
+        },
+    );
+
+    _assert_move_publish('publish-move delayed confirm uses WebDAV MOVE mode', \@publish_calls);
+    is scalar(grep { $_->[0] eq 'MOVE' } @publish_calls), 1,
+        'lost MOVE response is not retried after fresh PROPFIND finds the target';
+    ok WebDAVCliParityHTTP->has_event($ROOT_PATH, $GAME, $event),
+        'delayed final event is visible through WebDAV listing';
+    _assert_no_forbidden_webdav_reads('delayed publish-move confirm stays listing-first', \@publish_calls);
+};
+
+subtest 'WebDAV publish-move reports hard MOVE failures without leaking auth' => sub {
+    WebDAVCliParityHTTP->reset;
+
+    local %ENV = %ENV;
+    _webdav_env();
+
+    my ($create_exit, $create_stdout, $create_stderr) = _run_cli('create-game', $GAME);
+    is $create_exit, 0, 'hard failure setup create-game succeeds';
+    like $create_stdout, qr/^store=webdav$/m, 'hard failure setup selects WebDAV store';
+    is $create_stderr, '', 'hard failure setup has no diagnostics';
+
+    my ($event) = build_move_name(
+        game_descriptor => $GAME,
+        ply             => 1,
+        color           => 'b',
+        action          => 'play-aa',
+        parent_id       => 'genesis',
+        player          => 'alice',
+        nonce           => 'hardlock',
+    );
+    my $tmp_path = "$GAME/tmp/alice-hardlock.part";
+    my $target_path = "$GAME/events/$event";
+
+    WebDAVCliParityHTTP->fail_moves(423, 'Locked');
+
+    my @publish_calls = _assert_command_uses_webdav_listing(
+        'publish-move hard MOVE failure',
+        sub {
+            my ($exit, $stdout, $stderr) = _run_cli('publish-move', '--nonce', 'hardlock', $GAME, 'aa');
+            is $exit, 4, 'publish-move exits storage failure on permanent MOVE failure';
+            is $stdout, '', 'hard MOVE failure does not print stdout';
+            like $stderr,
+                qr/^storage: move \Q$tmp_path\E to \Q$target_path\E failed: HTTP 423 Locked$/m,
+                'hard MOVE failure reports the fixed temp and target paths';
+            unlike $stdout . $stderr, qr/\Q$TOKEN\E/, 'hard MOVE failure does not print the WebDAV token';
+        },
+    );
+
+    my @puts = grep { $_->[0] eq 'PUT' } @publish_calls;
+    my @moves = grep { $_->[0] eq 'MOVE' } @publish_calls;
+    is scalar(@puts), 1, 'hard MOVE failure uploads one temporary resource';
+    is_deeply [ map { length($_->[2]{content} // '') } @puts ], [0],
+        'hard MOVE failure temporary upload is zero bytes';
+    is scalar(@moves), 2, 'hard MOVE failure uses the bounded default retry count';
+    is_deeply [ map { $_->[1] } @moves ], [ ("$ROOT_URL/$tmp_path") x 2 ],
+        'hard MOVE failure retries the same temporary path';
+    is_deeply [ map { $_->[2]{headers}{Destination} } @moves ],
+        [ ("$ROOT_URL/$target_path") x 2 ],
+        'hard MOVE failure retries the same event target';
+    ok !WebDAVCliParityHTTP->has_event($ROOT_PATH, $GAME, $event),
+        'hard MOVE failure does not create a final event';
+    ok WebDAVCliParityHTTP->has_path("$ROOT_PATH/$tmp_path"),
+        'hard MOVE failure may leave temporary debris outside witness truth';
+    _assert_no_forbidden_webdav_reads('hard MOVE failure stays listing-first', \@publish_calls);
+};
+
 done_testing;
 
 sub _webdav_env {
@@ -380,6 +477,28 @@ sub create_file {
     return bless($STATE, $class)->_create_file($path);
 }
 
+sub delay_next_move_confirm {
+    my ($class, %args) = @_;
+
+    $STATE //= _fresh_state();
+    $STATE->{move_hook} = sub {
+        my ($self, $source, $target) = @_;
+        $self->schedule_create_file($target, after_propfinds => $args{after_propfinds} // 1);
+        return _response(500, 'MOVE response lost');
+    };
+    return;
+}
+
+sub fail_moves {
+    my ($class, $status, $reason) = @_;
+
+    $STATE //= _fresh_state();
+    $STATE->{move_hook} = sub {
+        return _response($status, $reason);
+    };
+    return;
+}
+
 sub event_names {
     my ($class, $root, $game) = @_;
 
@@ -415,6 +534,7 @@ sub _propfind {
     my ($self, $path, $opts) = @_;
 
     return _response(400, 'Bad Depth') if ($opts->{headers}{Depth} // '') ne '1';
+    $self->_apply_scheduled_creates($path);
     return _response(404, 'Not Found') if ($self->{entries}{$path} // '') ne 'dir';
 
     my @children = sort
@@ -450,6 +570,10 @@ sub _move {
     my ($self, $source, $opts) = @_;
 
     my $target = _path_from_url($opts->{headers}{Destination} // '');
+    if (my $hook = $self->{move_hook}) {
+        return $hook->($self, $source, $target);
+    }
+
     return _response(404, 'Source Missing') if !exists $self->{entries}{$source};
     return _response(412, 'Precondition Failed')
         if ($opts->{headers}{Overwrite} // '') eq 'F' && exists $self->{entries}{$target};
@@ -466,6 +590,7 @@ sub _fresh_state {
             $ROOT_PATH => 'dir',
         },
         calls => [],
+        scheduled_creates => [],
     };
 }
 
@@ -482,6 +607,35 @@ sub _create_file {
     my $parent = _parent($path);
     $self->_mkdir_internal($parent) if !exists $self->{entries}{$parent};
     $self->{entries}{$path} = 'file';
+    return 1;
+}
+
+sub schedule_create_file {
+    my ($self, $path, %args) = @_;
+
+    push @{ $self->{scheduled_creates} }, {
+        path      => _canon($path),
+        parent    => _parent($path),
+        remaining => $args{after_propfinds} // 1,
+    };
+    return 1;
+}
+
+sub _apply_scheduled_creates {
+    my ($self, $listed_path) = @_;
+
+    my @remaining;
+    for my $item (@{ $self->{scheduled_creates} }) {
+        if ($item->{parent} eq $listed_path) {
+            $item->{remaining}--;
+            if ($item->{remaining} <= 0) {
+                $self->_create_file($item->{path});
+                next;
+            }
+        }
+        push @remaining, $item;
+    }
+    $self->{scheduled_creates} = \@remaining;
     return 1;
 }
 
