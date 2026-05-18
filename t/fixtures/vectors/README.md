@@ -15,4 +15,4 @@ ids, recursive children, and ignored surfaces stay outside the root.
 `git-tree-goftp1`, `dns-record-goftp1`, and `webdav-goftp1`. Each row names the
 input listing fixture and records the accepted events, rejected diagnostic
 classes, event set root, replay status, canonical and legal ids, and projection
-hashes produced by `GobanFTP::Test::WitnessHarness`.
+hashes produced by `GobanFTP::Witness`.

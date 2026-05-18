@@ -15,14 +15,14 @@ my @events = qw(
     m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat
 );
 
-subtest 'local and FTP profiles expose raw listing names unchanged' => sub {
+subtest 'identity profiles expose raw listing names unchanged' => sub {
     my @raw = (
         "events/$events[0]",
         'tmp/pending.part',
         $events[1],
     );
 
-    for my $profile (qw(local-goftp1 ftp-goftp1)) {
+    for my $profile (qw(local-goftp1 ftp-goftp1 signed-hmac-goftp1)) {
         is_deeply [
             profile_listing_names(
                 profile_id      => $profile,

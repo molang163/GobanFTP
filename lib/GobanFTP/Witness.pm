@@ -18,6 +18,7 @@ use GobanFTP::EventSetRoot qw(event_set_root_result);
 use GobanFTP::Listing qw(normalize_listing);
 use GobanFTP::Profile qw(profile);
 use GobanFTP::Profile::Adapter qw(profile_listing_names);
+use GobanFTP::Profile::SignedHMAC qw(is_signed_hmac_profile signed_hmac_event_set_result);
 use GobanFTP::Projection qw(render_projection);
 use GobanFTP::Replay qw(replay);
 
@@ -44,6 +45,23 @@ sub witness_for_listing {
         game_descriptor => $game,
         names           => \@profile_names,
     );
+
+    if (is_signed_hmac_profile($profile_id)) {
+        $event_set = signed_hmac_event_set_result(
+            profile_id        => $profile_id,
+            game_descriptor   => $game,
+            unsigned_result   => $event_set,
+            hmac_attestations => _array_ref(
+                $args{hmac_attestations} // [],
+                'hmac_attestations',
+            ),
+            trusted_hmac_keys => _hash_ref(
+                $args{trusted_hmac_keys} // {},
+                'trusted_hmac_keys',
+            ),
+        );
+        @replay_events = @{ $event_set->{accepted_events} };
+    }
 
     my $result = replay(
         game_descriptor => $game,
@@ -113,6 +131,12 @@ sub _required {
 sub _array_ref {
     my ($value, $name) = @_;
     croak "$name must be an array reference" if ref($value) ne 'ARRAY';
+    return $value;
+}
+
+sub _hash_ref {
+    my ($value, $name) = @_;
+    croak "$name must be a hash reference" if ref($value) ne 'HASH';
     return $value;
 }
 

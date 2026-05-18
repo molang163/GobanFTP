@@ -249,6 +249,7 @@ lib/GobanFTP/MovePublisher.pm
 lib/GobanFTP/Oracle/Smoke.pm
 lib/GobanFTP/Profile.pm
 lib/GobanFTP/Profile/Adapter.pm
+lib/GobanFTP/Profile/SignedHMAC.pm
 lib/GobanFTP/Projection.pm
 lib/GobanFTP/Redact.pm
 lib/GobanFTP/Replay.pm
@@ -430,12 +431,12 @@ t/gamespec.t
 t/hmac-auth.t
 t/lib/GobanFTP/Test/RulesMechanics.pm
 t/lib/GobanFTP/Test/StoreContract.pm
-t/lib/GobanFTP/Test/WitnessHarness.pm
 t/listing.t
 t/play-flow-store.t
 t/play-watch.t
 t/profile-adapter.t
 t/profile-registry.t
+t/profile-signed-hmac.t
 t/projection-rebuild.t
 t/publish-ack.t
 t/publish-move.t

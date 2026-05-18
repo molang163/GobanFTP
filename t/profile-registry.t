@@ -15,6 +15,7 @@ my @profile_ids = qw(
     git-tree-goftp1
     dns-record-goftp1
     webdav-goftp1
+    signed-hmac-goftp1
 );
 
 my %expected = (
@@ -53,6 +54,13 @@ my %expected = (
         adapter_status => 'read-normalizer',
         auth_stance    => 'unsigned',
     },
+    'signed-hmac-goftp1' => {
+        profile_status => 'implemented',
+        substrate      => 'GOFTP/1 event listing with per-event HMAC attestations',
+        adapter_id     => 'signed-hmac-listing-goftp1',
+        adapter_status => 'implemented',
+        auth_stance    => 'signed-consensus',
+    },
 );
 
 is_deeply [profile_ids()], \@profile_ids, 'profile ids are stable and ordered';
@@ -72,8 +80,8 @@ for my $profile_id (@profile_ids) {
     ok known_profile($profile_id), "$profile_id is known";
 }
 
-ok !known_profile('signed-hmac-goftp1'), 'signed-HMAC is not in the unsigned production registry yet';
-like dies(sub { profile('signed-hmac-goftp1') }), qr/unknown profile_id/,
+ok !known_profile('no-such-profile'), 'unknown profile is not known';
+like dies(sub { profile('no-such-profile') }), qr/unknown profile_id/,
     'unknown profile croaks';
 like dies(sub { profile(undef) }), qr/profile_id is required/,
     'missing profile croaks';

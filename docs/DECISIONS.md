@@ -311,13 +311,14 @@ Reason:
   verifier trust set and must never appear in filenames, projections, or
   diagnostics
 
-## 024: Production Witness API Starts Unsigned
+## 024: Production Witness API Starts With Explicit Gates
 
-`GobanFTP::Witness` is the production read-only witness assembly point for
-unsigned substrate profiles. It accepts a profile id, game descriptor, and raw
-listing rows, then delegates listing presentation differences to
+`GobanFTP::Witness` is the production read-only witness assembly point for v1
+substrate profiles. It accepts a profile id, game descriptor, and raw listing
+rows, then delegates listing presentation differences to
 `GobanFTP::Profile::Adapter` before computing `event_set_root`, replay status,
-board hash, SGF hash, and diagnostic classes.
+board hash, SGF hash, and diagnostic classes. Explicit signed profiles may add
+an acceptance gate after GOFTP/1 filename and event-id validation.
 
 Reason:
 
@@ -330,5 +331,24 @@ Reason:
 - bad event-looking basenames must still reach replay diagnostics even if the
   event-set root gate rejects them, because rejected truth should be visible
   rather than silently filtered away
-- the signed-HMAC gate stays separate until production key lifecycle and signed
-  profile behavior are ready to leave the fixture harness
+- the signed-HMAC gate must be an explicit profile behavior, not a hidden
+  modifier on unsigned `GOFTP/1`
+
+## 025: Signed HMAC Has No Key Lifecycle Yet
+
+`signed-hmac-goftp1` is production witness behavior for deterministic signed
+acceptance, but it is not a production key-management system. Verifiers pass an
+explicit in-memory trust set to `GobanFTP::Witness`; HMAC secrets stay outside
+filenames, projections, diagnostics, and generated witness output.
+
+Reason:
+
+- v1.0 needs a real signed acceptance gate before display surfaces can honestly
+  show signature status
+- key generation, rotation, revocation, private-key storage, and publish
+  authentication have different threat boundaries and should not be implied by
+  fixture HMAC vectors
+- unsigned profiles must continue ignoring attestations, trust files, sidecar
+  signatures, and HMAC records completely
+- signature diagnostics may expose public event basenames, event ids, key ids,
+  and profile ids, but never HMAC secrets

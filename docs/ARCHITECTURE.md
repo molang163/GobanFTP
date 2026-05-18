@@ -76,6 +76,7 @@ lib/GobanFTP/
   Redact.pm         diagnostic secret redaction
   Profile.pm        v1 profile registry
   Profile/Adapter.pm read-only profile listing normalizers
+  Profile/SignedHMAC.pm signed-HMAC event acceptance gate
   Witness.pm        profile witness assembly and event_set_root reports
   Store.pm          storage interface
   Store/Config.pm   environment-backed store configuration

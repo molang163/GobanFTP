@@ -15,6 +15,7 @@ my @PROFILE_IDS = qw(
     git-tree-goftp1
     dns-record-goftp1
     webdav-goftp1
+    signed-hmac-goftp1
 );
 
 my %PROFILES = (
@@ -62,6 +63,15 @@ my %PROFILES = (
         adapter_id     => 'webdav-listing-goftp1',
         adapter_status => 'read-normalizer',
         auth_stance    => 'unsigned',
+    },
+    'signed-hmac-goftp1' => {
+        profile_id     => 'signed-hmac-goftp1',
+        profile_status => 'implemented',
+        consensus_version => 'GOFTP-PROFILE/signed-hmac-goftp1/1',
+        substrate      => 'GOFTP/1 event listing with per-event HMAC attestations',
+        adapter_id     => 'signed-hmac-listing-goftp1',
+        adapter_status => 'implemented',
+        auth_stance    => 'signed-consensus',
     },
 );
 

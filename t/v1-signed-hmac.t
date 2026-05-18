@@ -8,9 +8,8 @@ use JSON::PP qw(decode_json);
 use Test::More;
 
 use lib "$FindBin::Bin/../lib";
-use lib "$FindBin::Bin/lib";
 
-use GobanFTP::Test::WitnessHarness qw(witness_for_listing);
+use GobanFTP::Witness qw(witness_for_listing);
 
 my $fixture_dir = "$FindBin::Bin/fixtures/v1/signed-hmac";
 my $schema_path = "$FindBin::Bin/../docs/DIAGNOSTICS.md";
@@ -32,6 +31,9 @@ subtest 'signed-hmac-goftp1 accepts only valid HMAC-attested events' => sub {
     my ($witness, $attestations) = _witness_for_case('valid', 'signed-hmac-goftp1');
 
     is $witness->{profile_id}, 'signed-hmac-goftp1', 'records signed profile id';
+    is $witness->{profile_consensus_version}, 'GOFTP-PROFILE/signed-hmac-goftp1/1',
+        'records signed profile consensus version';
+    is $witness->{adapter_id}, 'signed-hmac-listing-goftp1', 'records signed adapter id';
     is $witness->{normalized_count}, 3, 'normalizes three candidate events';
     is $witness->{accepted_count}, 3, 'accepts all valid signed events';
     is_deeply $witness->{accepted_events}, \@minimal_events, 'accepted events are the signed event set';

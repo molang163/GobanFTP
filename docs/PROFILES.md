@@ -230,10 +230,11 @@ the root is computed after acceptance. Root-level signatures are set
 attestations. They may be added by a later profile, but they cannot rescue,
 insert, or reject an individual event before the accepted set is known.
 
-The fixture-level `signed-hmac-goftp1` witness gate is implemented as the first
-signed/auth acceptance contract. It is deliberately limited to deterministic
-HMAC-SHA256 test keys and does not define production private-key storage,
-rotation, or publish authentication.
+`signed-hmac-goftp1` is implemented as the first production witness gate for
+signed/auth acceptance. It is deliberately limited to explicit in-memory
+verifier trust sets and deterministic HMAC-SHA256 fixture keys; it does not
+define production private-key storage, rotation, revocation, or publish
+authentication.
 
 `signed-hmac-goftp1` event attestation payload:
 
