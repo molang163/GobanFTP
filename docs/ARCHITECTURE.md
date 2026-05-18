@@ -82,6 +82,7 @@ lib/GobanFTP/
   Store/Config.pm   environment-backed store configuration
   Store/Local.pm    local filesystem backend
   Store/FTP.pm      FTP backend
+  Store/WebDAV.pm   WebDAV backend
   SGF.pm            SGF export
   Projection.pm     projections/ output generation
   Oracle/Smoke.pm   source-art smoke scenario
@@ -92,7 +93,7 @@ Current script:
 
 ```text
 oracle/goban.pl          source-art smoke wrapper
-script/gobanftp          local/FTP CLI entry point
+script/gobanftp          local/FTP/WebDAV CLI entry point
 script/live-ftp-smoke    disposable live FTP smoke helper
 ```
 
@@ -143,9 +144,12 @@ mkdir(path)
 exists_name(path, name)
 ```
 
-`Store::Local` and `Store::FTP` are implemented behind the same interface.
-Local replay remains the simplest debugging path; FTP tests should preserve the
-same listing-first behavior instead of adding server-metadata dependencies.
+`Store::Local`, `Store::FTP`, and `Store::WebDAV` are implemented behind the
+same interface. Local replay remains the simplest debugging path; FTP and
+WebDAV tests should preserve the same listing-first behavior instead of adding
+server-metadata dependencies. FTP publishes through `tmp/` plus `RNTO`; WebDAV
+publishes through a zero-byte `tmp/` resource plus `MOVE` and confirms with a
+fresh `PROPFIND Depth: 1`.
 
 `get(path)` may exist for sidecars and diagnostics, but it must not be required
 for core replay.

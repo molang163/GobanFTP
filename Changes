@@ -1,5 +1,15 @@
 Revision history for GobanFTP
 
+0.002  Not yet released
+  - Added a mock-tested WebDAV store backend that reads `events/` with
+    `PROPFIND Depth: 1` and publishes by zero-byte `tmp/` resource plus `MOVE`
+    and fresh `PROPFIND` confirmation.
+  - Promoted `webdav-goftp1` to an implemented transport-auth profile while
+    keeping WebDAV metadata, locks, resource bodies, sidecars, projections, and
+    temporary entries outside replay consensus.
+  - Documented WebDAV environment configuration and added CLI parity coverage
+    for play, watch, SGF, and publish-through-play flows.
+
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl
     package version is `0.001`, while the project milestone name is `v0.1`.

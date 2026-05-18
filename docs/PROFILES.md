@@ -137,9 +137,9 @@ resource path, or display label.
 
 Unsigned `GOFTP/1` remains unchanged. Baseline profiles do not read signatures,
 HMACs, bearer tokens, sidecar claims, or key metadata as replay input. For
-`local-goftp1`, `ftp-goftp1`, and the planned unsigned substrate profiles,
-sidecar signatures are still ignored input and may only be shown as advisory
-attestations.
+`local-goftp1`, `ftp-goftp1`, `webdav-goftp1`, and the planned unsigned Git/DNS
+substrate profiles, sidecar signatures are still ignored input and may only be
+shown as advisory attestations.
 
 Auth material has three separate meanings:
 
@@ -467,17 +467,18 @@ script/live-ftp-smoke
 GOBANFTP_FTP_TEST=1 prove -l t/store-ftp.t t/ftp-live-flow.t
 ```
 
-## Planned Profiles
+## Additional Profiles
 
-The planned profiles below are v1.0 targets. They are not implemented until an
-adapter, fixtures, and smoke command exist.
+The profiles below are v1.0 substrate targets beyond local and FTP. Git and DNS
+remain planned read-normalizers. WebDAV now has a runtime store boundary,
+publish semantics, mock store tests, and CLI parity tests; live credentials are
+still deliberately outside the default test suite.
 
-The production registry already names these profiles so witness fixtures can
-compare substrates through one API. Their current code status is
-`read-normalizer`: `GobanFTP::Profile::Adapter` can normalize fixture-like Git,
-DNS, and WebDAV listing presentations into visible names, but those profiles
-remain `planned` until they have full adapter/store boundaries, publish
-semantics, fixtures, and smoke commands.
+The production registry names these profiles so witness fixtures can compare
+substrates through one API. `GobanFTP::Profile::Adapter` continues to normalize
+fixture-like Git, DNS, and WebDAV listing presentations into visible names.
+Runtime store admission is separate: Git and DNS remain planned until they have
+full adapter/store boundaries, publish semantics, fixtures, and smoke commands.
 
 ### `git-tree-goftp1`
 
@@ -631,7 +632,7 @@ t/fixtures/attacks/dns-record-goftp1/
 Status:
 
 ```text
-planned
+implemented
 ```
 
 Consensus version:
@@ -643,7 +644,7 @@ GOFTP-PROFILE/webdav-goftp1/1
 Substrate:
 
 ```text
-WebDAV collection
+WebDAV collection listing
 ```
 
 Authoritative inputs:
@@ -684,9 +685,12 @@ normalize and verify GOFTP/1 event basenames
 Publish algorithm:
 
 ```text
-planned: write a temporary resource then MOVE it to events/<event_name>
-if MOVE is unavailable, the profile must define an alternate visible publish step
-verify publication by a fresh PROPFIND of events/
+ensure the game, events/, and tmp/ collections exist through MKCOL
+if events/<event_name> is already visible, treat publish as success
+write a zero-byte temporary resource under tmp/
+MOVE the temporary resource to events/<event_name> with Overwrite: F
+verify publication by a bounded fresh PROPFIND of events/
+optional mkcol publish mode creates events/<event_name> as a collection
 ```
 
 Auth stance:
@@ -694,13 +698,17 @@ Auth stance:
 ```text
 WebDAV credentials protect transport access only
 locks are publish coordination hints, not replay consensus
+bearer tokens and passwords must never appear in filenames, projections,
+diagnostics, or public fixtures
 ```
 
-Required fixtures:
+Fixtures and smoke:
 
 ```text
-t/fixtures/profiles/webdav-goftp1/
-t/fixtures/attacks/webdav-goftp1/
+t/store-webdav-mock.t
+t/webdav-cli-parity.t
+t/fixtures/v1/cross-substrate/*/webdav-goftp1/listing.names
+GOBANFTP_STORE=webdav GOBANFTP_WEBDAV_URL=<url> perl -Ilib script/gobanftp play --once <game>
 ```
 
 ## Profile Admission Gate
@@ -712,7 +720,7 @@ written profile section
 adapter or store boundary
 read fixture
 publish fixture or explicit read-only decision
-attack fixtures for ignored metadata
+attack fixtures or mock tests for ignored metadata
 event_set_root parity fixture against local-goftp1
 CLI or smoke command
 diagnostics for malformed, rejected, stale, and conflicting inputs

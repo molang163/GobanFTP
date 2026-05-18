@@ -43,6 +43,25 @@ GOBANFTP_FTP_PUBLISH_MODE
 `GOBANFTP_FTP_HOST` is required in FTP mode. The other fields are optional
 unless required by the server.
 
+Set `GOBANFTP_STORE=webdav` to use WebDAV. WebDAV event commands read and
+write game descriptor collections and `events/` names under
+`GOBANFTP_WEBDAV_URL` and use:
+
+```text
+GOBANFTP_WEBDAV_URL
+GOBANFTP_WEBDAV_USER
+GOBANFTP_WEBDAV_PASSWORD
+GOBANFTP_WEBDAV_TOKEN
+GOBANFTP_WEBDAV_TIMEOUT
+GOBANFTP_WEBDAV_CLASS
+GOBANFTP_WEBDAV_PUBLISH_MODE
+```
+
+`GOBANFTP_WEBDAV_URL` is required in WebDAV mode. `GOBANFTP_WEBDAV_TOKEN` is a
+bearer token and cannot be combined with WebDAV user/password fields.
+Credentials and tokens protect transport access only; they must never be printed
+in status lines or diagnostics.
+
 ### Draft Auth And Key Lifecycle Boundary
 
 `keygen`, `keyid`, `attest`, and `trust-report` are reserved for explicit auth
@@ -245,9 +264,10 @@ files as `v1 witness`.
 
 This is a fixture/read-normalizer proof command. It demonstrates that the
 declared fixture presentations normalize to the same root; it does not claim
-that planned Git, DNS, or WebDAV profiles are fully admitted substrate adapters.
-`signed-hmac-goftp1` is excluded from this compare matrix because it needs
-explicit attestation and trust inputs.
+that planned Git or DNS profiles are fully admitted substrate adapters. WebDAV
+has a runtime store path, but this compare command still reads fixture rows
+rather than contacting a WebDAV server. `signed-hmac-goftp1` is excluded from
+this compare matrix because it needs explicit attestation and trust inputs.
 
 On equality, exits `0` and writes fields such as:
 
@@ -297,7 +317,7 @@ On success, writes:
 
 ```text
 gobanftp.create-game=ok
-store=<local|ftp>
+store=<local|ftp|webdav>
 game=<game-descriptor>
 root=<local-path-or-descriptor>
 ```
@@ -314,8 +334,8 @@ The stdout summary includes `event_set_count=<n>` and
 fields describe the accepted filename event set; they do not mean replay
 succeeded.
 
-When `GOBANFTP_STORE=ftp`, the argument may be the game descriptor basename and
-the command reads the FTP `events/` listing.
+When `GOBANFTP_STORE=ftp` or `GOBANFTP_STORE=webdav`, the argument may be the
+game descriptor basename and the command reads the remote `events/` listing.
 
 ### `gobanftp replay <game-root|game-descriptor>`
 
@@ -325,8 +345,8 @@ Must not write authoritative events. May write no files.
 
 The stdout summary includes the same event-set witness fields as `verify`.
 
-When `GOBANFTP_STORE=ftp`, the argument may be the game descriptor basename and
-the command reads the FTP `events/` listing.
+When `GOBANFTP_STORE=ftp` or `GOBANFTP_STORE=webdav`, the argument may be the
+game descriptor basename and the command reads the remote `events/` listing.
 
 ### `gobanftp project <game-root|game-descriptor>`
 
@@ -334,10 +354,11 @@ Rebuilds `projections/` from the canonical line.
 
 May overwrite projection files. Must not edit event names.
 
-Projection writing is local-only for now. In `GOBANFTP_STORE=ftp` mode,
-`project` exits with storage code `4` before constructing an FTP connection or
-replaying the FTP event listing instead of writing projection files beside the
-current working directory. Use plain `sgf` to print SGF from FTP listings.
+Projection writing is local-only for now. In `GOBANFTP_STORE=ftp` or
+`GOBANFTP_STORE=webdav` mode, `project` exits with storage code `4` before
+constructing a remote connection or replaying the remote event listing instead
+of writing projection files beside the current working directory. Use plain
+`sgf` to print SGF from remote listings.
 
 On success, writes:
 
@@ -371,10 +392,10 @@ With `--variations`, prints the variation-tree SGF. A fork-only replay exits
 `3`, prints the variation tree to stdout, and emits the fork diagnostic on
 stderr. `--write` and `--variations` cannot be combined.
 
-When `GOBANFTP_STORE=ftp`, plain `sgf` may accept the game descriptor basename
-and reads the FTP `events/` listing. `sgf --write` writes local projection
-files and is rejected in FTP mode before constructing an FTP connection or
-replaying the FTP event listing.
+When `GOBANFTP_STORE=ftp` or `GOBANFTP_STORE=webdav`, plain `sgf` may accept
+the game descriptor basename and reads the remote `events/` listing.
+`sgf --write` writes local projection files and is rejected in remote store mode
+before constructing a remote connection or replaying the remote event listing.
 
 ### `gobanftp publish-move [--nonce <n>] <game-root|game-descriptor> <aa|play-aa|pass|resign>`
 
@@ -384,6 +405,8 @@ point such as `aa` is normalized to `play-aa`. The optional nonce must match
 
 For local store, writes directly through the store abstraction.
 For FTP store, writes a zero-byte `tmp/` entry then `RNTO` to `events/`.
+For WebDAV store, writes a zero-byte `tmp/` resource then `MOVE`s it to
+`events/` and confirms visibility with `PROPFIND Depth: 1`.
 
 The command order is:
 

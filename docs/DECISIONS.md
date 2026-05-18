@@ -325,9 +325,10 @@ Reason:
 - unsigned `GOFTP/1` and baseline profiles can move out of test-only harnesses
   without changing event filename grammar, event id preimages, DAG replay, rules,
   SGF, or projection semantics
-- Git, DNS, and WebDAV are useful v1.0 proof fixtures as read-normalizers, but
-  their profiles remain planned until full adapter/store and publish contracts
-  exist
+- Git and DNS are useful v1.0 proof fixtures as read-normalizers and remain
+  planned until full adapter/store and publish contracts exist; WebDAV has an
+  admitted runtime store while its fixture read-normalizer remains part of the
+  cross-substrate witness matrix
 - bad event-looking basenames must still reach replay diagnostics even if the
   event-set root gate rejects them, because rejected truth should be visible
   rather than silently filtered away
@@ -369,3 +370,23 @@ Reason:
   source-art layout, projection text, platform, and environment
 - fixture digests force a deliberate seal decision when rule behavior vectors
   change
+
+## 027: WebDAV Uses PROPFIND And MOVE As Transport Ceremony
+
+`webdav-goftp1` is admitted as a runtime store/profile without changing
+`GOFTP/1` replay. WebDAV reads use `PROPFIND Depth: 1`; only direct href
+basenames under `events/` can become candidate event names. WebDAV publishes use
+a zero-byte temporary resource under `tmp/`, `MOVE` to `events/<event_name>` with
+overwrite disabled, and a bounded fresh `PROPFIND` confirmation.
+
+Reason:
+
+- href order, ETag, Last-Modified, content length, display name, lock state,
+  resource body bytes, `tmp/`, sidecars, and projections must not become replay
+  inputs
+- a visible final event name is immutable; an already visible identical final
+  basename is publish success
+- credentials, bearer tokens, and WebDAV locks protect transport operations
+  only and must not alter unsigned event acceptance
+- the WebDAV store should share the local/FTP storage interface so CLI flows can
+  remain listing-first and projection writes can stay local-only

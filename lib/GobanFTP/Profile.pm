@@ -57,12 +57,12 @@ my %PROFILES = (
     },
     'webdav-goftp1' => {
         profile_id     => 'webdav-goftp1',
-        profile_status => 'planned',
+        profile_status => 'implemented',
         consensus_version => 'GOFTP-PROFILE/webdav-goftp1/1',
-        substrate      => 'WebDAV PROPFIND fixture',
+        substrate      => 'WebDAV collection listing',
         adapter_id     => 'webdav-listing-goftp1',
-        adapter_status => 'read-normalizer',
-        auth_stance    => 'unsigned',
+        adapter_status => 'implemented',
+        auth_stance    => 'transport-auth-only',
     },
     'signed-hmac-goftp1' => {
         profile_id     => 'signed-hmac-goftp1',

@@ -11,7 +11,8 @@ future work unless a later phase or decision records them first.
 
 The v1.0 route is to turn that boundary into a proof machine: explicit
 profiles, adapter contracts, hostile fixtures, cross-system witnesses, optional
-signed/auth profiles, and reader-facing surfaces. `GOFTP/1` remains unchanged.
+signed/auth profiles, and reader-facing surfaces. WebDAV is the first admitted
+non-FTP runtime store on that route. `GOFTP/1` remains unchanged.
 
 ## Cross-Cutting Acceptance: Elegance Without Obscurity
 
@@ -276,7 +277,7 @@ Tasks:
 - keep the existing FTP path as the `GOFTP/1` baseline profile without changing
   descriptor grammar, event filename grammar, event id preimages, DAG replay,
   rule legality, SGF export, or projection rebuilding
-- choose the first non-FTP profile to implement, then add the remaining named
+- use WebDAV as the first non-FTP runtime store, then add the remaining named
   v1.0 profiles behind the same adapter contract
 - require any profile that needs different consensus inputs to declare a new
   profile or protocol version instead of changing `GOFTP/1`

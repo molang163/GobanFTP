@@ -11,6 +11,6 @@ __END__
 
 =head1 NAME
 
-GobanFTP - listing-first Go over FTP
+GobanFTP - listing-first Go over enumerable stores
 
 =cut

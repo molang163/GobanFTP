@@ -30,6 +30,8 @@ Runtime:
 ```text
 Perl 5.34+
 Digest::SHA
+HTTP::Tiny
+MIME::Base64
 Net::FTP
 ```
 
@@ -294,6 +296,7 @@ Implemented surfaces include:
 - rebuildable board, graveyard, SGF, and oracle projections
 - local filesystem store
 - FTP store with mock tests and gated live tests
+- WebDAV store with mock and CLI parity tests
 - CLI commands for create, publish, verify, replay, project, SGF, play, watch
 - explicit ack-assisted fork recovery
 - browsable `ftp-shrine` fixture
@@ -400,6 +403,35 @@ Projection writes are supported only with the local store for now. In FTP mode,
 `play`, and `watch` can read FTP listings without reading event file contents.
 
 Live FTP tests are gated. They do not run by default.
+
+## WebDAV Mode
+
+Set `GOBANFTP_STORE=webdav` plus a root WebDAV collection URL to run the same
+listing-first flow against WebDAV collections.
+
+Common variables:
+
+```text
+GOBANFTP_STORE=webdav
+GOBANFTP_WEBDAV_URL
+GOBANFTP_WEBDAV_USER
+GOBANFTP_WEBDAV_PASSWORD
+GOBANFTP_WEBDAV_TOKEN
+GOBANFTP_WEBDAV_TIMEOUT
+GOBANFTP_WEBDAV_CLASS
+GOBANFTP_WEBDAV_PUBLISH_MODE
+```
+
+`GOBANFTP_WEBDAV_URL` is required in WebDAV mode. Replay reads
+`events/` with `PROPFIND Depth: 1` and uses only direct href basenames. ETags,
+Last-Modified, content length, display names, locks, resource bodies, `tmp/`,
+sidecars, and projections are ignored. Publishing writes a zero-byte temporary
+resource under `tmp/`, moves it to `events/<event-name>`, then confirms
+visibility with a fresh `PROPFIND`.
+
+Projection writes are still local-only. In WebDAV mode, `project` and
+`sgf --write` are rejected; plain `sgf`, `verify`, `replay`, `play`, and
+`watch` can read WebDAV listings without reading event resource bodies.
 
 ## Where The Pieces Live
 

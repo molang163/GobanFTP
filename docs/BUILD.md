@@ -17,7 +17,7 @@ this file. The block below is intentionally machine-readable for
 
 <!-- gobanftp-deps:start -->
 ```text
-runtime: Digest::SHA Net::FTP
+runtime: Digest::SHA HTTP::Tiny MIME::Base64 Net::FTP
 test: File::Temp Test::More
 optional: Inline Inline::C
 ```
@@ -75,6 +75,14 @@ It sets `GOBANFTP_FTP_TEST=1` and the matching FTP environment for the child
 test process, shuts the server down afterward, and removes the temporary
 directory. If `pyftpdlib` is missing, the helper exits before running tests and
 prints an install hint.
+
+WebDAV runtime support uses `HTTP::Tiny` and `MIME::Base64`, both declared
+runtime dependencies. The WebDAV test path is mock-backed and does not require
+live credentials:
+
+```sh
+prove -l t/store-webdav-mock.t t/webdav-cli-parity.t
+```
 
 ## Inline::C Notes
 
