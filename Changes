@@ -35,6 +35,10 @@ Revision history for GobanFTP
   - Added a signed-HMAC injected-event fixture proving an unsigned event with a
     valid filename event id is rejected by the signed profile gate while the
     accepted signed chain keeps the same root, replay, board, and SGF.
+  - Added a Git-tree path and metadata poison fixture proving commit metadata,
+    refs, modes, object ids, object sizes, sidecars, projections, tmp entries,
+    recursive paths, wrong-game paths, and duplicates do not change the profile
+    witness.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

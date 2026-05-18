@@ -14,6 +14,7 @@ my $fixture_dir = "$FindBin::Bin/fixtures/v1/attacks";
 my $schema_path = "$FindBin::Bin/../docs/DIAGNOSTICS.md";
 my @required_attacks = qw(
     dns-owner-poison
+    git-tree-path-metadata-poison
     webdav-href-traversal
     webdav-metadata-poison
 );
@@ -86,6 +87,9 @@ for my $attack (@attacks) {
         unlike join(',', @{ $witness->{normalized_events} }), qr/g1[.]id-other|n-chain2/,
             'wrong-game profile rows do not survive normalization'
             if $attack eq 'dns-owner-poison';
+        unlike join(',', @{ $witness->{normalized_events} }), qr/g1[.]id-other|child|README/,
+            'Git wrong-game, recursive, and non-event rows do not survive normalization'
+            if $attack eq 'git-tree-path-metadata-poison';
     };
 }
 

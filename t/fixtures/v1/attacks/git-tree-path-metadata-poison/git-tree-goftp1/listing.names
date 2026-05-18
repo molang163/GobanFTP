@@ -1,0 +1,16 @@
+commit=9999999999999999999999999999999999999999 author=mallory committer=mirror timestamp=4102444800
+ref=refs/heads/main object=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+tag=refs/tags/v1-poison object=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+remote=ssh://example.invalid/gobanftp.git
+040000 tree 1111111111111111111111111111111111111111	events
+100644 blob 2222222222222222222222222222222222222222 9999	projections/sgf/main.sgf
+100644 blob 3333333333333333333333333333333333333333 120	tmp/pending.part
+100644 blob 4444444444444444444444444444444444444444 4096	sidecar/khjclcui7pejbv3m.json
+100644 blob aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 1	events/m1.p000003.b.pass.pa-bihb3re4k9hlucat.by-alice.n-chain3.h-kcvtlonfje163p9q
+100755 blob bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb	events/m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m
+mode=100644 object=cccccccccccccccccccccccccccccccccccccccc type=blob size=2 path=g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat
+100644 blob dddddddddddddddddddddddddddddddddddddddd 7	events/m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m/child
+100644 blob eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee 1	g1.id-other.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat
+100644 blob ffffffffffffffffffffffffffffffffffffffff 500	events/m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m
+./events/m1.p000003.b.pass.pa-bihb3re4k9hlucat.by-alice.n-chain3.h-kcvtlonfje163p9q
+mode=100644 object=1234567890abcdef1234567890abcdef12345678 type=blob path=README

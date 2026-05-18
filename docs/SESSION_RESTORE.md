@@ -14,7 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
-- test: add signed HMAC injected event fixture
+- test: add git tree metadata poison fixture
 ```
 
 Confirm the latest commit with `git log --oneline -5` when resuming.
@@ -22,6 +22,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD test: add git tree metadata poison fixture
 HEAD test: add signed HMAC injected event fixture
 HEAD docs: rewrite README as P14 showcase entrypoint
 81e0fee test: add dns owner poison profile attack
@@ -40,6 +41,10 @@ fc7f6a2 test: add WebDAV href traversal attack fixture
 
 Key completed boundaries:
 
+- `git-tree-goftp1` now has a profile attack fixture proving commit metadata,
+  refs, tags, remotes, mode, object id, object type, object size, `tmp/`,
+  sidecar, projection, recursive path, wrong-game path, duplicate entry, and
+  checkout-style path surfaces do not change the accepted witness.
 - `signed-hmac-goftp1` now has an injected-event fixture: an event basename with
   a valid filename event id reaches the signed profile gate, is rejected for
   `missing_signature`, and the accepted signed chain keeps the same root,
@@ -72,10 +77,12 @@ Key completed boundaries:
 
 ## Last Verified
 
-After the signed-HMAC injected-event fixture, these passed:
+After the Git-tree path/metadata poison fixture, these passed:
 
 ```text
 git diff --check
+prove -lr t/profile-adapter.t t/v1-profile-attack-fixtures.t
+prove -lr t/profile-adapter.t t/v1-profile-attack-fixtures.t t/v1-cross-substrate.t t/v1-golden-vectors.t
 prove -lr t/v1-signed-hmac.t t/v1-cli-witness.t t/v1-signed-hmac-golden-vectors.t
 prove -lr t
 ```
@@ -83,7 +90,7 @@ prove -lr t
 Full test result:
 
 ```text
-Files=62, Tests=849, all successful.
+Files=62, Tests=851, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -105,8 +112,8 @@ Immediate next implementation:
 ```text
 after showing the README, continue the v1.0 route:
 - pick the next small proof gate by multi-agent discussion
-- likely candidates are a P10 `git-tree-goftp1` path/metadata poison profile
-  attack fixture or a first narrow P12 key lifecycle slice
+- likely candidates are the next P10 substrate/profile attack fixture, a
+  profile publish-failure fixture, or a first narrow P12 key lifecycle slice
 - keep every change behavior-tested and update Changes plus this restore file
 ```
 
@@ -116,7 +123,7 @@ Likely files:
 t/fixtures/v1/attacks/
 t/v1-profile-attack-fixtures.t
 lib/GobanFTP/Profile/Adapter.pm
-script/gobanftp
+docs/ATTACKS.md
 Changes
 docs/SESSION_RESTORE.md
 ```
@@ -128,6 +135,6 @@ When resuming:
 1. Read `AGENTS.md`.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `test: add signed HMAC injected event fixture`.
+4. Confirm HEAD includes `test: add git tree metadata poison fixture`.
 5. If the user asks to continue, open multi-agent discussion first, then choose
    one small executable step.

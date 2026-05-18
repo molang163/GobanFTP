@@ -429,6 +429,10 @@ t/fixtures/v1/attacks/dns-owner-poison/dns-record-goftp1/listing.names
 t/fixtures/v1/attacks/dns-owner-poison/expected.verdict
 t/fixtures/v1/attacks/dns-owner-poison/game.name
 t/fixtures/v1/attacks/dns-owner-poison/local-goftp1/listing.names
+t/fixtures/v1/attacks/git-tree-path-metadata-poison/expected.verdict
+t/fixtures/v1/attacks/git-tree-path-metadata-poison/game.name
+t/fixtures/v1/attacks/git-tree-path-metadata-poison/git-tree-goftp1/listing.names
+t/fixtures/v1/attacks/git-tree-path-metadata-poison/local-goftp1/listing.names
 t/fixtures/v1/attacks/webdav-href-traversal/expected.verdict
 t/fixtures/v1/attacks/webdav-href-traversal/game.name
 t/fixtures/v1/attacks/webdav-href-traversal/local-goftp1/listing.names

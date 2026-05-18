@@ -35,9 +35,10 @@ subtest 'identity profiles expose raw listing names unchanged' => sub {
 
 subtest 'git tree adapter extracts only visible tree paths' => sub {
     my @raw = (
+        "100644 blob 9999999999999999999999999999999999999999 42\tevents/$events[1]",
         "100644 blob aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\tevents/$events[0]",
         "100755 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb blob events/$events[1]",
-        "mode=100644 object=cccccccccccccccccccccccccccccccccccccccc type=blob path=$game/events/$events[0]",
+        "mode=100644 object=cccccccccccccccccccccccccccccccccccccccc type=blob size=7 path=$game/events/$events[0]",
         "mode=100644 object=dddddddddddddddddddddddddddddddddddddddd type=blob path=README",
         './tmp/pending.part',
         'not a tree row',
@@ -50,6 +51,7 @@ subtest 'git tree adapter extracts only visible tree paths' => sub {
             raw_names       => \@raw,
         )
     ], [
+        "events/$events[1]",
         "events/$events[0]",
         "events/$events[1]",
         "events/$events[0]",

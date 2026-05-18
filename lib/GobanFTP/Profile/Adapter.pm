@@ -45,13 +45,13 @@ sub _git_tree_visible_name {
     return undef if !defined($line) || $line eq '';
 
     my $path;
-    if ($line =~ /\A[0-7]{6}\s+\S+\s+[0-9a-fA-F]+\t(.+)\z/) {
+    if ($line =~ /\A[0-7]{6}\s+\S+\s+[0-9a-fA-F]+(?:\s+(?:-|\d+))?\t(.+)\z/) {
         $path = $1;    # git ls-tree default: mode type object<TAB>path
     }
-    elsif ($line =~ /\A[0-7]{6}\s+[0-9a-fA-F]+\s+\S+\s+(.+)\z/) {
+    elsif ($line =~ /\A[0-7]{6}\s+[0-9a-fA-F]+(?:\s+(?:-|\d+))?\s+\S+\s+(.+)\z/) {
         $path = $1;    # mode object type path fixtures
     }
-    elsif ($line =~ /\Amode=[0-7]{6}\s+object=[0-9a-fA-F]+\s+type=\S+\s+path=(.+)\z/) {
+    elsif ($line =~ /\Amode=[0-7]{6}\s+object=[0-9a-fA-F]+\s+type=\S+(?:\s+size=\S+)?\s+path=(.+)\z/) {
         $path = $1;
     }
     elsif ($line =~ m{\A(?:\./)?(?:events|sidecar|projections?|tmp)(?:/|\z)}) {

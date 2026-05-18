@@ -151,6 +151,13 @@ noise, sidecar records, non-TXT records, and duplicate answers. The expected
 witness remains the current-game one-event baseline; a wrong-owner event that
 enters the accepted set changes the root and fails the fixture.
 
+The Git-tree specimen `git-tree-path-metadata-poison` attacks commit metadata,
+refs, tags, remotes, mode, object id, object type, object size, `tmp/`, sidecar,
+projection, recursive path, wrong-game path, duplicate entry, and checkout-style
+path surfaces. The expected witness remains the clean three-event baseline; a
+metadata or path row that changes the accepted event set changes the root and
+fails the fixture.
+
 The v1 gallery must contain at least:
 
 ```text
