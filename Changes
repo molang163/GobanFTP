@@ -23,6 +23,8 @@ Revision history for GobanFTP
     affect replay or `event_set_root`.
   - Added a showcase smoke gate for the public shrine, fork, source-art, and
     unsigned `local-goftp1` v1 witness demonstration path.
+  - Added v1 cross-substrate golden vectors for future event versions, missing
+    parents, and wrong-player rule failures.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

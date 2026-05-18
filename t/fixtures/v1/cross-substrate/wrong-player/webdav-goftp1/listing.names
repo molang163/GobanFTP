@@ -1,0 +1,4 @@
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/ etag="W/collection-wrong-player" last-modified="Mon, 18 May 2026 05:20:00 GMT" content-length=0 content-type=httpd/unix-directory
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000001.b.play-ab.pa-genesis.by-bob.n-wplayer.h-273ib3koh8sa7ple etag="W/wrong-player-a" last-modified="Mon, 18 May 2026 05:21:00 GMT" content-length=222 content-type=application/octet-stream
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/sidecar/273ib3koh8sa7ple.json etag="W/wrong-player-sidecar" last-modified="Mon, 18 May 2026 05:22:00 GMT" content-length=88 content-type=application/json
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000001.b.play-ab.pa-genesis.by-bob.n-wplayer.h-273ib3koh8sa7ple/child etag="W/wrong-player-recursive" last-modified="Mon, 18 May 2026 05:23:00 GMT" content-length=11 content-type=text/plain

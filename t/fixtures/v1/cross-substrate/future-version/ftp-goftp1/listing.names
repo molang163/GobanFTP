@@ -1,0 +1,4 @@
+tmp/future-version.part
+events/m2.future-version
+sidecar/future-version.sig
+projections/oracle/verdict.txt

@@ -38,4 +38,7 @@ minimal       clean three-event line
 fork          two legal children of genesis
 fork-with-ack two legal children of genesis plus a visible ACK
 bad-event-id  hash-mismatched event excluded from the root
+future-version unsupported event version excluded from the root
+missing-parent hash-valid event accepted into the root, then rejected by DAG
+wrong-player   hash-valid event accepted into the root, then rejected by rules
 ```

@@ -84,7 +84,7 @@ for my $vector (@vectors) {
     };
 }
 
-for my $case (qw(minimal fork fork-with-ack bad-event-id)) {
+for my $case (qw(minimal fork fork-with-ack bad-event-id future-version missing-parent wrong-player)) {
     for my $profile (qw(local-goftp1 ftp-goftp1 git-tree-goftp1 dns-record-goftp1 webdav-goftp1)) {
         ok $seen_id{"$case-$profile"}, "$case $profile vector is present";
     }

@@ -53,9 +53,36 @@ my %expected = (
         diagnostics   => ['event-id'],
         rejected_classes => ['event-id'],
     },
+    'future-version' => {
+        status        => 'validation',
+        root          => 'c8bdfd7e8dc55bdef0a4571923d9ae370c876aa106ad666d125f8151dc05185d',
+        accepted      => 0,
+        rejected      => 1,
+        canonical_tip => 'genesis',
+        diagnostics   => ['parse'],
+        rejected_classes => ['parse'],
+    },
+    'missing-parent' => {
+        status        => 'validation',
+        root          => '04c4d7aa45247f2e95780afe63b88cc2f98c57bc64dcecd2c97b47a39aa5ba5c',
+        accepted      => 1,
+        rejected      => 0,
+        canonical_tip => 'genesis',
+        diagnostics   => ['dag'],
+        rejected_classes => [],
+    },
+    'wrong-player' => {
+        status        => 'validation',
+        root          => '135ec62170486550f80b50d47b53cca9523a30902b4dcccab3cb251bc59ef5d0',
+        accepted      => 1,
+        rejected      => 0,
+        canonical_tip => 'genesis',
+        diagnostics   => ['rules'],
+        rejected_classes => [],
+    },
 );
 
-for my $case (qw(minimal fork fork-with-ack bad-event-id)) {
+for my $case (qw(minimal fork fork-with-ack bad-event-id future-version missing-parent wrong-player)) {
     subtest $case => sub {
         my $case_dir = File::Spec->catdir($fixture_dir, $case);
         my $game = _read_single(File::Spec->catfile($case_dir, 'game.name'));
