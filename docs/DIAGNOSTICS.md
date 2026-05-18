@@ -84,16 +84,20 @@ expected_color
 expected_player
 expected_ply
 index
+key_id
 name
 names
 parent_id
 parent_kind
 player
 ply
+profile_id
 reason
+signature_id
 stage
 target_id
 target_kind
+trust_set_id
 ```
 
 Field meanings:
@@ -118,6 +122,10 @@ reason           rule engine reason string, or an ack target rejection reason
 error            parser, rule, or storage error class
 index            zero-based item index for malformed in-memory replay input
 stage            pipeline stage that produced the diagnostic
+profile_id       public profile id that produced the diagnostic
+key_id           public signature key selector, not a secret
+signature_id     public signature record selector or event id
+trust_set_id     public trust-set label when one is configured
 ```
 
 ## Diagnostic Schema
@@ -147,6 +155,10 @@ parent_not_legal|*|rules|code,event_id,parent_id|-
 ack_wrong_player|*|rules|code,event_id,expected_player,player|-
 rules|*|rules|code,error|-
 fork|*|fork|code,parent_id,child_ids|-
+missing_signature|*|signature|code,profile_id,name,event_id|-
+wrong_signature|*|signature|code,profile_id,name,event_id,key_id,reason|-
+untrusted_signature|*|signature|code,profile_id,name,event_id,key_id,reason|trust_set_id
+malformed_signature|*|signature|code,profile_id,signature_id,reason|-
 ```
 
 Current classes are:
@@ -157,10 +169,42 @@ event-id
 dag
 rules
 fork
+signature
 ```
 
-`storage` and `signature` are reserved v1 diagnostic classes. They are not
-emitted by current `diagnostic ...` replay lines.
+`storage` is a reserved v1 diagnostic class. Signed/auth witness gates use the
+`signature` class. Unsigned replay commands do not emit signature diagnostics,
+because unsigned profiles ignore sidecar auth material.
+
+Signature diagnostic codes:
+
+```text
+missing_signature
+wrong_signature
+untrusted_signature
+malformed_signature
+```
+
+Required public fields:
+
+```text
+missing_signature   code,profile_id,name,event_id
+wrong_signature     code,profile_id,name,event_id,key_id,reason
+untrusted_signature code,profile_id,name,event_id,key_id,reason
+malformed_signature code,profile_id,signature_id,reason
+```
+
+`missing_signature` reports an otherwise filename-valid event that has no usable
+required signature under the signed profile. `wrong_signature` reports a trusted
+key id whose MAC does not verify the canonical payload, including signatures
+bound to a different profile, game descriptor, event basename, event id, or
+algorithm. `untrusted_signature` reports a key id outside the active trust set
+or outside its declared scope. `malformed_signature` reports a signature record
+that cannot be parsed as the signed profile's declared format.
+
+Signature diagnostics may print public event basenames, event ids, key ids,
+profile ids, and trust-set labels. They must not print HMAC secrets, full MAC
+values, private key material, or environment values.
 
 Unknown direct move or ack event versions under `events/`, for example `m2.*`,
 are reported as:
@@ -184,12 +228,16 @@ event_id_collision
 fork
 illegal_move
 invalid_event_item
+malformed_signature
+missing_signature
 missing_parent
 parent_not_legal
 parent_not_move
 parse_event
 parse_game_descriptor
 rules
+untrusted_signature
+wrong_signature
 wrong_color
 wrong_player
 wrong_ply

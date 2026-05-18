@@ -17,11 +17,11 @@ my $fixture_dir = "$FindBin::Bin/fixtures/e2e";
 
 my @allowed_fields = qw(
     child_ids code color error event_id expected_color expected_player
-    expected_ply index name names parent_id parent_kind player ply reason
-    stage target_id target_kind
+    expected_ply index key_id name names parent_id parent_kind player ply
+    profile_id reason signature_id stage target_id target_kind trust_set_id
 );
 
-my @allowed_classes = qw(parse event-id dag rules fork);
+my @allowed_classes = qw(parse event-id dag rules fork signature);
 
 my @stdout_fields = qw(
     board canonical_ids canonical_moves event event_id events game
