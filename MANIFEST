@@ -264,6 +264,7 @@ lib/GobanFTP/SGF.pm
 lib/GobanFTP/Store.pm
 lib/GobanFTP/Store/Config.pm
 lib/GobanFTP/Store/FTP.pm
+lib/GobanFTP/Store/GitTree.pm
 lib/GobanFTP/Store/Local.pm
 lib/GobanFTP/Store/WebDAV.pm
 lib/GobanFTP/Surface/WitnessView.pm
@@ -563,6 +564,7 @@ t/source-art.t
 t/store-contract.t
 t/store-ftp-mock.t
 t/store-ftp.t
+t/store-git-tree.t
 t/store-local.t
 t/store-webdav-mock.t
 t/surface-witness-view.t

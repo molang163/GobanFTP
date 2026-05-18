@@ -43,6 +43,22 @@ GOBANFTP_FTP_PUBLISH_MODE
 `GOBANFTP_FTP_HOST` is required in FTP mode. The other fields are optional
 unless required by the server.
 
+Set `GOBANFTP_STORE=git-tree` to read a declared Git tree snapshot. Git tree
+mode is read-only; it can verify, replay, print SGF, and run bounded play/watch
+inspection, but publish and create commands fail with storage exit code `4`.
+It uses:
+
+```text
+GOBANFTP_GIT_REPO
+GOBANFTP_GIT_TREEISH
+GOBANFTP_GIT_BINARY
+```
+
+`GOBANFTP_GIT_REPO` is required in Git tree mode. `GOBANFTP_GIT_TREEISH`
+defaults to `HEAD`, and `GOBANFTP_GIT_BINARY` defaults to `git`. Replay uses
+direct child names from `<treeish>:<game>/events`; blob bytes, commit metadata,
+refs, branches, and tags are not replay inputs.
+
 Set `GOBANFTP_STORE=webdav` to use WebDAV. WebDAV event commands read and
 write game descriptor collections and `events/` names under
 `GOBANFTP_WEBDAV_URL` and use:
@@ -382,8 +398,9 @@ The stdout summary includes `event_set_count=<n>` and
 fields describe the accepted filename event set; they do not mean replay
 succeeded.
 
-When `GOBANFTP_STORE=ftp` or `GOBANFTP_STORE=webdav`, the argument may be the
-game descriptor basename and the command reads the remote `events/` listing.
+When `GOBANFTP_STORE=ftp`, `GOBANFTP_STORE=git-tree`, or
+`GOBANFTP_STORE=webdav`, the argument may be the game descriptor basename and
+the command reads that substrate's `events/` listing.
 
 ### `gobanftp replay <game-root|game-descriptor>`
 
@@ -393,8 +410,9 @@ Must not write authoritative events. May write no files.
 
 The stdout summary includes the same event-set witness fields as `verify`.
 
-When `GOBANFTP_STORE=ftp` or `GOBANFTP_STORE=webdav`, the argument may be the
-game descriptor basename and the command reads the remote `events/` listing.
+When `GOBANFTP_STORE=ftp`, `GOBANFTP_STORE=git-tree`, or
+`GOBANFTP_STORE=webdav`, the argument may be the game descriptor basename and
+the command reads that substrate's `events/` listing.
 
 ### `gobanftp project <game-root|game-descriptor>`
 
@@ -402,11 +420,11 @@ Rebuilds `projections/` from the canonical line.
 
 May overwrite projection files. Must not edit event names.
 
-Projection writing is local-only for now. In `GOBANFTP_STORE=ftp` or
-`GOBANFTP_STORE=webdav` mode, `project` exits with storage code `4` before
-constructing a remote connection or replaying the remote event listing instead
-of writing projection files beside the current working directory. Use plain
-`sgf` to print SGF from remote listings.
+Projection writing is local-only for now. In `GOBANFTP_STORE=ftp`,
+`GOBANFTP_STORE=git-tree`, or `GOBANFTP_STORE=webdav` mode, `project` exits
+with storage code `4` before constructing a nonlocal connection or replaying
+the nonlocal event listing instead of writing projection files beside the
+current working directory. Use plain `sgf` to print SGF from nonlocal listings.
 
 On success, writes:
 
@@ -440,10 +458,11 @@ With `--variations`, prints the variation-tree SGF. A fork-only replay exits
 `3`, prints the variation tree to stdout, and emits the fork diagnostic on
 stderr. `--write` and `--variations` cannot be combined.
 
-When `GOBANFTP_STORE=ftp` or `GOBANFTP_STORE=webdav`, plain `sgf` may accept
-the game descriptor basename and reads the remote `events/` listing.
-`sgf --write` writes local projection files and is rejected in remote store mode
-before constructing a remote connection or replaying the remote event listing.
+When `GOBANFTP_STORE=ftp`, `GOBANFTP_STORE=git-tree`, or
+`GOBANFTP_STORE=webdav`, plain `sgf` may accept the game descriptor basename
+and reads that substrate's `events/` listing. `sgf --write` writes local
+projection files and is rejected in nonlocal store mode before constructing a
+nonlocal connection or replaying the nonlocal event listing.
 
 ### `gobanftp publish-move [--nonce <n>] <game-root|game-descriptor> <aa|play-aa|pass|resign>`
 

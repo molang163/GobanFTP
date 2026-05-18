@@ -164,6 +164,11 @@ Key completed boundaries:
   refs, tags, remotes, mode, object id, object type, object size, `tmp/`,
   sidecar, projection, recursive path, wrong-game path, duplicate entry, and
   checkout-style path surfaces do not change the accepted witness.
+- `git-tree-goftp1` now has read-only runtime store admission through
+  `GOBANFTP_STORE=git-tree`: CLI verify/replay/SGF read direct
+  `<treeish>:<game>/events` children from a real Git tree and prove the same
+  event-set root and canonical replay while blob bytes, commit metadata,
+  sidecars, projections, tmp entries, and Git publish remain outside consensus.
 - `signed-hmac-goftp1` now has an injected-event fixture: an event basename with
   a valid filename event id reaches the signed profile gate, is rejected for
   `missing_signature`, and the accepted signed chain keeps the same root,
@@ -293,10 +298,9 @@ Immediate next implementation:
 ```text
 after entering v1.0/P14 development:
 - do not push or publish v0.2 artifacts; v0.2 was skipped as a public release
-- next implementation slice is `git-tree-goftp1` runtime read admission:
-  enumerate direct `<game>/events/*` basenames from a real Git tree/worktree,
-  prove root/replay parity with local fixtures, and keep Git metadata outside
-  consensus
+- `git-tree-goftp1` runtime read admission is implemented as a read-only store
+- next implementation slice is `dns-record-goftp1` runtime read admission or
+  another v1.0 proof-machine gap chosen by the current route discussion
 - do not tag v1.0 until the final clean-checkout P14 matrix passes
 - do not let display, source art, Web assets, terminal formatting, or interactive
   input feed replay or event-set roots

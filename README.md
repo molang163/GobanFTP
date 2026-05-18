@@ -198,20 +198,23 @@ Implemented in this release line:
 - rebuildable board, graveyard, SGF, and oracle projections
 - local filesystem store
 - FTP store with mock coverage and gated live tests
+- read-only Git tree store with runtime CLI parity coverage
 - WebDAV store with mock and CLI parity coverage
 - CLI create, verify, replay, project, SGF, publish-move, publish-ack, play,
   and watch flows
 - explicit ack-assisted fork recovery
 - v1 profile registry and witness output
-- `local-goftp1`, `ftp-goftp1`, and `webdav-goftp1` substrate profiles
+- `local-goftp1`, `ftp-goftp1`, `git-tree-goftp1`, and `webdav-goftp1`
+  substrate profiles
 - `signed-hmac-goftp1` per-event HMAC witness acceptance gate
 - core, v1, and profile attack fixture galleries
 - executable source-art oracle smoke
 
-Implemented does not mean every future ritual is complete. `git-tree-goftp1` and
-`dns-record-goftp1` are planned profile contracts with read-normalizer fixtures.
-Production key lifecycle, publish authentication policy, final scoring/result
-events, and the full `v1.0/P14` freeze remain release-route work.
+Implemented does not mean every future ritual is complete. `git-tree-goftp1` is
+read-only at runtime, while `dns-record-goftp1` remains a planned profile
+contract with read-normalizer fixtures. Production key lifecycle, publish
+authentication policy, final scoring/result events, and the full `v1.0/P14`
+freeze remain release-route work.
 
 Unsigned `GOFTP/1` remains valid and unchanged. A signed/auth profile can reject
 events only when that explicit profile is selected; sidecar signatures do not
@@ -300,8 +303,9 @@ Those names are the game. The file contents are not.
 
 ## Stores
 
-Local is the default store. FTP and WebDAV run the same listing-first command
-surface without reading event file contents or resource bodies.
+Local is the default store. FTP, read-only Git tree, and WebDAV run the same
+listing-first command surface without reading event file contents, blob bytes,
+or resource bodies.
 
 FTP mode:
 
@@ -330,13 +334,27 @@ GOBANFTP_WEBDAV_CLASS
 GOBANFTP_WEBDAV_PUBLISH_MODE
 ```
 
+Git tree mode:
+
+```text
+GOBANFTP_STORE=git-tree
+GOBANFTP_GIT_REPO
+GOBANFTP_GIT_TREEISH
+GOBANFTP_GIT_BINARY
+```
+
+Git tree replay reads direct child names from `<treeish>:<game>/events` and
+ignores blob bytes, commit metadata, refs, branches, tags, sidecars,
+projections, and tmp entries. Git tree mode is read-only for now; publish
+commands fail at the storage boundary.
+
 WebDAV replay reads `events/` with `PROPFIND Depth: 1` and uses only direct href
 basenames. Publishing writes a zero-byte temporary resource under `tmp/`, moves
 it to `events/<event-name>`, then confirms visibility with a fresh `PROPFIND`.
 
-Projection writes are local-only for now. Remote `project` and `sgf --write`
+Projection writes are local-only for now. Nonlocal `project` and `sgf --write`
 are rejected; plain `sgf`, `verify`, `replay`, `play`, and `watch` can read
-remote listings.
+nonlocal listings.
 
 ## Proof Gates
 
@@ -368,6 +386,12 @@ WebDAV store and CLI parity, mock-backed:
 
 ```sh
 prove -lr t/store-webdav-mock.t t/webdav-cli-parity.t
+```
+
+Git tree store and CLI parity, real temporary repository:
+
+```sh
+prove -lr t/store-git-tree.t
 ```
 
 v1 profiles, witnesses, and compare commands:

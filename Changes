@@ -3,6 +3,10 @@ Revision history for GobanFTP
 1.000_001  Not yet released
   - Began v1.0/P14 development after skipping the public v0.2 / package 0.002
     release candidate.
+  - Promoted `git-tree-goftp1` to read-only runtime admission through
+    `GOBANFTP_STORE=git-tree`, enumerating direct Git tree children under
+    `<game>/events` while keeping blob bytes, commit metadata, sidecars,
+    projections, tmp entries, and Git publish semantics outside consensus.
   - Added a mock-tested WebDAV store backend that reads `events/` with
     `PROPFIND Depth: 1` and publishes by zero-byte `tmp/` resource plus `MOVE`
     and fresh `PROPFIND` confirmation.

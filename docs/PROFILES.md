@@ -137,9 +137,9 @@ resource path, or display label.
 
 Unsigned `GOFTP/1` remains unchanged. Baseline profiles do not read signatures,
 HMACs, bearer tokens, sidecar claims, or key metadata as replay input. For
-`local-goftp1`, `ftp-goftp1`, `webdav-goftp1`, and the planned unsigned Git/DNS
-substrate profiles, sidecar signatures are still ignored input and may only be
-shown as advisory attestations.
+`local-goftp1`, `ftp-goftp1`, `git-tree-goftp1`, `webdav-goftp1`, and the
+planned unsigned DNS substrate profile, sidecar signatures are still ignored
+input and may only be shown as advisory attestations.
 
 Auth material has three separate meanings:
 
@@ -495,23 +495,26 @@ GOBANFTP_FTP_TEST=1 prove -l t/store-ftp.t t/ftp-live-flow.t
 
 ## Additional Profiles
 
-The profiles below are v1.0 substrate targets beyond local and FTP. Git and DNS
-remain planned read-normalizers. WebDAV now has a runtime store boundary,
-publish semantics, mock store tests, and CLI parity tests; live credentials are
-still deliberately outside the default test suite.
+The profiles below are v1.0 substrate targets beyond local and FTP. Git now has
+a read-only runtime store boundary and CLI parity tests. DNS remains a planned
+read-normalizer. WebDAV has a runtime store boundary, publish semantics, mock
+store tests, and CLI parity tests; live credentials are still deliberately
+outside the default test suite.
 
 The production registry names these profiles so witness fixtures can compare
 substrates through one API. `GobanFTP::Profile::Adapter` continues to normalize
 fixture-like Git, DNS, and WebDAV listing presentations into visible names.
-Runtime store admission is separate: Git and DNS remain planned until they have
-full adapter/store boundaries, publish semantics, fixtures, and smoke commands.
+Runtime store admission is separate: Git is implemented as a read-only runtime
+store, while DNS remains planned until it has an adapter/store boundary,
+enumeration semantics, fixtures, and smoke commands.
 
 ### `git-tree-goftp1`
 
 Status:
 
 ```text
-planned
+implemented
+runtime writes: read-only
 ```
 
 Consensus version:
@@ -523,7 +526,7 @@ GOFTP-PROFILE/git-tree-goftp1/1
 Substrate:
 
 ```text
-Git-like tree object or checkout
+Git tree snapshot listing
 ```
 
 Authoritative inputs:
@@ -556,17 +559,20 @@ Read algorithm:
 
 ```text
 enumerate a declared tree snapshot
-extract direct events/ child names as UTF-8-free byte strings restricted to the
-GOFTP/1 public ASCII basename alphabet
+run a direct child listing for <treeish>:<game>/events
+extract direct child names restricted to the GOFTP/1 public ASCII basename
+alphabet
 normalize and verify GOFTP/1 event basenames
 ```
 
 Publish algorithm:
 
 ```text
-planned: create a new tree snapshot containing events/<event_name>
-publish visibility is the selected tree or ref update, not commit timestamp
-conflicting children remain visible as forks
+read-only in the current runtime store
+create-game, publish-move, publish-ack, and other write paths fail with a
+storage diagnostic before creating commits, refs, or working-tree files
+future Git publish semantics must define tree/ref visibility without making
+commit timestamp or ref metadata replay inputs
 ```
 
 Auth stance:
@@ -578,8 +584,10 @@ Git signatures or hosting credentials are advisory unless a signed profile says 
 Required fixtures:
 
 ```text
-t/fixtures/profiles/git-tree-goftp1/
-t/fixtures/attacks/git-tree-goftp1/
+t/store-git-tree.t
+t/fixtures/v1/cross-substrate/*/git-tree-goftp1/listing.names
+t/fixtures/v1/attacks/git-tree-path-metadata-poison/git-tree-goftp1/listing.names
+GOBANFTP_STORE=git-tree GOBANFTP_GIT_REPO=<repo> perl -Ilib script/gobanftp verify <game>
 ```
 
 ### `dns-record-goftp1`

@@ -12,6 +12,7 @@ use File::Spec;
 
 use GobanFTP::GameSpec qw(parse_basename);
 use GobanFTP::Store::FTP;
+use GobanFTP::Store::GitTree;
 use GobanFTP::Store::Local;
 use GobanFTP::Store::WebDAV;
 
@@ -21,8 +22,8 @@ sub store_mode {
     my $mode = lc($ENV{GOBANFTP_STORE} // 'local');
     $mode = 'local' if $mode eq '';
 
-    croak 'GOBANFTP_STORE must be local, ftp, or webdav'
-        if $mode ne 'local' && $mode ne 'ftp' && $mode ne 'webdav';
+    croak 'GOBANFTP_STORE must be local, ftp, git-tree, or webdav'
+        if $mode ne 'local' && $mode ne 'ftp' && $mode ne 'git-tree' && $mode ne 'webdav';
 
     return $mode;
 }
@@ -33,9 +34,10 @@ sub store_from_env {
     my $mode = $args{mode} // store_mode();
     return GobanFTP::Store::Local->new(root => _local_root()) if $mode eq 'local';
     return _ftp_store_from_env() if $mode eq 'ftp';
+    return _git_tree_store_from_env() if $mode eq 'git-tree';
     return _webdav_store_from_env() if $mode eq 'webdav';
 
-    croak 'GOBANFTP_STORE must be local, ftp, or webdav';
+    croak 'GOBANFTP_STORE must be local, ftp, git-tree, or webdav';
 }
 
 sub context_for_descriptor {
@@ -46,7 +48,7 @@ sub context_for_descriptor {
     my $mode = store_mode();
     my $store = store_from_env(mode => $mode);
 
-    if ($mode eq 'ftp' || $mode eq 'webdav') {
+    if ($mode eq 'ftp' || $mode eq 'git-tree' || $mode eq 'webdav') {
         return {
             store           => $store,
             store_kind      => $mode,
@@ -73,6 +75,7 @@ sub context_for_game_arg {
 
     my $mode = store_mode();
     return _ftp_context_for_arg($game_arg) if $mode eq 'ftp';
+    return _git_tree_context_for_arg($game_arg) if $mode eq 'git-tree';
     return _webdav_context_for_arg($game_arg) if $mode eq 'webdav';
     return _local_context_for_arg($game_arg, %args);
 }
@@ -103,6 +106,22 @@ sub _webdav_context_for_arg {
     return {
         store           => $store,
         store_kind      => 'webdav',
+        game_descriptor => $descriptor,
+        store_game_root => $descriptor,
+        game_root       => $descriptor,
+    };
+}
+
+sub _git_tree_context_for_arg {
+    my ($game_arg) = @_;
+
+    my $descriptor = basename($game_arg);
+    _assert_descriptor($descriptor);
+    my $store = store_from_env(mode => 'git-tree');
+
+    return {
+        store           => $store,
+        store_kind      => 'git-tree',
         game_descriptor => $descriptor,
         store_game_root => $descriptor,
         game_root       => $descriptor,
@@ -230,6 +249,23 @@ sub _webdav_store_from_env {
         if defined $ENV{GOBANFTP_WEBDAV_DEBUG};
 
     return GobanFTP::Store::WebDAV->new(%args);
+}
+
+sub _git_tree_store_from_env {
+    my $repo = $ENV{GOBANFTP_GIT_REPO};
+    croak 'GOBANFTP_GIT_REPO is required for GOBANFTP_STORE=git-tree'
+        if !defined($repo) || $repo eq '';
+
+    my %args = (
+        repo => $repo,
+    );
+
+    $args{treeish} = $ENV{GOBANFTP_GIT_TREEISH}
+        if defined($ENV{GOBANFTP_GIT_TREEISH}) && $ENV{GOBANFTP_GIT_TREEISH} ne '';
+    $args{git} = $ENV{GOBANFTP_GIT_BINARY}
+        if defined($ENV{GOBANFTP_GIT_BINARY}) && $ENV{GOBANFTP_GIT_BINARY} ne '';
+
+    return GobanFTP::Store::GitTree->new(%args);
 }
 
 sub _env_bool {

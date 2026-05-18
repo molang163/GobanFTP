@@ -34,10 +34,10 @@ my %expected = (
         auth_stance    => 'transport-auth-only',
     },
     'git-tree-goftp1' => {
-        profile_status => 'planned',
-        substrate      => 'Git-like tree fixture',
+        profile_status => 'implemented',
+        substrate      => 'Git tree snapshot listing',
         adapter_id     => 'git-tree-listing-goftp1',
-        adapter_status => 'read-normalizer',
+        adapter_status => 'implemented-read-only',
         auth_stance    => 'unsigned',
     },
     'dns-record-goftp1' => {

@@ -39,11 +39,11 @@ my %PROFILES = (
     },
     'git-tree-goftp1' => {
         profile_id     => 'git-tree-goftp1',
-        profile_status => 'planned',
+        profile_status => 'implemented',
         consensus_version => 'GOFTP-PROFILE/git-tree-goftp1/1',
-        substrate      => 'Git-like tree fixture',
+        substrate      => 'Git tree snapshot listing',
         adapter_id     => 'git-tree-listing-goftp1',
-        adapter_status => 'read-normalizer',
+        adapter_status => 'implemented-read-only',
         auth_stance    => 'unsigned',
     },
     'dns-record-goftp1' => {
