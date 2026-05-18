@@ -298,6 +298,10 @@ t/fixtures/attacks/bad-event-id/listing.names
 t/fixtures/attacks/bad-list-order/expected.verdict
 t/fixtures/attacks/bad-list-order/game.name
 t/fixtures/attacks/bad-list-order/listing.names
+t/fixtures/attacks/bad-mtime/expected.verdict
+t/fixtures/attacks/bad-mtime/game.name
+t/fixtures/attacks/bad-mtime/listing.names
+t/fixtures/attacks/bad-mtime/mtimes.tsv
 t/fixtures/attacks/bad-payload/event-bytes.txt
 t/fixtures/attacks/bad-payload/expected.verdict
 t/fixtures/attacks/bad-payload/game.name

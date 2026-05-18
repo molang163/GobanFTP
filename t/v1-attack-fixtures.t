@@ -9,6 +9,7 @@ use Test::More;
 my $fixture_dir = "$FindBin::Bin/fixtures/attacks";
 
 my @required_attacks = qw(
+    bad-mtime
     bad-payload
     bad-list-order
     duplicate-event

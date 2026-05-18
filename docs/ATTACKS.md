@@ -148,6 +148,7 @@ the fixture.
 The v1 gallery must contain at least:
 
 ```text
+bad-mtime
 bad-payload
 bad-list-order
 duplicate-event

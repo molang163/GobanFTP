@@ -19,6 +19,8 @@ Revision history for GobanFTP
     different game descriptor still fails closed at the signed profile gate.
   - Added a signed-HMAC game descriptor mismatch fixture proving a public
     attestation record cannot claim another game descriptor.
+  - Added a core `bad-mtime` attack fixture proving event file mtimes do not
+    affect replay or `event_set_root`.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

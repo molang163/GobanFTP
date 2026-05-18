@@ -12,6 +12,10 @@ before running the command under test.
 surfaces such as `sidecar/`, `projections/`, or `tmp/`; only direct event
 basenames are replay candidates.
 
+`mtimes.tsv`, when present, assigns explicit epoch-second modification times to
+materialized local event files before the command under test runs. Those times
+are attack input, not consensus input.
+
 `expected.verdict` is the public judgment for the specimen. It must include at
 least these fields:
 
@@ -42,6 +46,7 @@ profile says otherwise.
 The v1 gate requires the gallery to contain at least:
 
 ```text
+bad-mtime
 bad-payload
 bad-list-order
 duplicate-event

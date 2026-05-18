@@ -106,6 +106,7 @@ sub _assert_cli_result {
         is _slurp(File::Spec->catfile($events_dir, $name)), $bytes_before{$name},
             "event bytes unchanged: $name";
     }
+    _assert_event_mtimes($fixture_dir, $events_dir);
 
     _assert_project_rebuilt_from_events($game_root, $expected)
         if $expected->{command} eq 'project' && $expected->{exit} == 0;
@@ -212,6 +213,7 @@ sub _materialize_local_game {
         next if $seen{$event}++;
         _write_text(File::Spec->catfile($events_dir, $event), $event_bytes);
     }
+    _apply_mtimes($fixture_dir, $events_dir);
 
     for my $surface (qw(sidecar tmp projections)) {
         my $source = File::Spec->catdir($fixture_dir, $surface);
@@ -220,6 +222,37 @@ sub _materialize_local_game {
     }
 
     return ($game_root);
+}
+
+sub _apply_mtimes {
+    my ($fixture_dir, $events_dir) = @_;
+
+    my $mtime_path = File::Spec->catfile($fixture_dir, 'mtimes.tsv');
+    return if !-f $mtime_path;
+
+    for my $row (_read_mtimes($mtime_path)) {
+        my ($event, $mtime) = @$row;
+        my $path = File::Spec->catfile($events_dir, $event);
+        die "mtime target does not exist: $event" if !-e $path;
+        utime $mtime, $mtime, $path or die "utime $path: $!";
+
+        my $actual = (stat $path)[9];
+        die "mtime target was not applied for $event: got $actual want $mtime"
+            if $actual != $mtime;
+    }
+}
+
+sub _assert_event_mtimes {
+    my ($fixture_dir, $events_dir) = @_;
+
+    my $mtime_path = File::Spec->catfile($fixture_dir, 'mtimes.tsv');
+    return if !-f $mtime_path;
+
+    for my $row (_read_mtimes($mtime_path)) {
+        my ($event, $mtime) = @$row;
+        my $path = File::Spec->catfile($events_dir, $event);
+        is((stat $path)[9], $mtime, "event mtime unchanged: $event");
+    }
 }
 
 sub _copy_tree {
@@ -310,6 +343,26 @@ sub _read_names {
     close $fh or die "close $path: $!";
 
     return @names;
+}
+
+sub _read_mtimes {
+    my ($path) = @_;
+
+    open my $fh, '<:encoding(UTF-8)', $path or die "open $path: $!";
+    my @rows;
+    while (my $line = <$fh>) {
+        chomp $line;
+        next if $line =~ /\A\s*\z/;
+        my ($event, $mtime) = split /\t/, $line, 2;
+        die "bad mtime line in $path: $line"
+            if !defined($event) || !defined($mtime)
+                || $event eq '' || $event =~ m{/}
+                || $mtime !~ /\A(?:0|[1-9][0-9]*)\z/;
+        push @rows, [$event, 0 + $mtime];
+    }
+    close $fh or die "close $path: $!";
+
+    return @rows;
 }
 
 sub _dir_names {
