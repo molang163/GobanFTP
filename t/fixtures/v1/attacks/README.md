@@ -17,3 +17,9 @@ The verdict names the attacked profile, the baseline profile, the expected
 accepted event set root, replay status, canonical ids, legal ids, diagnostic
 classes, ignored inputs, and the public judgment for the specimen.
 
+Current specimens:
+
+```text
+webdav-metadata-poison  metadata and shadow resources do not affect witness truth
+webdav-href-traversal   dot segments and encoded traversal cannot smuggle events
+```

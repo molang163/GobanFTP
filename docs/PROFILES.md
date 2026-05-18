@@ -679,6 +679,8 @@ PROPFIND events/ at depth 1
 extract direct resource basenames from href path segments under the current
 game descriptor collection
 percent-decode exactly once
+reject dot segments, encoded traversal segments, encoded slash, and encoded
+backslash before event-name acceptance
 reject decoded names outside the GOFTP/1 public ASCII basename alphabet
 normalize and verify GOFTP/1 event basenames
 ```

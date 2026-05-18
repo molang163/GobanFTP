@@ -1,0 +1,7 @@
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m etag="W/clean-aa"
+href=/dav/../g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat etag="W/raw-dotdot"
+href=/dav/%2e%2e/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat etag="W/encoded-dotdot"
+href=/dav/./g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat etag="W/raw-dot"
+href=/dav/%2e/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat etag="W/encoded-dot"
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat%2Fshadow etag="W/encoded-slash"
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat%5Cshadow etag="W/encoded-backslash"

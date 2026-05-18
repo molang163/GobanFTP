@@ -403,6 +403,10 @@ t/fixtures/v1/cross-substrate/minimal/local-goftp1/listing.names
 t/fixtures/v1/cross-substrate/minimal/webdav-goftp1/listing.names
 t/fixtures/v1/cross-substrate/README.md
 t/fixtures/v1/attacks/README.md
+t/fixtures/v1/attacks/webdav-href-traversal/expected.verdict
+t/fixtures/v1/attacks/webdav-href-traversal/game.name
+t/fixtures/v1/attacks/webdav-href-traversal/local-goftp1/listing.names
+t/fixtures/v1/attacks/webdav-href-traversal/webdav-goftp1/listing.names
 t/fixtures/v1/attacks/webdav-metadata-poison/expected.verdict
 t/fixtures/v1/attacks/webdav-metadata-poison/game.name
 t/fixtures/v1/attacks/webdav-metadata-poison/local-goftp1/listing.names

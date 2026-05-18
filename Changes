@@ -13,6 +13,8 @@ Revision history for GobanFTP
     body-like PROPFIND row fields, locks, wrong-game hrefs, shadow resources,
     recursive hrefs, duplicates, order, and percent-decoding hazards do not
     change the witness.
+  - Added a focused WebDAV href traversal fixture proving raw and percent-encoded
+    dot segments cannot smuggle extra events into the profile witness.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

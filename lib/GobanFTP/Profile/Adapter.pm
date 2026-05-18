@@ -124,21 +124,33 @@ sub _webdav_listing_name_from_href {
     $href =~ s{\Ahttps?://[^/]*}{};
     $href =~ s/[?#].*\z//;
 
-    my @segments = grep { $_ ne '' } split m{/+}, $href;
+    my @segments = _webdav_href_segments($href);
     for my $i (0 .. $#segments) {
-        my $game_segment = _percent_decode_once($segments[$i]);
-        next if !defined $game_segment || $game_segment ne $game;
+        next if $segments[$i] ne $game;
         next if ($segments[$i + 1] // '') ne 'events';
         next if $i + 2 != $#segments;
 
-        my $basename = _percent_decode_once($segments[$i + 2]);
-        next if !defined $basename;
+        my $basename = $segments[$i + 2];
         next if $basename !~ /\A[a-z0-9._-]+\z/;
 
         return "events/$basename";
     }
 
     return undef;
+}
+
+sub _webdav_href_segments {
+    my ($href) = @_;
+
+    my @segments;
+    for my $segment (grep { $_ ne '' } split m{/+}, $href) {
+        my $decoded = _percent_decode_once($segment);
+        return () if !defined $decoded;
+        return () if $decoded eq '.' || $decoded eq '..';
+        return () if $decoded =~ m{[/\\\0\r\n]};
+        push @segments, $decoded;
+    }
+    return @segments;
 }
 
 sub _percent_decode_once {

@@ -139,6 +139,12 @@ href, bad percent, percent-encoded slash, double-encoded slash, duplicate href,
 and href-order surfaces. Actual WebDAV resource bodies remain covered by store
 and CLI tests that forbid `GET`/`HEAD` replay reads.
 
+The second WebDAV specimen is `webdav-href-traversal`, which attacks raw and
+percent-encoded dot segments, encoded slash, and encoded backslash inside href
+paths. The expected witness remains a one-event baseline; any traversal href
+that smuggles the second move into the accepted set changes the root and fails
+the fixture.
+
 The v1 gallery must contain at least:
 
 ```text
