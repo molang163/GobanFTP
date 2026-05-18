@@ -8,6 +8,7 @@ use Carp qw(croak);
 use Exporter qw(import);
 
 use GobanFTP::Auth::HMAC qw(verify_event_signature);
+use GobanFTP::Auth::TrustReport qw(trust_lifecycle_decision);
 use GobanFTP::EventSetRoot qw(event_set_root_result);
 
 our @EXPORT_OK = qw(is_signed_hmac_profile signed_hmac_event_set_result);
@@ -27,7 +28,11 @@ sub signed_hmac_event_set_result {
         $args{hmac_attestations} // [],
         'hmac_attestations',
     ));
-    my $trusted_keys    = _hash_ref($args{trusted_hmac_keys} // {}, 'trusted_hmac_keys');
+    my $trusted_keys = _hash_ref($args{trusted_hmac_keys} // {}, 'trusted_hmac_keys');
+    my $trusted_key_statuses = _hash_ref(
+        $args{trusted_hmac_key_statuses} // {},
+        'trusted_hmac_key_statuses',
+    );
 
     croak "unsupported signed HMAC profile: $profile_id"
         if !is_signed_hmac_profile($profile_id);
@@ -40,6 +45,7 @@ sub signed_hmac_event_set_result {
             event             => $event,
             attestation       => $attestations->{$event},
             trusted_hmac_keys => $trusted_keys,
+            trusted_hmac_key_statuses => $trusted_key_statuses,
         );
 
         if ($ok) {
@@ -102,6 +108,10 @@ sub _attestation_diagnostic {
     my $event       = _required($args{event}, 'event');
     my $attestation = _hash_ref($args{attestation}, 'attestation');
     my $keys        = _hash_ref($args{trusted_hmac_keys}, 'trusted_hmac_keys');
+    my $statuses    = _hash_ref(
+        $args{trusted_hmac_key_statuses} // {},
+        'trusted_hmac_key_statuses',
+    );
 
     my $event_id = _event_id_from_basename($event);
     my $key_id   = $attestation->{key_id} // '';
@@ -127,6 +137,15 @@ sub _attestation_diagnostic {
             reason     => $key_id eq '' ? 'key_id.missing' : 'key.untrusted',
         };
     }
+
+    my $lifecycle_diagnostic = _lifecycle_diagnostic(
+        profile_id => $profile_id,
+        event      => $event,
+        event_id   => $event_id,
+        key_id     => $key_id,
+        status     => $statuses->{$key_id} // 'trusted',
+    );
+    return $lifecycle_diagnostic if defined $lifecycle_diagnostic;
 
     my $verification = _verify_hmac_attestation(
         profile_id       => $profile_id,
@@ -157,6 +176,25 @@ sub _attestation_diagnostic {
     }
 
     return \%diagnostic;
+}
+
+sub _lifecycle_diagnostic {
+    my (%args) = @_;
+
+    my $decision = trust_lifecycle_decision(
+        status  => _required($args{status}, 'status'),
+        purpose => 'verify',
+    );
+    return undef if $decision->{accepted};
+
+    return {
+        code       => 'untrusted_signature',
+        profile_id => $args{profile_id},
+        name       => $args{event},
+        event_id   => $args{event_id},
+        key_id     => $args{key_id},
+        reason     => $decision->{reason},
+    };
 }
 
 sub _verify_hmac_attestation {

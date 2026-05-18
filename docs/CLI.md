@@ -226,7 +226,7 @@ The fixture form reads:
 parse `attestations.tsv`, does not enforce signed-HMAC revocation, and does not
 use wall-clock time for expiry decisions.
 
-### `gobanftp v1 witness --profile <profile-id> --fixture <fixture-dir> [--attestations <jsonl>] [--trusted-hmac-key <id=key>]`
+### `gobanftp v1 witness --profile <profile-id> --fixture <fixture-dir> [--attestations <jsonl>] [--trusted-hmac-key <id=key>] [--trusted-hmac-status <id=status>]`
 
 Builds a read-only v1 witness from fixture files. The command reads:
 
@@ -243,6 +243,14 @@ must not be printed. The HMAC key id is a verifier-local selector, not a
 `GOFTP-KEY/1` public key id. Selectors starting with `k1.` are rejected for
 `--trusted-hmac-key` so fixture public-key trust rows cannot silently authorize
 HMAC attestations.
+
+`--trusted-hmac-status <id=status>` is an explicit signed-HMAC lifecycle input.
+It is separate from `GOFTP-TRUST/1` public key rows and applies only to a
+selector already supplied by `--trusted-hmac-key`. If omitted, the selector is
+treated as `trusted`. For verification, `trusted` and `rotated` selectors may
+accept signed material; `revoked` and `expired` selectors reject it with
+`untrusted_signature` and a lifecycle reason. This command has no publish path,
+so rotated publish rejection is only a documented lifecycle rule.
 
 The command calls `GobanFTP::Witness` and does not recompute roots, signatures,
 or replay results inside CLI code. It does not write events or projections.

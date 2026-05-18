@@ -228,6 +228,49 @@ subtest 'duplicate attestations are order-independent' => sub {
     }
 };
 
+subtest 'signed-HMAC lifecycle status is enforced by witness assembly only for signed profile' => sub {
+    my ($rotated) = _witness_for_case(
+        'valid',
+        'signed-hmac-goftp1',
+        trusted_hmac_key_statuses => { 'fixture-key-1' => 'rotated' },
+    );
+    is $rotated->{accepted_count}, 3, 'rotated HMAC selector verifies old signed material';
+    is $rotated->{event_set_root}, $minimal_root, 'rotated selector keeps the signed root';
+    is $rotated->{rejected_count}, 0, 'rotated selector has no gate rejection';
+
+    for my $case (
+        [revoked => 'key.revoked'],
+        [expired => 'key.expired'],
+    ) {
+        my ($status, $reason) = @$case;
+        my ($witness) = _witness_for_case(
+            'valid',
+            'signed-hmac-goftp1',
+            trusted_hmac_key_statuses => { 'fixture-key-1' => $status },
+        );
+
+        is $witness->{accepted_count}, 0, "$status HMAC selector accepts no events";
+        is $witness->{event_set_root}, $empty_root, "$status selector roots the empty signed set";
+        is_deeply $witness->{rejected_codes}, ['untrusted_signature'],
+            "$status selector reports trust rejection";
+        is $witness->{rejected_diagnostics}[0]{reason}, $reason,
+            "$status selector records lifecycle reason";
+    }
+
+    for my $profile (qw(local-goftp1 ftp-goftp1 git-tree-goftp1 dns-record-goftp1 webdav-goftp1)) {
+        my ($witness) = _witness_for_case(
+            'unsigned-unaffected',
+            $profile,
+            hmac_attestations => [],
+            trusted_hmac_key_statuses => { 'fixture-key-1' => 'revoked' },
+        );
+
+        is $witness->{accepted_count}, 3, "$profile ignores revoked HMAC lifecycle input";
+        is $witness->{event_set_root}, $minimal_root, "$profile root stays unsigned truth";
+        is_deeply $witness->{rejected_classes}, [], "$profile has no signature gate rejection";
+    }
+};
+
 done_testing;
 
 sub _witness_for_case {
@@ -248,6 +291,7 @@ sub _witness_for_case {
         diagnostics_schema_path => $schema_path,
         hmac_attestations       => \@attestations,
         trusted_hmac_keys       => \%trusted_hmac_keys,
+        trusted_hmac_key_statuses => $overrides{trusted_hmac_key_statuses} // {},
     );
 
     return ($witness, \@attestations);

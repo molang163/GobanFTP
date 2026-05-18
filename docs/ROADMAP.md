@@ -385,6 +385,10 @@ fixture records and does not create trust, private keys, signatures, or replay
 inputs. Fixture-only trust reporting is available through
 `gobanftp v1 trust-report --fixture`; it reports public key and trust TSV state
 after the normal unsigned witness and does not enforce signed trust.
+`signed-hmac-goftp1` now has an explicit verifier lifecycle input for HMAC
+selectors: `trusted` and `rotated` verify old signed material, while `revoked`
+and `expired` reject inside the signed profile gate without changing unsigned
+replay.
 
 ## P13: Source-Art, TUI, And Web Surfaces
 

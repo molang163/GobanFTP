@@ -52,6 +52,9 @@ Revision history for GobanFTP
   - Defined the signed-HMAC/trust bridge boundary: `signed-hmac-goftp1` keeps
     explicit HMAC selectors separate from public `GOFTP-KEY/1` `k1.` identities
     and records deterministic trust lifecycle semantics before enforcement.
+  - Added explicit signed-HMAC lifecycle enforcement for verifier-supplied HMAC
+    selectors, allowing rotated keys to verify old material while revoked and
+    expired selectors reject before MAC verification.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

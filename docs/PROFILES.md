@@ -253,6 +253,15 @@ not a `GOFTP-KEY/1` public-key id. `k1.` is reserved for public key records and
 profile may define a public-key signing suite that uses `k1.` identities, but
 that suite is not `signed-hmac-goftp1`.
 
+Lifecycle enforcement for this profile is explicit verifier input. The verifier
+may attach `trusted`, `rotated`, `revoked`, or `expired` status to an HMAC
+selector in the same signed-HMAC trust set that supplies the secret bytes.
+Absent status means `trusted`. Advisory `GOFTP-TRUST/1` public key rows do not
+authorize, rotate, revoke, or expire HMAC selectors. During verification,
+`trusted` and `rotated` selectors can accept old signed events; `revoked` and
+`expired` selectors are rejected before MAC verification with a signature-class
+trust diagnostic.
+
 `signed-hmac-goftp1` event attestation payload:
 
 ```text

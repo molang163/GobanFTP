@@ -84,6 +84,59 @@ subtest 'v1 witness verifies signed-HMAC fixture attestations' => sub {
     like $stdout, qr/^rejected_count=0$/m, 'has no signed rejection';
 };
 
+subtest 'v1 witness enforces explicit signed-HMAC lifecycle status' => sub {
+    my $fixture = File::Spec->catdir($signed_dir, 'valid');
+    my $attestations = File::Spec->catfile(
+        $fixture,
+        'signed-hmac-goftp1',
+        'attestations.jsonl',
+    );
+
+    my ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'signed-hmac-goftp1',
+        '--fixture', $fixture,
+        '--attestations', $attestations,
+        '--trusted-hmac-key', "fixture-key-1=$fixture_key",
+        '--trusted-hmac-status', 'fixture-key-1=rotated',
+    );
+
+    is $exit, 0, 'rotated HMAC key verifies existing signed material';
+    is $stderr, '', 'rotated verifier has no diagnostics';
+    like $stdout, qr/^accepted_count=3$/m, 'rotated verifier accepts the signed chain';
+    like $stdout, qr/^signature\.status=ok$/m, 'rotated verifier leaves signature status ok';
+
+    ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'signed-hmac-goftp1',
+        '--fixture', $fixture,
+        '--attestations', $attestations,
+        '--trusted-hmac-key', "fixture-key-1=$fixture_key",
+        '--trusted-hmac-status', 'fixture-key-1=revoked',
+    );
+
+    is $exit, 2, 'revoked HMAC key rejects signed material';
+    like $stdout, qr/^accepted_count=0$/m, 'revoked verifier accepts no events';
+    like $stdout, qr/^rejected_codes=untrusted_signature$/m, 'revoked verifier reports trust failure';
+    like $stdout, qr/^signature\.status=failed$/m, 'revoked verifier fails signature status';
+    like $stderr, qr/\breason=key[.]revoked\b/, 'revoked diagnostic explains lifecycle rejection';
+    unlike $stdout . $stderr, qr/\Q$fixture_key\E/, 'revoked diagnostic does not print HMAC secret';
+
+    ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'signed-hmac-goftp1',
+        '--fixture', $fixture,
+        '--attestations', $attestations,
+        '--trusted-hmac-key', "fixture-key-1=$fixture_key",
+        '--trusted-hmac-status', 'fixture-key-1=expired',
+    );
+
+    is $exit, 2, 'expired HMAC key rejects signed material';
+    like $stdout, qr/^accepted_count=0$/m, 'expired verifier accepts no events';
+    like $stderr, qr/\breason=key[.]expired\b/, 'expired diagnostic explains lifecycle rejection';
+    unlike $stdout . $stderr, qr/\Q$fixture_key\E/, 'expired diagnostic does not print HMAC secret';
+};
+
 subtest 'v1 witness rejects signed-HMAC event injection without changing accepted truth' => sub {
     my $fixture = File::Spec->catdir($signed_dir, 'injected-event');
     my $attestations = File::Spec->catfile(
@@ -398,6 +451,33 @@ subtest 'v1 witness rejects unsafe trusted key selectors' => sub {
     like $stderr, qr/^usage: v1 witness /m, 'k1 namespace usage is reported';
     unlike $stdout . $stderr, qr/public-key-namespace-secret|jk4bs0r77srdlpds260hka9fpp49clpg/,
         'k1 namespace failure does not print selector or key bytes';
+
+    ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'signed-hmac-goftp1',
+        '--fixture', File::Spec->catdir($signed_dir, 'valid'),
+        '--trusted-hmac-key', "fixture-key-1=$fixture_key",
+        '--trusted-hmac-status', 'fixture-key-1=unknown',
+    );
+
+    is $exit, 1, 'unknown HMAC lifecycle status exits usage';
+    is $stdout, '', 'bad status usage failure writes no stdout';
+    like $stderr, qr/^usage: v1 witness /m, 'bad status usage is reported';
+    unlike $stdout . $stderr, qr/\Q$fixture_key\E|unknown/,
+        'bad status failure does not print HMAC secret or status value';
+
+    ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'signed-hmac-goftp1',
+        '--fixture', File::Spec->catdir($signed_dir, 'valid'),
+        '--trusted-hmac-status', 'fixture-key-1=trusted',
+    );
+
+    is $exit, 1, 'HMAC lifecycle status without matching key exits usage';
+    is $stdout, '', 'orphan status usage failure writes no stdout';
+    like $stderr, qr/^usage: v1 witness /m, 'orphan status usage is reported';
+    unlike $stdout . $stderr, qr/fixture-key-1/,
+        'orphan status failure does not print selector';
 };
 
 subtest 'v1 witness rejects bad argument shape' => sub {

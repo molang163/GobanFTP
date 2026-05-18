@@ -288,8 +288,9 @@ signed profile's declared format.
 Signature verification reasons are public verifier classifications such as
 `signature.mismatch`, `game_descriptor.mismatch`, `event_basename.mismatch`,
 `event_id.mismatch`, `profile.mismatch`, `algorithm.unsupported`,
-`signature.missing`, or `signature.format`. They name the rejected binding, not
-secret material.
+`signature.missing`, `signature.format`, `key_id.public_key_namespace`,
+`key.revoked`, or `key.expired`. They name the rejected binding or lifecycle
+state, not secret material.
 
 Signature diagnostics may print public event basenames, event ids, key ids,
 profile ids, and trust-set labels. They must not print HMAC secrets, full MAC

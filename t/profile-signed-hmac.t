@@ -130,6 +130,40 @@ subtest 'GOFTP-KEY public namespace cannot authorize signed-HMAC' => sub {
         'diagnostic names the namespace boundary';
 };
 
+subtest 'explicit HMAC lifecycle status gates verification' => sub {
+    my $valid = _valid_attestation($events[0]);
+
+    for my $status (qw(trusted rotated)) {
+        my $result = _signed_result(
+            [$events[0]],
+            [$valid],
+            trusted_hmac_key_statuses => { $key_id => $status },
+        );
+
+        is $result->{event_count}, 1, "$status key verifies old signed material";
+        is_deeply $result->{diagnostics}, [], "$status key has no gate diagnostic";
+    }
+
+    for my $case (
+        [revoked => 'key.revoked'],
+        [expired => 'key.expired'],
+    ) {
+        my ($status, $reason) = @$case;
+        my $result = _signed_result(
+            [$events[0]],
+            [$valid],
+            trusted_hmac_key_statuses => { $key_id => $status },
+        );
+
+        is $result->{event_count}, 0, "$status key rejects signed material";
+        is_deeply $result->{accepted_events}, [], "$status leaves signed set empty";
+        is $result->{diagnostics}[0]{code}, 'untrusted_signature',
+            "$status reports a trust failure";
+        is $result->{diagnostics}[0]{reason}, $reason,
+            "$status records lifecycle reason";
+    }
+};
+
 like dies(sub {
     signed_hmac_event_set_result(
         profile_id        => 'local-goftp1',
@@ -143,7 +177,7 @@ like dies(sub {
 done_testing;
 
 sub _signed_result {
-    my ($events, $attestations) = @_;
+    my ($events, $attestations, %overrides) = @_;
 
     return signed_hmac_event_set_result(
         profile_id        => 'signed-hmac-goftp1',
@@ -151,6 +185,7 @@ sub _signed_result {
         unsigned_result   => _unsigned_result($events),
         hmac_attestations => $attestations,
         trusted_hmac_keys => \%trusted_hmac_keys,
+        %overrides,
     );
 }
 

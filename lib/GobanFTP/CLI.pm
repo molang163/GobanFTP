@@ -709,9 +709,10 @@ sub _command_v1_trust_report {
 sub _command_v1_witness {
     my (@argv) = @_;
 
-    my $usage = 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]';
+    my $usage = _v1_witness_usage_line();
     my %opts = (
-        trusted_hmac_keys => [],
+        trusted_hmac_keys     => [],
+        trusted_hmac_statuses => [],
     );
 
     while (@argv) {
@@ -744,6 +745,10 @@ sub _command_v1_witness {
         }
         if ($name eq 'trusted-hmac-key') {
             push @{ $opts{trusted_hmac_keys} }, $value;
+            next;
+        }
+        if ($name eq 'trusted-hmac-status') {
+            push @{ $opts{trusted_hmac_statuses} }, $value;
             next;
         }
 
@@ -1010,6 +1015,10 @@ sub _v1_witness_from_fixture {
         ? _read_jsonl_file($opts{attestations})
         : ();
     my %trusted_hmac_keys = _trusted_hmac_key_map(@{ $opts{trusted_hmac_keys} // [] });
+    my %trusted_hmac_key_statuses = _trusted_hmac_key_status_map(
+        \%trusted_hmac_keys,
+        @{ $opts{trusted_hmac_statuses} // [] },
+    );
 
     my $witness = witness_for_listing(
         profile_id              => $profile_id,
@@ -1017,6 +1026,7 @@ sub _v1_witness_from_fixture {
         raw_names               => \@raw_names,
         hmac_attestations       => \@attestations,
         trusted_hmac_keys       => \%trusted_hmac_keys,
+        trusted_hmac_key_statuses => \%trusted_hmac_key_statuses,
     );
 
     return (
@@ -1258,10 +1268,10 @@ sub _trusted_hmac_key_map {
     my %keys;
     my @secret_values;
     for my $record (@records) {
-        die 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]'
+        die _v1_witness_usage_line()
             if !defined($record) || $record !~ /\A([^=]+)=(.+)\z/;
         my ($key_id, $key) = ($1, $2);
-        die 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]'
+        die _v1_witness_usage_line()
             if !_is_public_token($key_id)
                 || $key_id =~ /\Ak1[.]/
                 || exists $keys{$key_id}
@@ -1271,11 +1281,36 @@ sub _trusted_hmac_key_map {
     }
 
     for my $key_id (keys %keys) {
-        die 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]'
+        die _v1_witness_usage_line()
             if grep { index($key_id, $_) >= 0 } @secret_values;
     }
 
     return %keys;
+}
+
+sub _trusted_hmac_key_status_map {
+    my ($keys, @records) = @_;
+
+    my %statuses;
+    for my $record (@records) {
+        die _v1_witness_usage_line()
+            if !defined($record) || $record !~ /\A([^=]+)=(.+)\z/;
+        my ($key_id, $status) = ($1, $2);
+        die _v1_witness_usage_line()
+            if !_is_public_token($key_id)
+                || $key_id =~ /\Ak1[.]/
+                || !exists $keys->{$key_id}
+                || exists $statuses{$key_id}
+                || !_is_hmac_lifecycle_status($status);
+        $statuses{$key_id} = $status;
+    }
+
+    return %statuses;
+}
+
+sub _is_hmac_lifecycle_status {
+    my ($status) = @_;
+    return defined($status) && $status =~ /\A(?:trusted|rotated|revoked|expired)\z/;
 }
 
 sub _reload_context {
@@ -1734,9 +1769,13 @@ sub _v1_usage {
     return join "\n",
         'usage: v1 keyid --fixture public-key-file',
         'usage: v1 trust-report --fixture fixture-dir',
-        'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]',
+        _v1_witness_usage_line(),
         'usage: v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]',
         'usage: v1 compare-replay --fixture fixture-dir [--profiles profile-id,...]';
+}
+
+sub _v1_witness_usage_line {
+    return 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-status id=status]';
 }
 
 sub _result_exit {
@@ -1833,7 +1872,7 @@ commands:
   watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>
   v1 keyid --fixture public-key-file
   v1 trust-report --fixture fixture-dir
-  v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]
+  v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-status id=status]
   v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]
   v1 compare-replay --fixture fixture-dir [--profiles profile-id,...]
 USAGE

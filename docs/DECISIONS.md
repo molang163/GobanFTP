@@ -462,3 +462,28 @@ Reason:
 - rotated keys must be able to verify old material without publishing new
   material
 - signed/auth lifecycle policy needs deterministic rows, not ambient time
+
+## 031: Signed-HMAC Lifecycle Enforcement Is Explicit Verifier Input
+
+`signed-hmac-goftp1` may enforce HMAC selector lifecycle status only when the
+verifier supplies that status as part of the signed-HMAC trust input. The
+fixture CLI expresses this with `--trusted-hmac-key <id=key>` plus optional
+`--trusted-hmac-status <id=status>`. Omitted status means `trusted`.
+
+For verification, `trusted` and `rotated` selectors can accept old signed
+events. `revoked` and `expired` selectors reject before MAC verification and
+emit `untrusted_signature` with `reason=key.revoked` or `reason=key.expired`.
+
+This is deliberately separate from `GOFTP-TRUST/1`: public key trust rows do
+not authorize, revoke, or expire HMAC selectors, and `trust-report` remains an
+advisory report rather than an enforcement command.
+
+Reason:
+
+- signed-HMAC is a symmetric fixture verifier, not a public key suite
+- lifecycle enforcement must be explicit profile input, never an unsigned
+  replay input
+- revoked or expired selectors should fail before spending semantics on MAC
+  validity
+- the signed profile can harden without changing `GOFTP/1`, `local-goftp1`, or
+  cross-substrate unsigned witnesses

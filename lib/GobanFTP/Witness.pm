@@ -63,6 +63,10 @@ sub witness_for_listing {
                 $args{trusted_hmac_keys} // {},
                 'trusted_hmac_keys',
             ),
+            trusted_hmac_key_statuses => _hash_ref(
+                $args{trusted_hmac_key_statuses} // {},
+                'trusted_hmac_key_statuses',
+            ),
         );
         @replay_events = @{ $event_set->{accepted_events} };
     }
