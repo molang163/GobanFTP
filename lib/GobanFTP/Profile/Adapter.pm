@@ -21,7 +21,7 @@ sub profile_listing_names {
     profile($profile_id);
 
     return _git_tree_listing_names($game, $raw_names) if $profile_id eq 'git-tree-goftp1';
-    return _dns_record_listing_names($raw_names)      if $profile_id eq 'dns-record-goftp1';
+    return _dns_record_listing_names($game, $raw_names) if $profile_id eq 'dns-record-goftp1';
     return _webdav_listing_names($game, $raw_names)   if $profile_id eq 'webdav-goftp1';
 
     return @$raw_names;
@@ -67,11 +67,11 @@ sub _git_tree_visible_name {
 }
 
 sub _dns_record_listing_names {
-    my ($raw_names) = @_;
+    my ($game, $raw_names) = @_;
 
     my @names;
     for my $line (@$raw_names) {
-        my $event = _dns_record_event_value($line);
+        my $event = _dns_record_event_value($line, $game);
         push @names, $event if defined $event;
     }
 
@@ -79,17 +79,27 @@ sub _dns_record_listing_names {
 }
 
 sub _dns_record_event_value {
-    my ($line) = @_;
+    my ($line, $game) = @_;
 
     return undef if !defined $line || $line eq '';
 
     my $presentation = lc $line;
     return undef if $presentation !~ /(?:\A|\s)type=txt(?:\s|\z)/;
 
+    my ($owner) = $presentation =~ /(?:\A|\s)owner="?([a-z0-9._-]+)"?(?:\s|\z)/;
+    return undef if !defined $owner || !_dns_owner_matches_game($owner, $game);
+
     my ($event) = $presentation =~ /(?:\A|\s)event="?([a-z0-9._-]+)"?(?:\s|\z)/;
     return undef if !defined $event;
 
     return $event;
+}
+
+sub _dns_owner_matches_game {
+    my ($owner, $game) = @_;
+
+    my $game_label = lc $game;
+    return $owner =~ /(?:\A|[.])\Q$game_label\E(?:[.]|\z)/ ? 1 : 0;
 }
 
 sub _webdav_listing_names {

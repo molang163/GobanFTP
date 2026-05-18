@@ -55,22 +55,24 @@ Key completed boundaries:
 - Unsigned v1 witness golden vectors now freeze profile consensus version,
   adapter id, raw and normalized counts, normalized events, accepted and
   rejected counts, and diagnostic count.
+- The DNS profile adapter requires the TXT owner to belong to the current game
+  descriptor, and `dns-owner-poison` proves wrong-owner or ownerless TXT records
+  cannot smuggle events into the witness.
 - Ruleset seal, v1 witness CLI, and v1 compare CLI are already implemented.
 
 ## Last Verified
 
-After the unsigned witness golden-field expansion, these passed:
+After the DNS owner-poison profile attack fixture, these passed:
 
 ```text
-prove -lr t/v1-golden-vectors.t t/v1-cross-substrate.t t/v1-signed-hmac-golden-vectors.t
-prove -lr t/v1-golden-vectors.t t/v1-cross-substrate.t t/v1-signed-hmac-golden-vectors.t t/v1-cli-compare.t t/v1-cli-witness.t t/witness-api.t t/diagnostics-contract.t
+prove -lr t/profile-adapter.t t/v1-profile-attack-fixtures.t t/v1-cross-substrate.t t/v1-golden-vectors.t t/v1-signed-hmac.t
 prove -lr t
 ```
 
 Full test result:
 
 ```text
-Files=62, Tests=841, all successful.
+Files=62, Tests=845, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -90,12 +92,10 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-short P10 pass:
-- add the next v1 profile-level attack fixture
-- keep it behavior-tested, not only structurally present
-- prefer a WebDAV or cross-profile poison case that proves ignored metadata
-  cannot change event_set_root, replay status, board hash, SGF hash, or
-  diagnostics class
+continue the short P10 pass:
+- add another v1 profile-level attack fixture, preferably git-tree object/path
+  metadata poison or another profile-specific owner/path boundary
+- keep it behavior-tested against a clean baseline profile
 ```
 
 Likely files:
@@ -104,7 +104,6 @@ Likely files:
 t/fixtures/v1/attacks/
 t/v1-profile-attack-fixtures.t
 t/v1-attack-fixtures.t
-t/fixtures/vectors/ if the attack becomes a witness vector
 Changes
 ```
 

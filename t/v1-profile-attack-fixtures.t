@@ -12,11 +12,21 @@ use GobanFTP::Witness qw(witness_for_listing);
 
 my $fixture_dir = "$FindBin::Bin/fixtures/v1/attacks";
 my $schema_path = "$FindBin::Bin/../docs/DIAGNOSTICS.md";
+my @required_attacks = qw(
+    dns-owner-poison
+    webdav-href-traversal
+    webdav-metadata-poison
+);
 
 ok -d $fixture_dir, 'v1 profile attack fixture directory exists';
 
 my @attacks = grep { -d File::Spec->catdir($fixture_dir, $_) } _dir_names($fixture_dir);
 ok @attacks, 'v1 profile attack gallery has specimens';
+
+my %attack_present = map { $_ => 1 } @attacks;
+for my $attack (@required_attacks) {
+    ok $attack_present{$attack}, "v1 profile attack specimen exists: $attack";
+}
 
 for my $attack (@attacks) {
     subtest $attack => sub {
@@ -73,6 +83,9 @@ for my $attack (@attacks) {
             'normalization keeps at least the accepted event candidates';
         ok !grep({ m{/} } @{ $witness->{accepted_events} }),
             'accepted events are basenames';
+        unlike join(',', @{ $witness->{normalized_events} }), qr/g1[.]id-other|n-chain2/,
+            'wrong-game profile rows do not survive normalization'
+            if $attack eq 'dns-owner-poison';
     };
 }
 

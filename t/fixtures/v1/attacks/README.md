@@ -22,4 +22,5 @@ Current specimens:
 ```text
 webdav-metadata-poison  metadata and shadow resources do not affect witness truth
 webdav-href-traversal   dot segments and encoded traversal cannot smuggle events
+dns-owner-poison        wrong or missing DNS owner labels cannot smuggle events
 ```

@@ -1,0 +1,14 @@
+attack=dns-owner-poison
+profile=dns-record-goftp1
+baseline_profile=local-goftp1
+status=ok
+game=g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob
+accepted_count=1
+event_set_root=ea12e445c106e3de17ae4e124c800f8433f04a0d7e37ab1de4e70a37e1b15d97
+replay_status=ok
+canonical_ids=khjclcui7pejbv3m
+legal_ids=khjclcui7pejbv3m
+diagnostic_classes=
+rejected_classes=
+ignored_inputs=dns-wrong-game-owner,dns-missing-owner,dns-ttl,dns-answer-order,dns-sidecar,dns-non-txt,dns-duplicate-event
+note=DNS records outside the declared game owner cannot smuggle event basenames into the profile witness

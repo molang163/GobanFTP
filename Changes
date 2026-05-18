@@ -27,6 +27,8 @@ Revision history for GobanFTP
     parents, and wrong-player rule failures.
   - Expanded unsigned v1 witness golden vectors to freeze profile, adapter,
     raw, normalized, accepted, rejected, and diagnostic count fields.
+  - Added a DNS owner-poison v1 profile attack fixture proving wrong-owner and
+    ownerless TXT records cannot smuggle event basenames into the witness.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

@@ -60,11 +60,13 @@ subtest 'git tree adapter extracts only visible tree paths' => sub {
 
 subtest 'DNS record adapter extracts lower-case TXT event values' => sub {
     my @raw = (
-        "ttl=60 type=txt event=\"$events[0]\"",
+        "ttl=60 type=txt owner=01.events.$game.example. event=\"$events[0]\"",
+        "owner=02.events.$game.example. type=TXT event=$events[1]",
+        "owner=events.g1.id-other.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. type=TXT event=$events[1]",
         "owner=_goban type=TXT event=$events[1]",
         "ttl=60 type=a event=$events[0]",
         'type=txt note=ignored',
-        "type=txt event=\"../$events[0]\"",
+        "type=txt owner=01.events.$game.example. event=\"../$events[0]\"",
     );
 
     is_deeply [
@@ -76,7 +78,7 @@ subtest 'DNS record adapter extracts lower-case TXT event values' => sub {
     ], [
         $events[0],
         $events[1],
-    ], 'DNS TXT normalizer extracts event= values and ignores non-events';
+    ], 'DNS TXT normalizer extracts current-game event= values and ignores non-events';
 };
 
 subtest 'WebDAV adapter extracts direct events hrefs and decodes once' => sub {

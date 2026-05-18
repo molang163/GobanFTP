@@ -145,6 +145,12 @@ paths. The expected witness remains a one-event baseline; any traversal href
 that smuggles the second move into the accepted set changes the root and fails
 the fixture.
 
+The DNS specimen `dns-owner-poison` attacks TXT records that carry tempting
+`event=` values under the wrong game owner, records without an owner, TTL/order
+noise, sidecar records, non-TXT records, and duplicate answers. The expected
+witness remains the current-game one-event baseline; a wrong-owner event that
+enters the accepted set changes the root and fails the fixture.
+
 The v1 gallery must contain at least:
 
 ```text
