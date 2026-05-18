@@ -43,6 +43,144 @@ GOBANFTP_FTP_PUBLISH_MODE
 `GOBANFTP_FTP_HOST` is required in FTP mode. The other fields are optional
 unless required by the server.
 
+### Draft Auth And Key Lifecycle Boundary
+
+`keygen`, `keyid`, `attest`, and `trust-report` are reserved for explicit auth
+profiles. They must not change unsigned `GOFTP/1` replay. Until a signed profile
+declares otherwise, `verify`, `replay`, `sgf`, `project`, `play`, and `watch`
+continue to read only the game descriptor basename and accepted direct
+`events/` basenames.
+
+Auth material is public unless it is private key material. Public key records,
+trust files, and attestation records may appear in fixtures and sidecars, but
+they are ignored by unsigned profiles. Private keys, seeds, passwords, bearer
+tokens, HMAC secrets, and signing secrets must not appear in event basenames,
+game descriptors, projection files, diagnostics, or public fixture examples.
+
+Future `keygen` has two distinct modes:
+
+```text
+gobanftp keygen --out <private-key-file> --public-out <public-key-file>
+gobanftp keygen --fixture --label <public-label>
+```
+
+The production form must use an operating-system CSPRNG, must write the private
+key to an explicit file with private permissions, must fail if the private file
+already exists, and must not print private bytes to stdout or stderr. Its stdout
+may report only public fields such as `gobanftp.keygen=ok`, `key_id=...`, and
+the public key path.
+
+The fixture form must not create a signing-capable private key. It may emit only
+deterministic public fixture key records for tests and documentation. A fixture
+record is not a private key and cannot authorize a signed profile.
+
+Future `keyid` is read-only:
+
+```text
+gobanftp keyid <public-key-file>
+gobanftp keyid --fixture <public-key-file>
+```
+
+It reads a public key record, validates the public format, and prints the
+derived key id. It must not read private key files and must not echo key file
+contents in diagnostics. The fixture form accepts only fixture public key
+records.
+
+Canonical public key record:
+
+```text
+gobanftp-public-key-v1
+suite=<suite-id>
+public_hex=<lowercase-public-key-hex>
+```
+
+For fixture-only records, `suite` is `fixture-ed25519-v1` and `public_hex` is
+exactly 32 public bytes encoded as 64 lowercase hex characters. The fixture
+suite is deliberately not a real signing suite.
+
+Key id preimage:
+
+```text
+"GOFTP-KEY/1\0" ||
+suite || "\0" ||
+public_key_bytes || "\0"
+```
+
+Key id encoding:
+
+```text
+key_id = "k1." || first 32 chars of lowercase base32hex(SHA256(preimage))
+```
+
+Only `suite` and public key bytes are key-id inputs. Labels, owners, comments,
+trust status, creation time, and revocation time are metadata and do not change
+the key id.
+
+Example public fixture key:
+
+```text
+gobanftp-public-key-v1
+suite=fixture-ed25519-v1
+public_hex=000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+```
+
+Its key id is:
+
+```text
+k1.jk4bs0r77srdlpds260hka9fpp49clpg
+```
+
+Future `attest` writes only advisory public attestation records unless the
+selected profile is an explicit signed profile:
+
+```text
+gobanftp attest --event-set-root <root> --key <private-key-file> <game-root|game-descriptor>
+gobanftp attest --fixture --event-set-root <root> --key-id <key-id> <game-root|game-descriptor>
+```
+
+The production form is not specified until a real signing suite is selected.
+The fixture form must write or print placeholder attestations that are visibly
+fixture-only and not cryptographic signatures.
+
+Event-set attestation preimage:
+
+```text
+"GOFTP-ATTEST-EVENT-SET/1\0" ||
+profile_id || "\0" ||
+game_descriptor_basename || "\0" ||
+event_set_root_version || "\0" ||
+event_set_root || "\0"
+```
+
+Event-name attestation preimage:
+
+```text
+"GOFTP-ATTEST-EVENT/1\0" ||
+profile_id || "\0" ||
+game_descriptor_basename || "\0" ||
+event_basename || "\0"
+```
+
+Future `trust-report` is read-only. It may summarize public trust files,
+public key records, and public attestations, but it must first run the normal
+profile replay boundary and report the observed `event_set_root`.
+
+```text
+gobanftp trust-report [--trust-file <trust.tsv>] <game-root|game-descriptor>
+gobanftp trust-report --fixture <fixture-dir>
+```
+
+Unsigned old games are verified exactly as before:
+
+```text
+gobanftp verify <game-root|game-descriptor>
+```
+
+If a trust report is run for an unsigned old game, the consensus result is still
+the normal `verify` result. Missing trust material is reported as unsigned or
+untrusted advisory state, not as replay failure. Only an explicit signed profile
+may turn missing, bad, stale, or revoked signatures into validation failures.
+
 ### `gobanftp create-game <game-descriptor>`
 
 Creates the game root plus empty `events/` and `tmp/` directories through the

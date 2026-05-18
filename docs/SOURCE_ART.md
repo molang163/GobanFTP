@@ -97,10 +97,10 @@ release artifact names
 anything that looks like official endorsement
 ```
 
-The easter egg should read as a private developer wink: an arch-shaped gate in
-the shrine. It should not copy the official Arch Linux logo or wordmark, and it
-should not suggest that GobanFTP is affiliated with, endorsed by, or packaged by
-the Arch Linux project.
+The easter egg should read as a small source-art threshold: an arch-shaped gate
+in the shrine. It should not copy the official Arch Linux logo or wordmark, and
+it should not suggest that GobanFTP is affiliated with, endorsed by, or packaged
+by the Arch Linux project.
 
 ## ASCII And Runtime Rules
 

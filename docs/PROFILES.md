@@ -128,6 +128,141 @@ The event count has no leading zero except `0`. Every basename is the accepted
 direct event basename, not a path, URL, object key, DNS owner name, WebDAV
 resource path, or display label.
 
+## Signed/Auth Profile Boundary
+
+Unsigned `GOFTP/1` remains unchanged. Baseline profiles do not read signatures,
+HMACs, bearer tokens, sidecar claims, or key metadata as replay input. For
+`local-goftp1`, `ftp-goftp1`, and the planned unsigned substrate profiles,
+sidecar signatures are still ignored input and may only be shown as advisory
+attestations.
+
+Auth material has three separate meanings:
+
+```text
+publish auth       credentials that allow a writer to create visible names
+advisory trust     public key, trust, or attestation records ignored by replay
+signed consensus   signatures required by an explicit signed profile
+```
+
+`keygen`, `keyid`, `attest`, and `trust-report` belong to the advisory or signed
+profile layer. They are not GOFTP/1 event grammar. Public key records, trust
+files, and attestation fixtures must not change the unsigned `event_set_root`,
+DAG replay, board state, SGF, or diagnostics class.
+
+Key ids identify public keys, not people, files, accounts, or trust status.
+Baseline auth fixtures use:
+
+```text
+key_id_version = GOFTP-KEY/1
+encoding       = "k1." plus lowercase base32hex
+```
+
+Key id preimage:
+
+```text
+"GOFTP-KEY/1\0" ||
+suite || "\0" ||
+public_key_bytes || "\0"
+```
+
+The key id is the first 32 base32hex characters of the SHA-256 digest, prefixed
+with `k1.`. Owner, label, comment, creation time, trust status, and revocation
+metadata are excluded so that metadata edits do not rotate the key id.
+
+The minimal fixture public key record is:
+
+```text
+gobanftp-public-key-v1
+suite=fixture-ed25519-v1
+public_hex=<64 lowercase hex chars>
+```
+
+`fixture-ed25519-v1` is parser fixture data only. It is not a real signing suite
+and must not create a production signature or private-key lifecycle.
+
+Trust fixtures are line-oriented public data. They may say which key ids are
+trusted, revoked, or expired for a fixture, but they are not GOFTP/1 replay
+inputs. Suggested TSV shape:
+
+```text
+GOFTP-TRUST/1
+key_id	suite	principal	role	status	not_before	not_after	revoked_at	reason
+k1.example	fixture-ed25519-v1	player:alice	player	trusted	2026-01-01	-	-	fixture
+```
+
+Attestation fixtures are also public data. Public-key fixture signatures must
+be visibly non-cryptographic placeholders, for example `fixture:<hex>`, until a
+real suite is selected. HMAC fixture vectors may use public test keys for
+deterministic parser and witness tests, but those fixture keys are not
+production secrets. A read-only `trust-report` may summarize this material, but
+old unsigned games remain verified by the unsigned profile. Missing trust
+material is advisory state, not replay failure.
+
+A signed/auth profile is an explicit profile with its own `profile_id`,
+`consensus_version`, trust input, acceptance gate, fixtures, and diagnostics. It
+may compose with a substrate profile for name discovery, but it must not change
+the unsigned profile's meaning.
+
+Signed/auth acceptance order:
+
+1. Read and normalize candidate names according to the declared base substrate
+   profile.
+2. Parse direct event basenames as GOFTP/1 events.
+3. Verify the filename event id against the game descriptor basename.
+4. Verify the signed/auth profile's required signature for that event basename.
+5. Deduplicate signed-accepted basenames by exact byte string.
+6. Sort signed-accepted basenames lexicographically by byte value.
+7. Compute `GOFTP-EVENT-SET/1` over the signed-accepted basenames.
+
+Signature verification is therefore an event acceptance gate for the signed
+profile. A basename that parses and has a correct filename event id, but lacks a
+valid trusted signature, is excluded from that signed profile's
+`event_set_root`. The same basename remains valid input for an unsigned
+`GOFTP/1` profile.
+
+Signing only `event_set_root` is not enough for a signed event-acceptance gate:
+the root is computed after acceptance. Root-level signatures are set
+attestations. They may be added by a later profile, but they cannot rescue,
+insert, or reject an individual event before the accepted set is known.
+
+The fixture-level `signed-hmac-goftp1` witness gate is implemented as the first
+signed/auth acceptance contract. It is deliberately limited to deterministic
+HMAC-SHA256 test keys and does not define production private-key storage,
+rotation, or publish authentication.
+
+`signed-hmac-goftp1` event attestation payload:
+
+```text
+version = GOFTP-HMAC-EVENT/1
+algorithm = hmac-sha256
+profile = signed-hmac-goftp1
+```
+
+Preimage:
+
+```text
+"GOFTP-HMAC-EVENT/1\0" ||
+"profile=signed-hmac-goftp1\0" ||
+"alg=hmac-sha256\0" ||
+"key_id=<key_id>\0" ||
+"game=<game_descriptor_basename>\0" ||
+"event_id=<visible_event_id>\0" ||
+"event=<event_basename>\0"
+```
+
+The profile id in this payload is the stable profile id, not the
+`GOFTP-PROFILE/<profile_id>/1` contract-version label. The event id is the
+visible `.h-<event-id>` suffix from the event basename and must match that
+basename. Attestation records use the field name `algorithm`; the shorter
+`alg=` string is only the canonical preimage label. The HMAC bytes are public
+attestations; HMAC keys stay only in an explicit verifier trust set and must not
+appear in filenames, projections, or diagnostics.
+
+If multiple attestation records claim the same event basename, their substrate
+or fixture order is not authoritative. Any valid trusted attestation accepts the
+event. If none verify, the profile reports a stable signature diagnostic chosen
+by diagnostic priority, not by listing order.
+
 ## Baseline Profiles
 
 ### `local-goftp1`

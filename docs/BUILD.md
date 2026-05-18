@@ -43,7 +43,7 @@ FTP integration tests should be disabled by default. Enable them explicitly:
 GOBANFTP_FTP_TEST=1 \
 GOBANFTP_FTP_HOST=ftp.example.test \
 GOBANFTP_FTP_USER=gobanftp \
-GOBANFTP_FTP_PASSWORD=secret \
+GOBANFTP_FTP_PASSWORD=<test-password> \
 GOBANFTP_FTP_ROOT=/goftp-test \
 make test
 ```

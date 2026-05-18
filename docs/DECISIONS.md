@@ -288,3 +288,25 @@ Reason:
   protocol naming, package metadata, or an official affiliation claim
 - source-art motifs must remain outside event ids, `event_set_root`, replay,
   rule legality, SGF, storage semantics, and diagnostics
+
+## 023: Signed HMAC Gates Event Acceptance
+
+The first signed/auth profile target is `signed-hmac-goftp1`. It uses
+per-event HMAC verification as a signed profile acceptance gate after GOFTP/1
+filename parsing and event-id verification, and before `event_set_root`
+calculation.
+
+Reason:
+
+- unsigned `GOFTP/1` must keep replaying from the game descriptor basename and
+  direct `events/` basenames alone
+- sidecar signatures remain ignored input for unsigned profiles
+- a per-event HMAC can reject one unsigned, wrong, or untrusted event before it
+  enters the signed profile's accepted set
+- the HMAC payload must bind the profile id, algorithm id, public HMAC key
+  selector, game descriptor basename, exact event basename, and visible event id
+- signing only `event_set_root` is a post-acceptance set attestation; it cannot
+  decide which individual basenames enter the root
+- key ids are public selectors, while HMAC secrets live only in an explicit
+  verifier trust set and must never appear in filenames, projections, or
+  diagnostics

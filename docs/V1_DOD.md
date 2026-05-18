@@ -111,6 +111,34 @@ show the difference.
 Signed profiles are allowed only as explicit profiles. They do not make
 unsigned GOFTP/1 mean something else.
 
+For `signed-hmac-goftp1`, signature verification is the profile's event
+acceptance gate. The gate is:
+
+```text
+base substrate normalization
+GOFTP/1 event parse
+filename event-id verification
+per-event HMAC verification against the declared trust set
+event_set_root over signed-accepted basenames
+```
+
+The required per-event HMAC payload binds:
+
+```text
+profile id
+algorithm id
+public key id or HMAC key selector
+game descriptor basename
+exact event basename
+visible event id
+```
+
+It does not bind `event_set_root` at the event-acceptance layer, because
+`event_set_root` is computed after the signed-accepted set is known. A
+root-level HMAC, if a later profile requires one, is a post-acceptance set
+attestation and must bind the game descriptor, root version, accepted count, and
+computed `event_set_root`.
+
 A signed profile must reject:
 
 ```text
@@ -119,11 +147,18 @@ wrong signature
 signature over different payload
 signature made by an untrusted key
 signature bound to a different game descriptor
-signature bound to a different event_set_root
+signature bound to a different event basename
+signature bound to a different event id
+signature bound to a different event_set_root when the profile declares a root attestation
 ```
 
 Wrong signatures must fail closed. A signed profile that falls back to unsigned
 truth after signature failure is not v1.0 complete.
+
+Unsigned profiles must continue to treat sidecar signatures as ignored input.
+Adding, deleting, or corrupting a sidecar signature must not change unsigned
+`GOFTP/1` replay, `event_set_root`, DAG, board projection, SGF, or diagnostics
+class.
 
 ## Non-Consensus Poison
 
@@ -307,8 +342,9 @@ prove -lr t
 prove -lr t/v1-cross-substrate.t
 prove -lr t/v1-attack-fixtures.t
 prove -lr t/v1-golden-vectors.t
-prove -lr t/v1-diagnostics-schema.t
-prove -lr t/v1-ruleset-seal.t
+prove -lr t/v1-signed-hmac.t
+prove -lr t/diagnostics-contract.t
+prove -lr t/rules-flow.t t/rules-superko.t
 
 make manifest
 make dist
@@ -328,7 +364,7 @@ script/gobanftp v1 root --profile webdav-like --fixture t/fixtures/v1/cross-subs
 script/gobanftp v1 compare-roots --fixture t/fixtures/v1/cross-substrate/minimal
 script/gobanftp v1 compare-replay --fixture t/fixtures/v1/cross-substrate/minimal
 script/gobanftp v1 verify-attacks --fixture t/fixtures/attacks
-script/gobanftp v1 verify-signatures --fixture t/fixtures/v1/signed-profile
+script/gobanftp v1 verify-signatures --fixture t/fixtures/v1/signed-hmac
 script/gobanftp v1 verify-ruleset-seal --rules chinese-area-v1
 ```
 
