@@ -366,6 +366,11 @@ GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make disttest
 make distcheck
 ```
 
+Dry-run executions of this matrix are recorded separately in
+`docs/P14_RELEASE_GATE.md`. This file remains the normative v1.0 requirement;
+the dry-run report is evidence for a point in time, not a replacement for the
+final clean-checkout gate.
+
 Current v1 proof commands:
 
 ```sh

@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- docs: add P14 release gate dry run
 - test: add showcase surface smoke gate
 - feat: add terminal witness observatory
 - test: freeze v1 witness surface smoke
@@ -28,6 +29,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD docs: add P14 release gate dry run
 HEAD test: add showcase surface smoke gate
 HEAD feat: add terminal witness observatory
 HEAD test: freeze v1 witness surface smoke
@@ -61,6 +63,15 @@ fc7f6a2 test: add WebDAV href traversal attack fixture
 
 Key completed boundaries:
 
+- P14a release-gate dry run is recorded in `docs/P14_RELEASE_GATE.md`. It ran
+  the source-art, MakeMaker, perl-rules, shadow-rules, full prove, v1 witness,
+  v1 compare, manifest, dist, disttest, and distcheck gates in a temporary
+  worktree. All executed gates passed after correcting manifest skip rules. This
+  is a release-route checkpoint, not a v1.0 tag, P14 completion claim, hosted Web
+  UI claim, or interactive TUI claim.
+- Manifest skip rules now handle `.git` as either a directory or file and avoid
+  excluding intentional attack specimens under `t/fixtures/`, including
+  `t/fixtures/attacks/tmp-poison/tmp/pending.part`.
 - P12a fixture public key identity is implemented through
   `gobanftp v1 keyid --fixture`. It parses public fixture key records, derives
   documented `GOFTP-KEY/1` `k1.` ids, rejects malformed/private-looking records
@@ -164,9 +175,33 @@ Key completed boundaries:
 
 ## Last Verified
 
-After showcase surface smoke integration, these passed:
+After P14a release-gate dry-run integration, these passed or were recorded:
 
 ```text
+P14 dry-run temporary worktree:
+perl -c oracle/goban.pl
+perl oracle/goban.pl --smoke
+perl Makefile.PL
+GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make test
+GOBANFTP_RULES_ENGINE=shadow make test
+prove -lr t
+prove -lr t/v1-cross-substrate.t
+prove -lr t/v1-attack-fixtures.t
+prove -lr t/v1-golden-vectors.t
+prove -lr t/v1-signed-hmac.t
+prove -lr t/v1-signed-hmac-golden-vectors.t
+prove -lr t/profile-registry.t t/profile-adapter.t t/witness-api.t
+prove -lr t/diagnostics-contract.t
+prove -lr t/rules-flow.t t/rules-superko.t
+script/gobanftp v1 witness --profile local-goftp1 --fixture t/fixtures/v1/cross-substrate/minimal
+script/gobanftp v1 compare-roots --fixture t/fixtures/v1/cross-substrate/minimal
+script/gobanftp v1 compare-replay --fixture t/fixtures/v1/cross-substrate/minimal
+make manifest
+make dist
+GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make disttest
+make distcheck
+
+Main worktree after documenting the dry run:
 perl -Ilib -c t/showcase-demo.t
 prove -lr t/showcase-demo.t
 perl -Ilib -c oracle/goban.pl
@@ -228,14 +263,16 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-after P13f showcase surface smoke, continue the v1.0 route:
-- pick the next small proof gate by implementation review
-- likely candidate is a P14 release-gate dry run or release artifact manifest
-  that records the command matrix without claiming v1.0 is tagged
-- keep it read-only: consume existing witness/projection data and do not make a
-  second witness assembler
-- do not let display, source art, Web assets, terminal formatting, or any future
-  interactive input feed replay or event-set roots
+after P14a dry-run documentation, rerun the P14 gate from a fresh clean worktree
+at the corrected commit and compare it against docs/P14_RELEASE_GATE.md:
+- confirm manifest generation is stable with the corrected skip rules
+- confirm dist/disttest/distcheck still pass after docs/P14_RELEASE_GATE.md is
+  included in MANIFEST
+- decide whether the next P14 slice is release artifact manifest, interactive
+  TUI fallback/lock-state proof, hosted Web export, or runtime Git/DNS adapter
+- do not tag v1.0 until the final clean-checkout P14 matrix passes
+- do not let display, source art, Web assets, terminal formatting, or interactive
+  input feed replay or event-set roots
 - keep unsigned `GOFTP/1` and `local-goftp1` replay unchanged
 - keep every change behavior-tested and update Changes plus this restore file
 ```
@@ -243,6 +280,13 @@ after P13f showcase surface smoke, continue the v1.0 route:
 Likely files:
 
 ```text
+docs/P14_RELEASE_GATE.md
+docs/V1_DOD.md
+docs/ROADMAP.md
+README.md
+Changes
+MANIFEST
+MANIFEST.SKIP
 lib/GobanFTP/Auth/TrustReport.pm
 lib/GobanFTP/Profile/SignedHMAC.pm
 lib/GobanFTP/Witness.pm

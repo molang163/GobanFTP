@@ -449,6 +449,10 @@ Tasks:
 - document every deferred surface as a future profile, protocol version, or
   later phase
 
+Current proof: `docs/P14_RELEASE_GATE.md` records the first P14a dry-run command
+matrix, generated artifact list, skipped gates, and manifest-skip correction.
+It is a release-route checkpoint, not a v1.0 tag or P14 completion claim.
+
 Acceptance:
 
 - release notes state that `GOFTP/1` remains unchanged from v0.1

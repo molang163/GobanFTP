@@ -1,6 +1,6 @@
 # Local build products and generated distribution metadata. These are not
 # display entry points unless regenerated for the current release.
-^\.git/
+^\.git(?:/|$)
 ^_Inline/
 ^blib/
 ^Makefile$
@@ -12,10 +12,10 @@
 ^GobanFTP-[0-9][^/]*/
 
 # Temporary publish/build scratch files.
-(?:^|/)[^/]+\.part$
-(?:^|/)[^/]+\.tmp$
-(?:^|/)[^/]+\.bak$
-(?:^|/)\.gobanftp-tmp-[^/]+$
+^(?!t/fixtures/).*[.]part$
+^(?!t/fixtures/).*[.]tmp$
+^(?!t/fixtures/).*[.]bak$
+^(?!t/fixtures/)(?:.*/)?[.]gobanftp-tmp-[^/]+$
 
 # Local agent memory for resuming work; not part of release artifacts.
 ^docs/SESSION_RESTORE\.md$

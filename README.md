@@ -387,6 +387,10 @@ Attack galleries:
 prove -lr t/attack-fixtures.t t/v1-attack-fixtures.t t/v1-profile-attack-fixtures.t
 ```
 
+The current P14 release-gate dry run is recorded in
+`docs/P14_RELEASE_GATE.md`. It is a command matrix and artifact check, not a
+v1.0 tag or release-ready declaration.
+
 ## v1.0/P14 Shape
 
 GobanFTP v1.0 is not a game server. It is a protocol-abuse proof machine for
@@ -431,6 +435,7 @@ Profiles:     docs/PROFILES.md
 Grammar:      docs/GRAMMAR.md
 Attacks:      docs/ATTACKS.md
 v1.0 DoD:     docs/V1_DOD.md
+P14 dry run:  docs/P14_RELEASE_GATE.md
 Algorithms:   docs/ALGORITHMS.md
 Rules:        docs/RULES.md
 Diagnostics:  docs/DIAGNOSTICS.md

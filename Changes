@@ -78,6 +78,12 @@ Revision history for GobanFTP
   - Extended the public showcase smoke gate to cover the text, static HTML, and
     static terminal witness surfaces alongside the shrine, race, source-art, and
     default v1 witness paths.
+  - Added a P14 release-gate dry-run report documenting the command matrix,
+    pass/skip status, generated artifacts, and remaining non-release claims
+    without tagging v1.0 or declaring P14 complete.
+  - Tightened manifest skip rules so detached-worktree `.git` files and local
+    scratch suffixes are excluded without dropping intentional attack fixtures
+    under `t/fixtures/`.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl
