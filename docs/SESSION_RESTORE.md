@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- release: prepare v0.2 identity
 - docs: add P14 release manifest tag plan
 - docs: record P14 clean gate rerun
 - docs: add P14 release gate dry run
@@ -31,6 +32,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD release: prepare v0.2 identity
 HEAD docs: add P14 release manifest tag plan
 HEAD docs: record P14 clean gate rerun
 HEAD docs: add P14 release gate dry run
@@ -84,6 +86,10 @@ Key completed boundaries:
   v1.0 identity is tag `v1.0`, Perl version `1.000`, and `Changes` heading
   `1.000  YYYY-MM-DD`, only after the final P14 matrix and claim audit pass. Do
   not tag while `Changes`, `$VERSION`, tarball name, and artifact hash disagree.
+- The v0.2 release identity is prepared in source: `lib/GobanFTP.pm` declares
+  `0.002`, `Changes` starts with `0.002  2026-05-18`, and README names the
+  current line as `v0.2` / package `0.002` pre-v1.0/P14 checkpoint. No tag has
+  been created by this step.
 - P12a fixture public key identity is implemented through
   `gobanftp v1 keyid --fixture`. It parses public fixture key records, derives
   documented `GOFTP-KEY/1` `k1.` ids, rejects malformed/private-looking records
@@ -282,10 +288,11 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-after P14 release manifest and tag planning:
+after v0.2 release identity preparation:
 - use `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` as the release checklist
-- likely next slice is the `v0.2/0.002` release identity commit: update
-  `lib/GobanFTP.pm`, `Changes`, artifact record, and final gate result
+- next slice is the final clean-checkout v0.2 matrix and external artifact
+  record: build `GobanFTP-0.002.tar.gz`, record hash outside the tarball, then
+  decide whether to create annotated tag `v0.2`
 - do not tag v1.0 until the final clean-checkout P14 matrix passes
 - do not let display, source art, Web assets, terminal formatting, or interactive
   input feed replay or event-set roots

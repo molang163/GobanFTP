@@ -16,17 +16,17 @@ Perl package version: 0.001
 project milestone:   v0.1 hardening/showcase
 ```
 
-The current development tree has:
+The v0.2 release identity candidate has:
 
 ```text
-Changes heading:      0.002 Not yet released
-lib/GobanFTP.pm:      $VERSION = 0.001
-dry-run tarball name: GobanFTP-0.001.tar.gz
-project target:       v1.0/P14 proof machine
+Changes heading:       0.002  2026-05-18
+lib/GobanFTP.pm:       $VERSION = 0.002
+expected tarball name: GobanFTP-0.002.tar.gz
+project target:        v1.0/P14 proof machine
 ```
 
-That state is acceptable for development. It is not acceptable for a final tag.
-A release candidate must choose one identity before the final matrix runs.
+That state is a release-candidate identity. It is still not a tag, and it is not
+the final artifact record.
 
 ## Recommended Next Identity
 
@@ -43,8 +43,8 @@ release claim:    pre-v1.0/P14 release-route checkpoint, not v1.0
 Rationale:
 
 ```text
-Changes already has a 0.002 development section.
-lib/GobanFTP.pm still declares 0.001.
+Changes carries the v0.2 package-version entry.
+lib/GobanFTP.pm declares the package version used by MakeMaker.
 The dry-run tarball is GobanFTP-0.001.tar.gz and belongs to the dry run only.
 docs/P14_RELEASE_GATE.md is explicit that v1.0 is not ready or tagged.
 ```
@@ -68,9 +68,9 @@ release claim:    v1.0/P14 proof machine
 The `v1.0` route must still satisfy `docs/V1_DOD.md`; the current P14 dry run is
 evidence, not the final release record.
 
-Do not create a tag while the tree says `0.002 Not yet released` and
-`$VERSION = 0.001`. Do not call an artifact final if its tarball name disagrees
-with the tag or the `Changes` heading.
+Do not create a tag if `Changes`, `$VERSION`, the expected tarball name, and the
+chosen Git tag drift apart. Do not call an artifact final if its tarball name
+disagrees with the tag or the `Changes` heading.
 
 ## Final Candidate Inputs
 
@@ -112,9 +112,8 @@ README current-line wording
 release record template below
 ```
 
-For the recommended `v0.2` release, `Changes` must no longer say
-`0.002 Not yet released`, and `lib/GobanFTP.pm` must no longer declare
-`0.001`.
+For the recommended `v0.2` release, `Changes` must say
+`0.002  2026-05-18`, and `lib/GobanFTP.pm` must declare `0.002`.
 
 ## MANIFEST Audit
 
@@ -136,7 +135,6 @@ docs/ROADMAP.md
 README.md
 Changes
 Makefile.PL
-MANIFEST
 MANIFEST.SKIP
 cpanfile
 lib/**
@@ -146,6 +144,9 @@ examples/fixtures/**
 t/**
 t/fixtures/attacks/tmp-poison/tmp/pending.part
 ```
+
+`MANIFEST` itself must be stable in the source commit, but it is not required to
+be a member of the generated tarball.
 
 Required excluded paths:
 

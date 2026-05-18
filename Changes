@@ -1,6 +1,6 @@
 Revision history for GobanFTP
 
-0.002  Not yet released
+0.002  2026-05-18
   - Added a mock-tested WebDAV store backend that reads `events/` with
     `PROPFIND Depth: 1` and publishes by zero-byte `tmp/` resource plus `MOVE`
     and fresh `PROPFIND` confirmation.
@@ -88,6 +88,8 @@ Revision history for GobanFTP
     package `0.002` for the next publishable checkpoint and reserves `v1.0`
     until the final P14 matrix, version, tarball, and deferred-claim record
     agree.
+  - Prepared the v0.2 / package 0.002 release identity while keeping v1.0/P14
+    reserved for the final release-freeze proof.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl
