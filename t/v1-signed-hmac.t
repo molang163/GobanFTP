@@ -54,6 +54,7 @@ my @negative_cases = (
     ['missing-signature', 'missing_signature'],
     ['wrong-signature', 'wrong_signature', 'signature.mismatch'],
     ['payload-mismatch', 'wrong_signature', 'signature.mismatch'],
+    ['game-descriptor-mismatch', 'wrong_signature', 'game_descriptor.mismatch'],
     ['untrusted-key-id', 'untrusted_signature'],
     ['malformed-signature', 'malformed_signature'],
 );
@@ -109,6 +110,33 @@ subtest 'payload-mismatch fixture is a real HMAC over another payload' => sub {
     is $record->{mac}, $wrong_payload_mac, 'mac alias matches the mismatched payload signature';
     isnt $record->{signature}, $canonical_mac,
         'fixture signature is not the canonical attestation for this game';
+};
+
+subtest 'game-descriptor-mismatch fixture is bound to the declared alternate game' => sub {
+    my (undef, $attestations) = _witness_for_case('game-descriptor-mismatch', 'signed-hmac-goftp1');
+    is scalar(@$attestations), 1, 'fixture has one attestation';
+
+    my $record = $attestations->[0];
+    is $record->{game_descriptor}, $payload_mismatch_game,
+        'public attestation record declares the alternate game descriptor';
+
+    my %payload = (
+        version         => 'GOFTP-HMAC-EVENT/1',
+        profile         => 'signed-hmac-goftp1',
+        algorithm       => 'hmac-sha256',
+        key_id          => 'fixture-key-1',
+        event_basename  => $minimal_events[0],
+        event_id        => 'khjclcui7pejbv3m',
+        game_descriptor => $payload_mismatch_game,
+    );
+    my $declared_game_mac = hmac_sha256_hex(
+        $trusted_hmac_keys{'fixture-key-1'},
+        event_attestation_preimage(%payload),
+    );
+
+    is $record->{signature}, $declared_game_mac,
+        'fixture signature is a trusted HMAC over its declared alternate game';
+    is $record->{mac}, $declared_game_mac, 'mac alias matches the declared alternate game signature';
 };
 
 subtest 'unsigned profiles ignore signed-hmac attestations' => sub {

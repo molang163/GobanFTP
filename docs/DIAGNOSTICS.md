@@ -179,7 +179,7 @@ ply              submitted ply value
 expected_ply     expected ply value
 parent_kind      parsed kind of a bad parent event
 target_kind      parsed kind of a bad ack target event
-reason           rule engine reason string, or an ack target rejection reason
+reason           rule engine, ack target, or signature verification reason
 error            parser, rule, or storage error class
 index            zero-based item index for malformed in-memory replay input
 stage            pipeline stage that produced the diagnostic
@@ -262,6 +262,12 @@ bound to a different profile, game descriptor, event basename, event id, or
 algorithm. `untrusted_signature` reports a key id outside the active trust set
 or outside its declared scope. `malformed_signature` reports a signature record
 that cannot be parsed as the signed profile's declared format.
+
+Signature verification reasons are public verifier classifications such as
+`signature.mismatch`, `game_descriptor.mismatch`, `event_basename.mismatch`,
+`event_id.mismatch`, `profile.mismatch`, `algorithm.unsupported`,
+`signature.missing`, or `signature.format`. They name the rejected binding, not
+secret material.
 
 Signature diagnostics may print public event basenames, event ids, key ids,
 profile ids, and trust-set labels. They must not print HMAC secrets, full MAC
