@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- chore: enter v1.0 development
 - release: prepare v0.2 identity
 - docs: add P14 release manifest tag plan
 - docs: record P14 clean gate rerun
@@ -32,6 +33,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD chore: enter v1.0 development
 HEAD release: prepare v0.2 identity
 HEAD docs: add P14 release manifest tag plan
 HEAD docs: record P14 clean gate rerun
@@ -80,16 +82,17 @@ Key completed boundaries:
   excluding intentional attack specimens under `t/fixtures/`, including
   `t/fixtures/attacks/tmp-poison/tmp/pending.part`.
 - P14 release manifest and tag planning is recorded in
-  `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`. The recommended next publishable
-  identity is tag `v0.2`, Perl version `0.002`, and `Changes` heading
-  `0.002  YYYY-MM-DD`, explicitly as a pre-v1.0/P14 checkpoint. The reserved
-  v1.0 identity is tag `v1.0`, Perl version `1.000`, and `Changes` heading
-  `1.000  YYYY-MM-DD`, only after the final P14 matrix and claim audit pass. Do
-  not tag while `Changes`, `$VERSION`, tarball name, and artifact hash disagree.
-- The v0.2 release identity is prepared in source: `lib/GobanFTP.pm` declares
-  `0.002`, `Changes` starts with `0.002  2026-05-18`, and README names the
-  current line as `v0.2` / package `0.002` pre-v1.0/P14 checkpoint. No tag has
-  been created by this step.
+  `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` as a superseded planning record.
+  The old local v0.2 candidate used tag `v0.2`, Perl version `0.002`, and
+  `Changes` heading `0.002  YYYY-MM-DD`, explicitly as a pre-v1.0/P14
+  checkpoint. That route is no longer the active release path.
+- The v0.2 release identity was prepared locally and then skipped before public
+  release. Do not reuse that identity as the current development state.
+- The public v0.2 release path was skipped. Do not push or publish a `v0.2` tag
+  or `GobanFTP-0.002.tar.gz`. The active development identity is now
+  `1.000_001  Not yet released`, and README names the current line as
+  `v1.0/P14` development. If a local `v0.2` tag exists after restore, delete it
+  before continuing.
 - P12a fixture public key identity is implemented through
   `gobanftp v1 keyid --fixture`. It parses public fixture key records, derives
   documented `GOFTP-KEY/1` `k1.` ids, rejects malformed/private-looking records
@@ -288,11 +291,12 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-after v0.2 release identity preparation:
-- use `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` as the release checklist
-- next slice is the final clean-checkout v0.2 matrix and external artifact
-  record: build `GobanFTP-0.002.tar.gz`, record hash outside the tarball, then
-  decide whether to create annotated tag `v0.2`
+after entering v1.0/P14 development:
+- do not push or publish v0.2 artifacts; v0.2 was skipped as a public release
+- next implementation slice is `git-tree-goftp1` runtime read admission:
+  enumerate direct `<game>/events/*` basenames from a real Git tree/worktree,
+  prove root/replay parity with local fixtures, and keep Git metadata outside
+  consensus
 - do not tag v1.0 until the final clean-checkout P14 matrix passes
 - do not let display, source art, Web assets, terminal formatting, or interactive
   input feed replay or event-set roots

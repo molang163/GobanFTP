@@ -1,7 +1,9 @@
 # P14 Release Manifest And Tag Plan
 
-Status: planning gate only. This is not a tag, not a release artifact, not a
-release-ready declaration, and not a v1.0 completion claim.
+Status: superseded planning record. The local `v0.2` / package `0.002`
+candidate was skipped as a public release. Do not publish, push, or reuse the
+old `v0.2` tag or `GobanFTP-0.002.tar.gz` artifact. This is not a v1.0
+completion claim.
 
 This document fixes the final release identity and artifact checks that must be
 resolved after the P14 release-gate dry run in `docs/P14_RELEASE_GATE.md`.
@@ -16,7 +18,7 @@ Perl package version: 0.001
 project milestone:   v0.1 hardening/showcase
 ```
 
-The v0.2 release identity candidate has:
+The skipped local v0.2 release candidate had:
 
 ```text
 Changes heading:       0.002  2026-05-18
@@ -25,12 +27,21 @@ expected tarball name: GobanFTP-0.002.tar.gz
 project target:        v1.0/P14 proof machine
 ```
 
-That state is a release-candidate identity. It is still not a tag, and it is not
-the final artifact record.
+That state was a local release-candidate identity only. It was not pushed or
+published, and it must not be treated as the public release record.
 
-## Recommended Next Identity
+The active development identity is now:
 
-The recommended next publishable identity is:
+```text
+Git tag:          none
+Perl version:     1.000_001
+Changes heading:  1.000_001  Not yet released
+release claim:    v1.0/P14 development, not v1.0 complete
+```
+
+## Superseded v0.2 Candidate
+
+The skipped candidate was:
 
 ```text
 Git tag:          v0.2
@@ -43,14 +54,13 @@ release claim:    pre-v1.0/P14 release-route checkpoint, not v1.0
 Rationale:
 
 ```text
-Changes carries the v0.2 package-version entry.
-lib/GobanFTP.pm declares the package version used by MakeMaker.
-The dry-run tarball is GobanFTP-0.001.tar.gz and belongs to the dry run only.
-docs/P14_RELEASE_GATE.md is explicit that v1.0 is not ready or tagged.
+The skipped candidate carried the v0.2 package-version entry.
+lib/GobanFTP.pm declared the package version used by MakeMaker.
+The dry-run tarball was GobanFTP-0.001.tar.gz and belongs to the dry run only.
+docs/P14_RELEASE_GATE.md remains explicit that v1.0 was not ready or tagged.
 ```
 
-Publishing `v0.2 / package 0.002` lets the project ship the current proof-route
-work without pretending the P14/v1.0 release freeze is complete.
+This route remains a historical local candidate only.
 
 ## Reserved v1.0 Identity
 
@@ -112,8 +122,10 @@ README current-line wording
 release record template below
 ```
 
-For the recommended `v0.2` release, `Changes` must say
-`0.002  2026-05-18`, and `lib/GobanFTP.pm` must declare `0.002`.
+For active v1.0 development, `Changes` must say
+`1.000_001  Not yet released`, and `lib/GobanFTP.pm` must declare
+`1.000_001`. A final v1.0 release must later switch to the reserved stable
+identity above.
 
 ## MANIFEST Audit
 
@@ -200,7 +212,7 @@ make manifest
 git diff --exit-code MANIFEST MANIFEST.SKIP
 
 make dist
-dist=GobanFTP-0.002.tar.gz
+dist=GobanFTP-1.000_001.tar.gz
 test -f "$dist"
 test "$(find . -maxdepth 1 -name 'GobanFTP-*.tar.gz' -print | wc -l)" -eq 1
 sha256sum "$dist"
@@ -213,9 +225,9 @@ GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make disttest
 make distcheck
 ```
 
-If the reserved v1.0 identity is deliberately chosen later, use
-`dist=GobanFTP-1.000.tar.gz` instead. Do not use `GobanFTP-*.tar.gz` as the
-artifact identity in the final release record.
+For the final stable v1.0 identity, use `dist=GobanFTP-1.000.tar.gz` instead.
+Do not use `GobanFTP-*.tar.gz` as the artifact identity in the final release
+record.
 
 ## Artifact Manifest
 
@@ -248,7 +260,7 @@ the local smoke path are the shipped proof.
 
 ## Claim Audit
 
-Allowed v0.2 checkpoint claims after the final matrix passes:
+Allowed v1.0 development claims after the final matrix passes:
 
 ```text
 GOFTP/1 descriptor and direct events/ basenames remain authoritative
@@ -260,7 +272,8 @@ signed-hmac-goftp1 has an explicit per-event HMAC acceptance gate
 public key and trust fixture reports are advisory outside signed profiles
 text, static HTML, and static terminal witness surfaces are read-only displays
 source art is runnable and non-consensus
-P14/v1.0 has a dry-run gate and remains the next release-freeze target
+P14/v1.0 development is active
+v1.0 remains unreleased until the final release-freeze matrix passes
 ```
 
 Forbidden final-release claims unless additional code and gates land first:
@@ -286,17 +299,7 @@ tests pass.
 
 Use an annotated tag after the final matrix and artifact record are complete:
 
-For the recommended next identity:
-
-```sh
-git status --short
-git rev-parse --verify v0.2 >/dev/null 2>&1 && exit 1 || true
-git tag -a v0.2 -m "GobanFTP v0.2 / package 0.002 pre-v1.0 P14 checkpoint; artifact sha256 <sha256>"
-test "$(git rev-parse v0.2^{commit})" = "$(git rev-parse HEAD)"
-git cat-file -t v0.2 | grep '^tag$'
-```
-
-For the reserved v1.0 identity:
+For the final stable v1.0 identity:
 
 ```sh
 git rev-parse --verify v1.0 >/dev/null 2>&1 && exit 1 || true
@@ -312,11 +315,10 @@ After tagging locally, verify:
 
 ```sh
 git status --short
-git show --stat --oneline --decorate v0.2
+git show --stat --oneline --decorate v1.0
 ```
 
-Use `v1.0` in those commands only if the reserved v1.0 route is deliberately
-chosen later.
+Do not tag during the `1.000_001` development cycle.
 
 ## External Release Record Template
 
@@ -325,8 +327,8 @@ this source file, because this file is included in the tarball.
 
 ```text
 candidate commit:      <sha>
-git tag:               <v0.2 or v1.0>
-Perl version:          <0.002 or 1.000>
+git tag:               <v1.0>
+Perl version:          <1.000>
 Changes heading:       <version YYYY-MM-DD>
 tarball:               <GobanFTP-version.tar.gz>
 tarball sha256:        <sha256>

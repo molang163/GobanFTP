@@ -7,10 +7,13 @@ replay is proof, and projections are shadows. A server may lie about time, size,
 order, type, locks, bodies, and presentation. The game still emerges from the
 names it is allowed to trust.
 
-Current line: `v0.2` / package `0.002` pre-v1.0/P14 checkpoint. The
-`v1.0/P14` target is the release-freeze proof machine: the same logical event
-basenames must produce the same `event_set_root`, DAG, canonical prefix, board
-projection, SGF, and diagnostics class across declared substrates.
+Current line: `v1.0/P14` development.
+
+The local `v0.2` / package `0.002` release candidate was skipped as a public
+release. The `v1.0/P14` target is the release-freeze proof machine: the same
+logical event basenames must produce the same `event_set_root`, DAG, canonical
+prefix, board projection, SGF, and diagnostics class across declared
+substrates.
 
 ```text
 Names are packets.

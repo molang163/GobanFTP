@@ -1,6 +1,8 @@
 Revision history for GobanFTP
 
-0.002  2026-05-18
+1.000_001  Not yet released
+  - Began v1.0/P14 development after skipping the public v0.2 / package 0.002
+    release candidate.
   - Added a mock-tested WebDAV store backend that reads `events/` with
     `PROPFIND Depth: 1` and publishes by zero-byte `tmp/` resource plus `MOVE`
     and fresh `PROPFIND` confirmation.
@@ -84,12 +86,11 @@ Revision history for GobanFTP
   - Tightened manifest skip rules so detached-worktree `.git` files and local
     scratch suffixes are excluded without dropping intentional attack fixtures
     under `t/fixtures/`.
-  - Added a P14 release manifest and tag plan that recommends `v0.2` /
-    package `0.002` for the next publishable checkpoint and reserves `v1.0`
-    until the final P14 matrix, version, tarball, and deferred-claim record
-    agree.
-  - Prepared the v0.2 / package 0.002 release identity while keeping v1.0/P14
-    reserved for the final release-freeze proof.
+  - Added a P14 release manifest and tag plan that was later superseded when
+    the local `v0.2` / package `0.002` candidate was skipped in favor of
+    continuing directly toward v1.0/P14.
+  - Prepared and then skipped the local v0.2 / package 0.002 release candidate,
+    keeping v1.0/P14 as the active development line.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl
