@@ -3,6 +3,7 @@ use strict;
 use warnings;
 
 use FindBin;
+use File::Path qw(make_path);
 use File::Spec;
 use File::Temp qw(tempdir);
 use Test::More;
@@ -14,6 +15,8 @@ use GobanFTP::CLI;
 my $cross_dir   = "$FindBin::Bin/fixtures/v1/cross-substrate";
 my $signed_dir  = "$FindBin::Bin/fixtures/v1/signed-hmac";
 my $fixture_key = 'gobanftp signed hmac fixture key 1';
+my $ruleset_fixture_digest = '7fff59777950a614b901c305dba319cbb1090ef5a17515d949e249611bcec432';
+my $ruleset_seal = '085b851293e7cac4000baea532c4b975d1d830d6bea539ae51f50eea29c1034f';
 
 subtest 'v1 witness prints unsigned fixture witness fields' => sub {
     my ($exit, $stdout, $stderr) = _run_cli(
@@ -29,6 +32,13 @@ subtest 'v1 witness prints unsigned fixture witness fields' => sub {
     like $stdout, qr/^profile_consensus_version=GOFTP-PROFILE\/local-goftp1\/1$/m,
         'prints profile consensus version';
     like $stdout, qr/^adapter_id=local-listing-goftp1$/m, 'prints adapter id';
+    like $stdout, qr/^ruleset_id=chinese-area-v1$/m, 'prints ruleset id';
+    like $stdout, qr/^ruleset_semver=1\.0\.0$/m, 'prints ruleset semantic version';
+    like $stdout, qr/^ruleset_seal_version=GOFTP-RULESET-SEAL\/1$/m,
+        'prints ruleset seal version';
+    like $stdout, qr/^ruleset_fixture_digest=\Q$ruleset_fixture_digest\E$/m,
+        'prints ruleset fixture digest';
+    like $stdout, qr/^ruleset_seal=\Q$ruleset_seal\E$/m, 'prints ruleset seal';
     like $stdout, qr/^raw_count=4$/m, 'prints raw count';
     like $stdout, qr/^normalized_count=3$/m, 'prints normalized count';
     like $stdout, qr/^accepted_count=3$/m, 'prints accepted count';
@@ -65,6 +75,8 @@ subtest 'v1 witness verifies signed-HMAC fixture attestations' => sub {
     like $stdout, qr/^gobanftp\.v1\.witness=ok$/m, 'signed status is ok';
     like $stdout, qr/^profile_id=signed-hmac-goftp1$/m, 'prints signed profile id';
     like $stdout, qr/^adapter_id=signed-hmac-listing-goftp1$/m, 'prints signed adapter id';
+    like $stdout, qr/^ruleset_id=chinese-area-v1$/m, 'signed witness prints ruleset id';
+    like $stdout, qr/^ruleset_seal=\Q$ruleset_seal\E$/m, 'signed witness prints ruleset seal';
     like $stdout, qr/^attestation_count=3$/m, 'prints attestation count';
     like $stdout, qr/^trusted_hmac_key_ids=fixture-key-1$/m, 'prints public trusted key selector';
     like $stdout, qr/^signature\.status=ok$/m, 'signature status is ok';
@@ -284,6 +296,46 @@ subtest 'v1 witness rejects bad argument shape' => sub {
     like $stderr, qr/^usage: v1 witness /m, 'usage is reported';
 };
 
+subtest 'v1 witness reports unsupported rules without internal error' => sub {
+    my $fixture = _fixture_with_game('g1.id-replay.s3.r-made-up.k0.pb-alice.pw-bob');
+
+    my ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'local-goftp1',
+        '--fixture', $fixture,
+    );
+
+    is $exit, 2, 'unsupported rules exit validation failure';
+    like $stdout, qr/^gobanftp\.v1\.witness=failed$/m, 'status is failed';
+    like $stdout, qr/^replay_status=validation$/m, 'replay status is validation';
+    like $stdout, qr/^diagnostic_codes=rules$/m, 'prints rules diagnostic code';
+    like $stdout, qr/^diagnostic_classes=rules$/m, 'prints rules diagnostic class';
+    unlike $stdout, qr/^ruleset_seal=/m, 'unsupported rules do not print a seal';
+    like $stderr, qr/^diagnostic .*code=rules\b/m, 'rules diagnostic is on stderr';
+    unlike $stderr, qr/^internal:/m, 'does not report an internal error';
+};
+
+subtest 'v1 witness reports bad game descriptors without internal error' => sub {
+    my $fixture = _fixture_with_game('not-a-game');
+
+    my ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'local-goftp1',
+        '--fixture', $fixture,
+    );
+
+    is $exit, 2, 'bad game descriptor exits validation failure';
+    like $stdout, qr/^gobanftp\.v1\.witness=failed$/m, 'status is failed';
+    like $stdout, qr/^replay_status=validation$/m, 'replay status is validation';
+    like $stdout, qr/^diagnostic_codes=parse_game_descriptor$/m,
+        'prints parse game descriptor code';
+    like $stdout, qr/^diagnostic_classes=parse$/m, 'prints parse diagnostic class';
+    unlike $stdout, qr/^ruleset_seal=/m, 'bad game descriptor does not print a seal';
+    like $stderr, qr/^diagnostic .*code=parse_game_descriptor\b/m,
+        'parse game descriptor diagnostic is on stderr';
+    unlike $stderr, qr/^internal:/m, 'does not report an internal error';
+};
+
 done_testing;
 
 sub _run_cli {
@@ -309,4 +361,15 @@ sub _write_text {
     open my $fh, '>:encoding(UTF-8)', $path or die "write $path: $!";
     print {$fh} $text;
     close $fh or die "close $path: $!";
+}
+
+sub _fixture_with_game {
+    my ($game) = @_;
+
+    my $fixture = tempdir(CLEANUP => 1);
+    make_path(File::Spec->catdir($fixture, 'local-goftp1'));
+    _write_text(File::Spec->catfile($fixture, 'game.name'), "$game\n");
+    _write_text(File::Spec->catfile($fixture, 'local-goftp1', 'listing.names'), '');
+
+    return $fixture;
 }

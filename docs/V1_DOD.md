@@ -251,6 +251,10 @@ accepted rules fixtures digest
 Changing rule semantics without changing the seal is forbidden. Changing the
 seal without updating fixtures is forbidden. A replay output must record which
 ruleset seal was used, directly or through the profile output contract.
+The public witness fields are `ruleset_id`, `ruleset_semver`,
+`ruleset_seal_version`, `ruleset_fixture_digest`, and `ruleset_seal`. These
+fields are compared by `v1 compare-replay`, but they are not inputs to
+`event_set_root`.
 
 ## Diagnostics Contract
 
@@ -354,25 +358,19 @@ GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make disttest
 make distcheck
 ```
 
-Draft profile verification commands:
+Current v1 proof commands:
 
 ```sh
-script/gobanftp v1 root --profile local --fixture t/fixtures/v1/cross-substrate/minimal
-script/gobanftp v1 root --profile ftp --fixture t/fixtures/v1/cross-substrate/minimal
-script/gobanftp v1 root --profile git-like --fixture t/fixtures/v1/cross-substrate/minimal
-script/gobanftp v1 root --profile dns-like --fixture t/fixtures/v1/cross-substrate/minimal
-script/gobanftp v1 root --profile webdav-like --fixture t/fixtures/v1/cross-substrate/minimal
-
+script/gobanftp v1 witness --profile local-goftp1 --fixture t/fixtures/v1/cross-substrate/minimal
 script/gobanftp v1 compare-roots --fixture t/fixtures/v1/cross-substrate/minimal
 script/gobanftp v1 compare-replay --fixture t/fixtures/v1/cross-substrate/minimal
-script/gobanftp v1 verify-attacks --fixture t/fixtures/attacks
-script/gobanftp v1 verify-signatures --fixture t/fixtures/v1/signed-hmac
-script/gobanftp v1 verify-ruleset-seal --rules chinese-area-v1
+prove -lr t/v1-attack-fixtures.t
+prove -lr t/v1-signed-hmac.t t/v1-signed-hmac-golden-vectors.t
+prove -lr t/ruleset-seal.t
 ```
 
-The command names are drafts. The release requirement is not the exact spelling;
-the release requirement is that one reproducible command set proves the full
-matrix.
+The release requirement is that one reproducible command set proves the full
+matrix; future dedicated verifier subcommands may replace these test commands.
 
 ## Done Means Demonstrated
 

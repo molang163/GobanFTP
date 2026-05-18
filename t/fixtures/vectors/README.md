@@ -15,9 +15,12 @@ ids, recursive children, and ignored surfaces stay outside the root.
 `git-tree-goftp1`, `dns-record-goftp1`, and `webdav-goftp1`. Each row names the
 input listing fixture and records the accepted events, rejected diagnostic
 classes, event set root, replay status, canonical and legal ids, and projection
-hashes produced by `GobanFTP::Witness`.
+hashes produced by `GobanFTP::Witness`, including the ruleset seal fields.
 
 `v1-signed-hmac-witness.jsonl` freezes the signed-HMAC profile witness fields
 for valid, missing, wrong, untrusted, and malformed event attestations. Rows name
 both the listing fixture and the public attestation fixture. The vector records
 the public trust selector, but not the HMAC secret used by the verifier test.
+
+`ruleset-seal.jsonl` freezes the `chinese-area-v1` ruleset seal, fixture digest
+manifest, and byte-level preimage hex for `GOFTP-RULESET-SEAL/1`.

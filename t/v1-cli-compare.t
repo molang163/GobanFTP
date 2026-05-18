@@ -13,6 +13,8 @@ use lib "$FindBin::Bin/../lib";
 use GobanFTP::CLI;
 
 my $fixture_dir = "$FindBin::Bin/fixtures/v1/cross-substrate";
+my $ruleset_fixture_digest = '7fff59777950a614b901c305dba319cbb1090ef5a17515d949e249611bcec432';
+my $ruleset_seal = '085b851293e7cac4000baea532c4b975d1d830d6bea539ae51f50eea29c1034f';
 
 subtest 'v1 compare-roots proves minimal roots across fixture profiles' => sub {
     my ($exit, $stdout, $stderr) = _run_cli(
@@ -51,7 +53,15 @@ subtest 'v1 compare-replay proves fork replay equality' => sub {
     is $exit, 0, 'matching fork witnesses exit success';
     is $stderr, '', 'matching fork witnesses have no diagnostics';
     like $stdout, qr/^gobanftp\.v1\.compare-replay=ok$/m, 'status is ok';
-    like $stdout, qr/^compared_fields=.*diagnostic_count/m, 'diagnostic count is compared';
+    like $stdout, qr/^compared_fields=ruleset_id,ruleset_semver,ruleset_seal_version,ruleset_fixture_digest,ruleset_seal,.*diagnostic_count/m,
+        'ruleset fields and diagnostic count are compared';
+    like $stdout, qr/^ruleset_id=chinese-area-v1$/m, 'prints common ruleset id';
+    like $stdout, qr/^ruleset_semver=1\.0\.0$/m, 'prints common ruleset semantic version';
+    like $stdout, qr/^ruleset_seal_version=GOFTP-RULESET-SEAL\/1$/m,
+        'prints common ruleset seal version';
+    like $stdout, qr/^ruleset_fixture_digest=\Q$ruleset_fixture_digest\E$/m,
+        'prints common ruleset fixture digest';
+    like $stdout, qr/^ruleset_seal=\Q$ruleset_seal\E$/m, 'prints common ruleset seal';
     like $stdout, qr/^replay_status=fork$/m, 'common replay status is fork';
     like $stdout, qr/^diagnostic_classes=fork$/m, 'common diagnostic class is fork';
     like $stdout, qr/^diagnostic_count=1$/m, 'prints common diagnostic count';
@@ -72,6 +82,32 @@ subtest 'v1 compare-replay treats equal validation as a successful comparison' =
     like $stdout, qr/^replay_status=validation$/m, 'common replay status is validation';
     like $stdout, qr/^diagnostic_classes=event-id$/m, 'common diagnostic class is event-id';
     like $stdout, qr/^rejected_classes=event-id$/m, 'common rejection class is event-id';
+};
+
+subtest 'v1 compare-replay reports ruleset seal mismatch' => sub {
+    my $orig = \&GobanFTP::CLI::witness_for_listing;
+
+    no warnings 'redefine';
+    local *GobanFTP::CLI::witness_for_listing = sub {
+        my %args = @_ == 1 && ref($_[0]) eq 'HASH' ? %{ $_[0] } : @_;
+        my $witness = $orig->(@_);
+        $witness->{ruleset_seal} = 'f' x 64
+            if ($args{profile_id} // '') eq 'ftp-goftp1';
+        return $witness;
+    };
+
+    my ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'compare-replay',
+        '--fixture', File::Spec->catdir($fixture_dir, 'minimal'),
+        '--profiles', 'local-goftp1,ftp-goftp1',
+    );
+
+    is $exit, 2, 'ruleset seal mismatch exits validation failure';
+    is $stderr, '', 'mismatch is reported on stdout';
+    like $stdout, qr/^gobanftp\.v1\.compare-replay=failed$/m, 'status is failed';
+    like $stdout, qr/^mismatch_count=1$/m, 'reports one mismatched field';
+    like $stdout, qr/^mismatch_fields=ruleset_seal$/m, 'reports ruleset seal mismatch';
+    like $stdout, qr/^mismatch_profiles=ftp-goftp1$/m, 'reports mismatched profile';
 };
 
 subtest 'v1 compare-roots reports fixture profile mismatch' => sub {

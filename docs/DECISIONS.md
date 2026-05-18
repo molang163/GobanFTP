@@ -352,3 +352,20 @@ Reason:
   signatures, and HMAC records completely
 - signature diagnostics may expose public event basenames, event ids, key ids,
   and profile ids, but never HMAC secrets
+
+## 026: Ruleset Seal Is Semantic Witness Metadata
+
+`chinese-area-v1` has a `GOFTP-RULESET-SEAL/1` witness seal built from an
+explicit semantic preimage and the byte digests of the current rule fixtures.
+The seal is reported by `GobanFTP::Witness` and compared by `v1 compare-replay`,
+but it is not an input to `event_set_root`.
+
+Reason:
+
+- `event_set_root` must remain a commitment to accepted event basenames, not to
+  local replay implementation details
+- witnesses still need to prove which rule contract interpreted those basenames
+- the seal must be independent of Inline::C availability, selected rule engine,
+  source-art layout, projection text, platform, and environment
+- fixture digests force a deliberate seal decision when rule behavior vectors
+  change

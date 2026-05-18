@@ -25,6 +25,11 @@ my @witness_fields = qw(
     profile_consensus_version
     adapter_id
     game_descriptor
+    ruleset_id
+    ruleset_semver
+    ruleset_seal_version
+    ruleset_fixture_digest
+    ruleset_seal
     raw_count
     normalized_count
     normalized_events

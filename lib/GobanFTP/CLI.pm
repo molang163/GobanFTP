@@ -974,6 +974,11 @@ sub _v1_compare_fields {
 
     return [qw(event_set_root)] if $subcommand eq 'compare-roots';
     return [qw(
+        ruleset_id
+        ruleset_semver
+        ruleset_seal_version
+        ruleset_fixture_digest
+        ruleset_seal
         event_set_root
         accepted_count
         accepted_events
@@ -1260,6 +1265,11 @@ sub _print_v1_witness {
         profile_consensus_version
         adapter_id
         game_descriptor
+        ruleset_id
+        ruleset_semver
+        ruleset_seal_version
+        ruleset_fixture_digest
+        ruleset_seal
         raw_count
         normalized_count
         normalized_events
@@ -1352,6 +1362,11 @@ sub _print_v1_compare {
         . _profile_field_pairs($witnesses, \@profiles, 'replay_status') . "\n";
 
     for my $field (qw(
+        ruleset_id
+        ruleset_semver
+        ruleset_seal_version
+        ruleset_fixture_digest
+        ruleset_seal
         event_set_root
         accepted_count
         accepted_events

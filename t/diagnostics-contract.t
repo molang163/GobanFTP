@@ -27,6 +27,7 @@ my @allowed_classes = qw(parse event-id dag rules fork signature);
 my @stdout_fields = qw(
     board canonical_ids canonical_moves event event_id events game
     game_descriptor profile_id profile_consensus_version adapter_id
+    ruleset_id ruleset_semver ruleset_seal_version ruleset_fixture_digest ruleset_seal
     fixture_id comparison_scope profile_count profiles baseline_profile compared_fields
     mismatch_count mismatch_fields mismatch_profiles profile_roots profile_replay_statuses
     raw_count normalized_count normalized_events accepted_count accepted_events

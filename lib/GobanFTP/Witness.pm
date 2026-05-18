@@ -16,12 +16,14 @@ use GobanFTP::Diagnostics qw(
     schema_from_file
 );
 use GobanFTP::EventSetRoot qw(event_set_root_result);
+use GobanFTP::GameSpec qw(parse_basename);
 use GobanFTP::Listing qw(normalize_listing);
 use GobanFTP::Profile qw(profile);
 use GobanFTP::Profile::Adapter qw(profile_listing_names);
 use GobanFTP::Profile::SignedHMAC qw(is_signed_hmac_profile signed_hmac_event_set_result);
 use GobanFTP::Projection qw(render_projection);
 use GobanFTP::Replay qw(replay);
+use GobanFTP::RulesetSeal qw(ruleset_seal_record);
 
 our @EXPORT_OK = qw(witness_for_listing);
 
@@ -33,6 +35,7 @@ sub witness_for_listing {
     my $raw_names  = _array_ref($args{raw_names}, 'raw_names');
     my $schema     = _diagnostics_schema(%args);
     my $profile    = profile($profile_id);
+    my $ruleset    = _ruleset_record_for_game($game);
 
     my @profile_names = profile_listing_names(
         profile_id      => $profile_id,
@@ -71,7 +74,7 @@ sub witness_for_listing {
     my @diagnostics = $result->diagnostics;
     my @rejected_diagnostics = map { _clone_diagnostic($_) } @{ $event_set->{diagnostics} };
 
-    my $rendered = render_projection(
+    my $rendered = _render_projection(
         game_descriptor => $game,
         events          => \@replay_events,
         replay_result   => $result,
@@ -79,12 +82,14 @@ sub witness_for_listing {
 
     my @canonical_ids = $result->canonical_ids;
     my @legal_ids     = $result->legal_ids;
+    my %projection_hashes = _projection_hashes($rendered);
 
     return {
         profile_id                => $profile_id,
         profile_consensus_version => $profile->{consensus_version},
         adapter_id                => $profile->{adapter_id},
         game_descriptor           => $game,
+        %$ruleset,
         raw_count                 => scalar(@$raw_names),
         normalized_count          => scalar(@events),
         normalized_events         => [@events],
@@ -99,11 +104,7 @@ sub witness_for_listing {
         canonical_tip             => @canonical_ids ? $canonical_ids[-1] : 'genesis',
         canonical_ids             => \@canonical_ids,
         legal_ids                 => \@legal_ids,
-        board_hash                => sha256_hex($rendered->{board} // ''),
-        sgf_hash                  => sha256_hex($rendered->{sgf_main} // $rendered->{sgf} // ''),
-        variations_sgf_hash       => sha256_hex(
-            $rendered->{sgf_variations} // $rendered->{variations_sgf} // ''
-        ),
+        %projection_hashes,
         diagnostic_codes          => [diagnostic_codes(\@diagnostics)],
         diagnostic_classes        => [diagnostic_classes(\@diagnostics, $schema)],
         diagnostic_count          => scalar(@diagnostics),
@@ -121,6 +122,56 @@ sub _diagnostics_schema {
         if exists $args{diagnostics_schema_path};
 
     return default_diagnostics_schema();
+}
+
+sub _ruleset_record_for_game {
+    my ($game_descriptor) = @_;
+
+    my ($game_spec, $game_error) = parse_basename($game_descriptor);
+    return {} if defined $game_error;
+
+    my $ruleset = eval { ruleset_seal_record($game_spec->{rules}) };
+    if (!$ruleset) {
+        my $error = $@ || 'unknown ruleset seal error';
+        die $error if $error !~ /\Aunsupported ruleset:/;
+        return {};
+    }
+
+    return $ruleset;
+}
+
+sub _render_projection {
+    my (%args) = @_;
+
+    my $result = $args{replay_result};
+    my @diagnostics = $result->diagnostics;
+
+    my $rendered = eval { render_projection(%args) };
+    return $rendered if $rendered;
+
+    my $error = $@ || 'unknown projection error';
+    die $error if !_has_diagnostic_code(\@diagnostics, qw(parse_game_descriptor rules));
+    return {};
+}
+
+sub _projection_hashes {
+    my ($rendered) = @_;
+    return () if ref($rendered) ne 'HASH' || !%$rendered;
+
+    return (
+        board_hash => sha256_hex($rendered->{board} // ''),
+        sgf_hash   => sha256_hex($rendered->{sgf_main} // $rendered->{sgf} // ''),
+        variations_sgf_hash => sha256_hex(
+            $rendered->{sgf_variations} // $rendered->{variations_sgf} // ''
+        ),
+    );
+}
+
+sub _has_diagnostic_code {
+    my ($diagnostics, @codes) = @_;
+
+    my %wanted = map { $_ => 1 } @codes;
+    return grep { $wanted{ $_->{code} // '' } } @$diagnostics;
 }
 
 sub _args {

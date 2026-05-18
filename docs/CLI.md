@@ -207,6 +207,11 @@ profile_id=<profile-id>
 profile_consensus_version=GOFTP-PROFILE/<profile-id>/1
 adapter_id=<adapter-id>
 game_descriptor=<game-descriptor>
+ruleset_id=chinese-area-v1
+ruleset_semver=1.0.0
+ruleset_seal_version=GOFTP-RULESET-SEAL/1
+ruleset_fixture_digest=<sha256-hex>
+ruleset_seal=<sha256-hex>
 raw_count=<n>
 normalized_count=<n>
 accepted_count=<n>
@@ -269,10 +274,11 @@ If any compared profile differs from the baseline profile, the command writes
 
 ### `gobanftp v1 compare-replay --fixture <fixture-dir> [--profiles <ids>]`
 
-Compares root and replay-derived witness fields across profile fixtures:
-`event_set_root`, accepted and rejected event-set fields, replay status,
-canonical and legal ids, board hash, SGF hashes, and diagnostic/rejection codes
-and classes/counts.
+Compares ruleset seal, root, and replay-derived witness fields across profile
+fixtures: `ruleset_id`, `ruleset_semver`, `ruleset_seal_version`,
+`ruleset_fixture_digest`, `ruleset_seal`, `event_set_root`, accepted and
+rejected event-set fields, replay status, canonical and legal ids, board hash,
+SGF hashes, and diagnostic/rejection codes and classes/counts.
 
 Equal fork or equal validation witnesses are successful comparisons. The command
 fails only when profiles disagree with the baseline witness.

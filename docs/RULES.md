@@ -23,6 +23,52 @@ Inline::C.
 Scoring details can be deferred to a later result event. Do not mix scoring,
 life-and-death inference, or territory estimation into v1 replay legality.
 
+## Ruleset Seal
+
+`chinese-area-v1` is identified in v1 witnesses by `GOFTP-RULESET-SEAL/1`.
+The seal is semantic. It must not depend on Perl source formatting, Inline::C
+availability, `GOBANFTP_RULES_ENGINE`, platform details, projection text, or
+runtime caches.
+
+The fixture digest preimage is the NUL-joined byte sequence:
+
+```text
+GOFTP-RULESET-FIXTURES/1
+t/fixtures/rules/play-cases.jsonl=<sha256-hex>
+t/fixtures/rules/mechanics-boundary.jsonl=<sha256-hex>
+t/fixtures/rules/ko.json=<sha256-hex>
+<empty terminator>
+```
+
+The ruleset seal preimage is the NUL-joined byte sequence:
+
+```text
+GOFTP-RULESET-SEAL/1
+ruleset_id=chinese-area-v1
+ruleset_semver=1.0.0
+board_size_domain=game_descriptor.size
+coordinate_grammar=sgf-aa-to-zz-row-major
+move_actions=play-<point>,pass,resign
+black_moves_first=1
+suicide=illegal
+capture_algorithm=full-flood-fill-row-major-captures
+ko_rule=positional-superko-on-play
+pass_rule=no-superko-check;two-consecutive-passes-terminal
+resign_rule=terminal-immediate
+scoring=deferred-result-event
+state_hash=GOFTP-BOARD/1\0 || board_size_decimal || \0 || row_major_point_bytes
+engine_authority=perl-reference;inline-c-equivalent-only
+fixture_digest=<sha256-hex>
+fixture:t/fixtures/rules/play-cases.jsonl=<sha256-hex>
+fixture:t/fixtures/rules/mechanics-boundary.jsonl=<sha256-hex>
+fixture:t/fixtures/rules/ko.json=<sha256-hex>
+<empty terminator>
+```
+
+`ruleset_fixture_digest` and `ruleset_seal` are lowercase SHA-256 hex digests of
+those preimages. Golden values live in
+`t/fixtures/vectors/ruleset-seal.jsonl`.
+
 ## Board Model
 
 Use a compact board array:

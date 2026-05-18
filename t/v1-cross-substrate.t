@@ -13,6 +13,8 @@ use GobanFTP::Witness qw(witness_for_listing);
 my $fixture_dir = "$FindBin::Bin/fixtures/v1/cross-substrate";
 my $schema_path = "$FindBin::Bin/../docs/DIAGNOSTICS.md";
 my @profiles = qw(local-goftp1 ftp-goftp1 git-tree-goftp1 dns-record-goftp1 webdav-goftp1);
+my $ruleset_fixture_digest = '7fff59777950a614b901c305dba319cbb1090ef5a17515d949e249611bcec432';
+my $ruleset_seal = '085b851293e7cac4000baea532c4b975d1d830d6bea539ae51f50eea29c1034f';
 
 my %expected = (
     minimal => {
@@ -71,6 +73,13 @@ for my $case (qw(minimal fork fork-with-ack bad-event-id)) {
 
             is $witness->{profile_id}, $profile, "$profile records profile id";
             is $witness->{game_descriptor}, $game, "$profile records game descriptor";
+            is $witness->{ruleset_id}, 'chinese-area-v1', "$profile records ruleset id";
+            is $witness->{ruleset_semver}, '1.0.0', "$profile records ruleset semantic version";
+            is $witness->{ruleset_seal_version}, 'GOFTP-RULESET-SEAL/1',
+                "$profile records ruleset seal version";
+            is $witness->{ruleset_fixture_digest}, $ruleset_fixture_digest,
+                "$profile records ruleset fixture digest";
+            is $witness->{ruleset_seal}, $ruleset_seal, "$profile records ruleset seal";
             is $witness->{event_set_root}, $expected{$case}{root}, "$profile event_set_root";
             is $witness->{accepted_count}, $expected{$case}{accepted}, "$profile accepted count";
             is $witness->{rejected_count}, $expected{$case}{rejected}, "$profile rejected-name count";
@@ -89,6 +98,11 @@ for my $case (qw(minimal fork fork-with-ack bad-event-id)) {
         }
 
         _assert_same_witness($case, \%witness, qw(
+            ruleset_id
+            ruleset_semver
+            ruleset_seal_version
+            ruleset_fixture_digest
+            ruleset_seal
             accepted_count
             accepted_events
             rejected_count

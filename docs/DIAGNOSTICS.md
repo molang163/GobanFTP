@@ -30,6 +30,11 @@ game_descriptor
 profile_id
 profile_consensus_version
 adapter_id
+ruleset_id
+ruleset_semver
+ruleset_seal_version
+ruleset_fixture_digest
+ruleset_seal
 comparison_scope
 profile_count
 profiles
@@ -101,6 +106,11 @@ signed profile rejecting an event attestation. `diagnostic_count`,
 `diagnostic_codes`, and `diagnostic_classes` describe replay diagnostics after
 the accepted event set has been built. Both diagnostic families may emit stable
 `diagnostic ...` lines on stderr.
+
+The `ruleset_*` fields identify the replay rule contract used by the witness.
+They are not inputs to `event_set_root`; `compare-replay` compares them so two
+substrates cannot silently agree on event names while using different rule
+semantics.
 
 For `gobanftp v1 compare-roots` and `gobanftp v1 compare-replay`, a fork or
 validation replay status is not itself a command failure. The compare commands

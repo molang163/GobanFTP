@@ -255,6 +255,7 @@ lib/GobanFTP/Redact.pm
 lib/GobanFTP/Replay.pm
 lib/GobanFTP/Rules.pm
 lib/GobanFTP/Rules/C.pm
+lib/GobanFTP/RulesetSeal.pm
 lib/GobanFTP/SGF.pm
 lib/GobanFTP/Store.pm
 lib/GobanFTP/Store/Config.pm
@@ -424,6 +425,7 @@ t/fixtures/v1/signed-hmac/wrong-signature/signed-hmac-goftp1/attestations.jsonl
 t/fixtures/v1/signed-hmac/wrong-signature/signed-hmac-goftp1/listing.names
 t/fixtures/vectors/event-set-root.jsonl
 t/fixtures/vectors/README.md
+t/fixtures/vectors/ruleset-seal.jsonl
 t/fixtures/vectors/v1-signed-hmac-witness.jsonl
 t/fixtures/vectors/v1-witness.jsonl
 t/ftp-cli-parity.t
@@ -451,6 +453,7 @@ t/rules-c-random-equivalence.t
 t/rules-engine.t
 t/rules-flow.t
 t/rules-play.t
+t/ruleset-seal.t
 t/rules-superko.t
 t/sgf.t
 t/source-art.t
