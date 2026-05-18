@@ -138,6 +138,11 @@ PROPFIND row fields, wrong-game hrefs, `tmp/`, sidecar, projection, recursive
 href, bad percent, percent-encoded slash, double-encoded slash, duplicate href,
 and href-order surfaces. Actual WebDAV resource bodies remain covered by store
 and CLI tests that forbid `GET`/`HEAD` replay reads.
+This specimen is also promoted into
+`t/fixtures/vectors/v1-non-consensus-poison.jsonl` as a public baseline/poison
+golden vector. The vector binds the hostile raw listing to the same event-set
+preimage, root, replay, board, projection text, and SGF truth as its clean
+baseline.
 
 The second WebDAV specimen is `webdav-href-traversal`, which attacks raw and
 percent-encoded dot segments, encoded slash, and encoded backslash inside href

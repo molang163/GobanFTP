@@ -17,6 +17,8 @@ use GobanFTP::Diagnostics qw(
     replay_status
     schema_from_file
 );
+use GobanFTP::EventSetRoot qw(event_set_root_preimage);
+use GobanFTP::Profile::Adapter qw(profile_listing_names);
 use GobanFTP::Replay qw(replay);
 use GobanFTP::Witness qw(witness_for_listing);
 
@@ -24,6 +26,7 @@ my $repo_root          = File::Spec->rel2abs("$FindBin::Bin/..");
 my $vector_path        = "$FindBin::Bin/fixtures/vectors/v1-witness.jsonl";
 my $replay_vector_path = "$FindBin::Bin/fixtures/vectors/v1-replay-invariants.jsonl";
 my $dag_vector_path    = "$FindBin::Bin/fixtures/vectors/v1-dag-invariants.jsonl";
+my $poison_vector_path = "$FindBin::Bin/fixtures/vectors/v1-non-consensus-poison.jsonl";
 my $schema_path        = "$FindBin::Bin/../docs/DIAGNOSTICS.md";
 my $schema             = schema_from_file($schema_path);
 
@@ -114,6 +117,128 @@ for my $case (qw(minimal fork fork-with-ack bad-event-id future-version missing-
     for my $profile (qw(local-goftp1 ftp-goftp1 git-tree-goftp1 dns-record-goftp1 webdav-goftp1)) {
         ok $seen_id{"$case-$profile"}, "$case $profile vector is present";
     }
+}
+
+my @poison_vectors = _read_jsonl($poison_vector_path);
+ok @poison_vectors, 'loaded v1 non-consensus poison golden vectors';
+
+my @required_poison_evidence = qw(sidecar projection tmp content metadata list-order);
+my %seen_poison_id;
+for my $vector (@poison_vectors) {
+    my $id = $vector->{id} // '<missing id>';
+    subtest "poison invariant $id" => sub {
+        ok !$seen_poison_id{$id}++, 'poison vector id is unique';
+
+        for my $field (qw(
+            id
+            vector_version
+            attack
+            game_descriptor
+            consensus_inputs
+            ignored_inputs
+            evidence_markers
+            expected_event_set_preimage_hex
+            poisoned_order
+            baseline
+            poisoned
+            same_witness_fields
+            same_projection_text_fields
+            expected_witness
+        )) {
+            ok exists $vector->{$field}, "vector has $field";
+        }
+
+        is $vector->{vector_version}, 'GOFTP-V1-NON-CONSENSUS-POISON/1',
+            'vector declares non-consensus poison vector version';
+        is_deeply $vector->{consensus_inputs}, [qw(game_descriptor accepted_event_basenames)],
+            'vector declares the only truth inputs';
+
+        my %evidence = map { $_ => 1 } @{ $vector->{ignored_inputs} // [] };
+        for my $evidence (@required_poison_evidence) {
+            ok $evidence{$evidence}, "vector declares $evidence evidence";
+        }
+
+        for my $side (qw(baseline poisoned)) {
+            ok ref($vector->{$side}) eq 'HASH', "$side input is an object";
+            ok exists $vector->{$side}{profile_id}, "$side has profile_id";
+            ok exists $vector->{$side}{input_fixture}, "$side has input_fixture";
+            ok exists $vector->{$side}{input_names}, "$side has input_names";
+            ok ref($vector->{$side}{input_names}) eq 'ARRAY', "$side input_names is an array";
+            ok @{ $vector->{$side}{input_names} }, "$side input_names has rows";
+
+            my $input_fixture = File::Spec->rel2abs($vector->{$side}{input_fixture}, $repo_root);
+            my @raw = _read_names($input_fixture);
+            is_deeply $vector->{$side}{input_names}, \@raw,
+                "$side input_names match fixture";
+        }
+
+        _assert_poison_markers($vector);
+        _assert_poison_order($vector);
+
+        my %witness;
+        for my $side (qw(baseline poisoned)) {
+            $witness{$side} = witness_for_listing(
+                profile_id              => $vector->{$side}{profile_id},
+                game_descriptor         => $vector->{game_descriptor},
+                raw_names               => $vector->{$side}{input_names},
+                diagnostics_schema_path => $schema_path,
+                include_projection_text => 1,
+            );
+
+            my @profile_names = profile_listing_names(
+                profile_id      => $vector->{$side}{profile_id},
+                game_descriptor => $vector->{game_descriptor},
+                raw_names       => $vector->{$side}{input_names},
+            );
+            my $preimage_hex = unpack 'H*', event_set_root_preimage(
+                game_descriptor => $vector->{game_descriptor},
+                names           => \@profile_names,
+            );
+
+            is $preimage_hex, $vector->{expected_event_set_preimage_hex},
+                "$side event-set preimage matches poison golden vector";
+            is $witness{$side}{raw_count}, scalar(@{ $vector->{$side}{input_names} }),
+                "$side raw count matches vector input";
+        }
+
+        ok $witness{poisoned}{raw_count} > $witness{baseline}{raw_count},
+            'poisoned input carries extra non-consensus rows';
+        ok $witness{poisoned}{normalized_count} >= $witness{poisoned}{accepted_count},
+            'poisoned input may contain duplicate candidates before event-set admission';
+
+        for my $side (qw(baseline poisoned)) {
+            for my $field (sort keys %{ $vector->{expected_witness} }) {
+                _assert_golden_value(
+                    $witness{$side}{$field},
+                    $vector->{expected_witness}{$field},
+                    "$side $field matches poison golden vector",
+                );
+            }
+        }
+
+        for my $field (@{ $vector->{same_witness_fields} }) {
+            _assert_golden_value(
+                $witness{poisoned}{$field},
+                $witness{baseline}{$field},
+                "poisoned witness matches baseline $field",
+            );
+        }
+
+        for my $field (@{ $vector->{same_projection_text_fields} }) {
+            _assert_golden_value(
+                $witness{poisoned}{projection_text}{$field},
+                $witness{baseline}{projection_text}{$field},
+                "poisoned projection text matches baseline $field",
+            );
+        }
+
+        unlike $witness{poisoned}{projection_text}{sgf_main}, qr/B\[cc\]/,
+            'poisoned stale SGF body is not copied into witness SGF';
+    };
+}
+
+for my $case (qw(webdav-metadata-poison-public-vector)) {
+    ok $seen_poison_id{$case}, "$case poison invariant vector is present";
 }
 
 my @replay_vectors = _read_jsonl($replay_vector_path);
@@ -330,6 +455,55 @@ sub _read_names {
     close $fh or die "close $path: $!";
 
     return @names;
+}
+
+sub _assert_golden_value {
+    my ($got, $want, $name) = @_;
+
+    if (ref $want) {
+        is_deeply $got, $want, $name;
+    }
+    else {
+        is $got, $want, $name;
+    }
+}
+
+sub _assert_poison_markers {
+    my ($vector) = @_;
+
+    my $raw = join "\n", @{ $vector->{poisoned}{input_names} };
+    for my $evidence (sort keys %{ $vector->{evidence_markers} }) {
+        my $marker = $vector->{evidence_markers}{$evidence};
+        ok defined($marker) && index($raw, $marker) >= 0,
+            "poisoned input carries $evidence marker";
+    }
+}
+
+sub _assert_poison_order {
+    my ($vector) = @_;
+
+    my @order = @{ $vector->{poisoned_order} };
+    ok @order >= 2, 'poisoned order declares multiple events';
+
+    my @positions;
+    for my $event (@order) {
+        my ($index) = grep { index($vector->{poisoned}{input_names}[$_], $event) >= 0 }
+            0 .. $#{ $vector->{poisoned}{input_names} };
+        ok defined $index, "poisoned input contains ordered event $event";
+        push @positions, $index if defined $index;
+    }
+
+    if (@positions == @order) {
+        my $is_strictly_increasing = 1;
+        for my $i (1 .. $#positions) {
+            $is_strictly_increasing &&= $positions[$i - 1] < $positions[$i];
+        }
+        ok $is_strictly_increasing, 'poisoned listing order is represented by raw rows';
+    }
+
+    isnt join("\0", @order),
+        join("\0", @{ $vector->{expected_witness}{accepted_events} }),
+        'poisoned listing order differs from accepted event-set order';
 }
 
 sub _board_rows {

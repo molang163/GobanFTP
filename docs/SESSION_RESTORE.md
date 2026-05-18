@@ -355,7 +355,12 @@ after entering v1.0/P14 development:
 - event-id collision is covered only as a synthetic DAG-boundary vector; do not
   pretend a normal basename collision exists unless a real GOFTP/1 hash
   collision passes filename verification
-- next proof slice should fold non-consensus poison evidence into public vectors
+- `t/fixtures/vectors/v1-non-consensus-poison.jsonl` starts the public
+  baseline/poison vector set with `webdav-metadata-poison`, binding it to the
+  real fixture listings and proving ignored evidence leaves event-set preimage,
+  root, replay, board, projection text, and SGF truth unchanged
+- next proof slice should expand public non-consensus poison vectors across the
+  remaining core and profile attack specimens
 - continue the P14 claim audit for the admitted read boundaries now present at
   HEAD, especially `git-tree-goftp1` and `dns-record-goftp1`
 - that slice must not add or claim Git publish, live DNS, AXFR, DNSSEC trust,

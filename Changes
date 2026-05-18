@@ -117,6 +117,9 @@ Revision history for GobanFTP
     DNS, DNS publish, hosted Web UI, interactive TUI, or v1.0/P14 completion.
   - Added a synthetic DAG-boundary golden vector for `event_id_collision`,
     without claiming an ordinary GOFTP/1 basename hash collision.
+  - Added the first public non-consensus-poison golden vector, binding the
+    WebDAV metadata-poison fixture to unchanged event-set preimage, root,
+    replay, board, projection text, and SGF truth.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

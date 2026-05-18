@@ -30,6 +30,15 @@ terminal play, resign terminal play, simple-ko superko rejection, ack-assisted
 fork choice, malformed basenames, parent-is-ACK rejection, dangling ACK targets,
 and ACK targets that are themselves ACKs.
 
+`v1-non-consensus-poison.jsonl` freezes compact baseline/poison witness pairs
+for non-consensus evidence. The first row binds the vector to the WebDAV
+metadata-poison fixture, carries sidecar, projection, temporary, resource-body,
+metadata, recursive-href, wrong-game, duplicate, percent-encoding, and
+listing-order poison, and proves the accepted events, event-set preimage,
+event-set root, canonical ids, board hash, projection text, and SGF hashes stay
+identical. These rows prove the evidence stays outside truth; they do not make
+content, mtime, sidecar, projection, tmp, or transport metadata replay inputs.
+
 `v1-dag-invariants.jsonl` freezes DAG-boundary outcomes that cannot accurately be
 expressed as ordinary public replay basenames. Its event-id collision row uses
 synthetic DAG `input_items` with distinct synthetic names and the same

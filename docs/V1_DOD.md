@@ -345,10 +345,15 @@ covers the missing ordinary replay behavior cases above except event-id
 collision, which is not safely representable as an ordinary public replay
 basename without a real hash collision. Event-id collision is instead frozen by
 a synthetic DAG-boundary vector with no `event_set_root`, board, SGF, or replay
-status claim. The next vector slice must fold non-consensus poison evidence into
-public vectors while keeping `git-tree-goftp1` and `dns-record-goftp1` read-only
-and avoiding any claim of Git publish, live DNS, AXFR, DNSSEC trust, provider
-APIs, dynamic update, or DNS record publishing.
+status claim. The new non-consensus-poison vector starts the public
+baseline/poison evidence set with the WebDAV metadata-poison fixture, proving
+sidecar, projection, tmp, resource-body row fields, metadata, recursive hrefs,
+wrong-game hrefs, duplicate hrefs, percent-encoding hazards, and listing order
+stay outside event-set and replay truth. The next vector slice must expand that
+public poison set across the remaining core and profile specimens while keeping
+`git-tree-goftp1` and `dns-record-goftp1` read-only and avoiding any claim of
+Git publish, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic update, or DNS
+record publishing.
 
 ## Release Gates
 
