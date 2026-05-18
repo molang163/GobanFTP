@@ -114,6 +114,35 @@ subtest 'v1 witness reports signed-HMAC gate failures as diagnostics' => sub {
     unlike $stdout . $stderr, qr/\Q$fixture_key\E/, 'HMAC secret is never printed';
 };
 
+subtest 'v1 witness rejects trusted HMACs bound to a different payload' => sub {
+    my $fixture = File::Spec->catdir($signed_dir, 'payload-mismatch');
+    my $attestations = File::Spec->catfile(
+        $fixture,
+        'signed-hmac-goftp1',
+        'attestations.jsonl',
+    );
+
+    my ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'signed-hmac-goftp1',
+        '--fixture', $fixture,
+        '--attestations', $attestations,
+        '--trusted-hmac-key', "fixture-key-1=$fixture_key",
+    );
+
+    is $exit, 2, 'payload mismatch exits validation failure';
+    like $stdout, qr/^gobanftp\.v1\.witness=failed$/m, 'status is failed';
+    like $stdout, qr/^accepted_count=0$/m, 'accepts no payload-mismatched event';
+    like $stdout, qr/^rejected_count=1$/m, 'reports one rejection';
+    like $stdout, qr/^rejected_codes=wrong_signature$/m, 'prints stable rejection code';
+    like $stdout, qr/^rejected_classes=signature$/m, 'prints signature rejection class';
+    like $stdout, qr/^signature\.status=failed$/m, 'signature status is failed';
+    like $stderr, qr/^diagnostic .*code=wrong_signature/m, 'diagnostic code is on stderr';
+    like $stderr, qr/\breason=signature\.mismatch\b/,
+        'diagnostic explains the payload binding mismatch';
+    unlike $stdout . $stderr, qr/\Q$fixture_key\E/, 'HMAC secret is never printed';
+};
+
 subtest 'v1 witness keeps key selectors diagnostic-safe' => sub {
     my $fixture = File::Spec->catdir($signed_dir, 'wrong-signature');
     my $tempdir = tempdir(CLEANUP => 1);

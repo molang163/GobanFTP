@@ -9,10 +9,13 @@ use Test::More;
 
 use lib "$FindBin::Bin/../lib";
 
+use GobanFTP::Auth::HMAC qw(event_attestation_preimage hmac_sha256_hex);
 use GobanFTP::Witness qw(witness_for_listing);
 
 my $fixture_dir = "$FindBin::Bin/fixtures/v1/signed-hmac";
 my $schema_path = "$FindBin::Bin/../docs/DIAGNOSTICS.md";
+my $minimal_game = 'g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob';
+my $payload_mismatch_game = 'g1.id-other.s3.r-chinese-area-v1.k0.pb-alice.pw-bob';
 
 my %trusted_hmac_keys = (
     'fixture-key-1' => 'gobanftp signed hmac fixture key 1',
@@ -49,13 +52,14 @@ subtest 'signed-hmac-goftp1 accepts only valid HMAC-attested events' => sub {
 
 my @negative_cases = (
     ['missing-signature', 'missing_signature'],
-    ['wrong-signature', 'wrong_signature'],
+    ['wrong-signature', 'wrong_signature', 'signature.mismatch'],
+    ['payload-mismatch', 'wrong_signature', 'signature.mismatch'],
     ['untrusted-key-id', 'untrusted_signature'],
     ['malformed-signature', 'malformed_signature'],
 );
 
 for my $case (@negative_cases) {
-    my ($case_name, $code) = @$case;
+    my ($case_name, $code, $reason) = @$case;
     subtest "$case_name rejects with signature class" => sub {
         my ($witness) = _witness_for_case($case_name, 'signed-hmac-goftp1');
 
@@ -65,12 +69,47 @@ for my $case (@negative_cases) {
         is $witness->{rejected_count}, 1, 'records one rejected event';
         is_deeply $witness->{rejected_codes}, [$code], 'records stable signature diagnostic code';
         is_deeply $witness->{rejected_classes}, ['signature'], 'maps rejection to signature class';
+        is $witness->{rejected_diagnostics}[0]{reason}, $reason, 'records stable rejection reason'
+            if defined $reason;
         is $witness->{event_set_root}, $empty_root, 'root is the empty accepted signed set';
         is $witness->{replay_status}, 'ok', 'replay sees no rejected signature event';
         is $witness->{canonical_tip}, 'genesis', 'canonical line remains empty';
         is_deeply $witness->{diagnostic_classes}, [], 'signature diagnostics stay at witness gate';
     };
 }
+
+subtest 'payload-mismatch fixture is a real HMAC over another payload' => sub {
+    my (undef, $attestations) = _witness_for_case('payload-mismatch', 'signed-hmac-goftp1');
+    is scalar(@$attestations), 1, 'fixture has one attestation';
+
+    my $record = $attestations->[0];
+    is $record->{game_descriptor}, $minimal_game,
+        'public attestation record claims the observed game descriptor';
+
+    my %payload = (
+        version         => 'GOFTP-HMAC-EVENT/1',
+        profile         => 'signed-hmac-goftp1',
+        algorithm       => 'hmac-sha256',
+        key_id          => 'fixture-key-1',
+        event_basename  => $minimal_events[0],
+        event_id        => 'khjclcui7pejbv3m',
+    );
+
+    my $wrong_payload_mac = hmac_sha256_hex(
+        $trusted_hmac_keys{'fixture-key-1'},
+        event_attestation_preimage(%payload, game_descriptor => $payload_mismatch_game),
+    );
+    my $canonical_mac = hmac_sha256_hex(
+        $trusted_hmac_keys{'fixture-key-1'},
+        event_attestation_preimage(%payload, game_descriptor => $minimal_game),
+    );
+
+    is $record->{signature}, $wrong_payload_mac,
+        'fixture signature is a trusted HMAC over the alternate payload';
+    is $record->{mac}, $wrong_payload_mac, 'mac alias matches the mismatched payload signature';
+    isnt $record->{signature}, $canonical_mac,
+        'fixture signature is not the canonical attestation for this game';
+};
 
 subtest 'unsigned profiles ignore signed-hmac attestations' => sub {
     my @hostile_attestations = _read_jsonl(
