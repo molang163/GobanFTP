@@ -122,7 +122,6 @@ for my $case (qw(minimal fork fork-with-ack bad-event-id future-version missing-
 my @poison_vectors = _read_jsonl($poison_vector_path);
 ok @poison_vectors, 'loaded v1 non-consensus poison golden vectors';
 
-my @required_poison_evidence = qw(sidecar projection tmp content metadata list-order);
 my %seen_poison_id;
 for my $vector (@poison_vectors) {
     my $id = $vector->{id} // '<missing id>';
@@ -138,7 +137,6 @@ for my $vector (@poison_vectors) {
             ignored_inputs
             evidence_markers
             expected_event_set_preimage_hex
-            poisoned_order
             baseline
             poisoned
             same_witness_fields
@@ -153,10 +151,7 @@ for my $vector (@poison_vectors) {
         is_deeply $vector->{consensus_inputs}, [qw(game_descriptor accepted_event_basenames)],
             'vector declares the only truth inputs';
 
-        my %evidence = map { $_ => 1 } @{ $vector->{ignored_inputs} // [] };
-        for my $evidence (@required_poison_evidence) {
-            ok $evidence{$evidence}, "vector declares $evidence evidence";
-        }
+        _assert_poison_evidence($vector);
 
         for my $side (qw(baseline poisoned)) {
             ok ref($vector->{$side}) eq 'HASH', "$side input is an object";
@@ -173,7 +168,7 @@ for my $vector (@poison_vectors) {
         }
 
         _assert_poison_markers($vector);
-        _assert_poison_order($vector);
+        _assert_poison_order($vector) if exists $vector->{poisoned_order};
 
         my %witness;
         for my $side (qw(baseline poisoned)) {
@@ -232,12 +227,19 @@ for my $vector (@poison_vectors) {
             );
         }
 
-        unlike $witness{poisoned}{projection_text}{sgf_main}, qr/B\[cc\]/,
-            'poisoned stale SGF body is not copied into witness SGF';
+        my $projection_text = join '', map { $witness{poisoned}{projection_text}{$_} // '' }
+            @{ $vector->{same_projection_text_fields} };
+        for my $marker (values %{ $vector->{evidence_markers} }) {
+            unlike $projection_text, qr/\Q$marker\E/,
+                'poison evidence marker is not copied into invariant projection text';
+        }
     };
 }
 
-for my $case (qw(webdav-metadata-poison-public-vector)) {
+for my $case (qw(
+    webdav-metadata-poison-public-vector
+    git-tree-path-metadata-poison-public-vector
+)) {
     ok $seen_poison_id{$case}, "$case poison invariant vector is present";
 }
 
@@ -471,18 +473,54 @@ sub _assert_golden_value {
 sub _assert_poison_markers {
     my ($vector) = @_;
 
+    ok ref($vector->{evidence_markers}) eq 'HASH',
+        'evidence markers are an object';
+    ok scalar(keys %{ $vector->{evidence_markers} }),
+        'vector declares poison evidence markers';
+
     my $raw = join "\n", @{ $vector->{poisoned}{input_names} };
     for my $evidence (sort keys %{ $vector->{evidence_markers} }) {
         my $marker = $vector->{evidence_markers}{$evidence};
-        ok defined($marker) && index($raw, $marker) >= 0,
+        ok defined($marker) && $marker ne '' && index($raw, $marker) >= 0,
             "poisoned input carries $evidence marker";
+    }
+}
+
+sub _assert_poison_evidence {
+    my ($vector) = @_;
+
+    my $ignored_inputs = ref($vector->{ignored_inputs}) eq 'ARRAY'
+        ? $vector->{ignored_inputs}
+        : [];
+
+    ok ref($vector->{ignored_inputs}) eq 'ARRAY',
+        'ignored inputs are an array';
+    ok @$ignored_inputs,
+        'vector declares ignored inputs';
+
+    my %ignored;
+    for my $input (@$ignored_inputs) {
+        ok defined($input) && $input ne '', 'ignored input name is nonempty';
+        ok !$ignored{$input}++, "ignored input is unique: $input";
+    }
+
+    if (ref($vector->{evidence_markers}) eq 'HASH') {
+        for my $evidence (sort keys %{ $vector->{evidence_markers} }) {
+            ok $ignored{$evidence}, "evidence marker is declared ignored input: $evidence";
+        }
     }
 }
 
 sub _assert_poison_order {
     my ($vector) = @_;
 
-    my @order = @{ $vector->{poisoned_order} };
+    my $poisoned_order = ref($vector->{poisoned_order}) eq 'ARRAY'
+        ? $vector->{poisoned_order}
+        : [];
+
+    ok ref($vector->{poisoned_order}) eq 'ARRAY',
+        'poisoned order is an array';
+    my @order = @$poisoned_order;
     ok @order >= 2, 'poisoned order declares multiple events';
 
     my @positions;

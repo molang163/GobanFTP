@@ -120,6 +120,10 @@ Revision history for GobanFTP
   - Added the first public non-consensus-poison golden vector, binding the
     WebDAV metadata-poison fixture to unchanged event-set preimage, root,
     replay, board, projection text, and SGF truth.
+  - Added a Git-tree public non-consensus-poison golden vector and generalized
+    the poison-vector harness so each row declares its own ignored evidence and
+    optional poisoned listing order, without claiming Git publish, remote fetch,
+    or provider APIs.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

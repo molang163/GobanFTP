@@ -164,6 +164,11 @@ Key completed boundaries:
   refs, tags, remotes, mode, object id, object type, object size, `tmp/`,
   sidecar, projection, recursive path, wrong-game path, duplicate entry, and
   checkout-style path surfaces do not change the accepted witness.
+- `git-tree-path-metadata-poison` is now promoted into
+  `t/fixtures/vectors/v1-non-consensus-poison.jsonl` as a public poison vector,
+  binding the real fixture input names to unchanged event-set preimage, root,
+  replay, board, projection text, and SGF truth without claiming Git publish,
+  remote fetch, or provider APIs.
 - `git-tree-goftp1` now has read-only runtime store admission through
   `GOBANFTP_STORE=git-tree`: CLI verify/replay/SGF read direct
   `<treeish>:<game>/events` children from a real Git tree and prove the same
@@ -229,7 +234,20 @@ Key completed boundaries:
 
 ## Last Verified
 
-Latest verification after expanding v1 replay-invariant behavior vectors:
+Latest verification after promoting the Git-tree public non-consensus poison
+vector:
+
+```text
+prove -lr t/v1-golden-vectors.t t/v1-profile-attack-fixtures.t
+```
+
+Result:
+
+```text
+Files=2, Tests=120, all successful.
+```
+
+Earlier verification after expanding v1 replay-invariant behavior vectors:
 
 ```text
 git diff --check
@@ -355,10 +373,11 @@ after entering v1.0/P14 development:
 - event-id collision is covered only as a synthetic DAG-boundary vector; do not
   pretend a normal basename collision exists unless a real GOFTP/1 hash
   collision passes filename verification
-- `t/fixtures/vectors/v1-non-consensus-poison.jsonl` starts the public
-  baseline/poison vector set with `webdav-metadata-poison`, binding it to the
-  real fixture listings and proving ignored evidence leaves event-set preimage,
-  root, replay, board, projection text, and SGF truth unchanged
+- `t/fixtures/vectors/v1-non-consensus-poison.jsonl` now carries public
+  baseline/poison vectors for `webdav-metadata-poison` and
+  `git-tree-path-metadata-poison`, binding them to real fixture listings and
+  proving ignored evidence leaves event-set preimage, root, replay, board,
+  projection text, and SGF truth unchanged
 - next proof slice should expand public non-consensus poison vectors across the
   remaining core and profile attack specimens
 - continue the P14 claim audit for the admitted read boundaries now present at

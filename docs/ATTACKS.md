@@ -162,6 +162,12 @@ projection, recursive path, wrong-game path, duplicate entry, and checkout-style
 path surfaces. The expected witness remains the clean three-event baseline; a
 metadata or path row that changes the accepted event set changes the root and
 fails the fixture.
+It is also promoted into
+`t/fixtures/vectors/v1-non-consensus-poison.jsonl` as
+`git-tree-path-metadata-poison-public-vector`, binding the real fixture
+`input_names` to unchanged event-set preimage, root, replay, board, projection,
+and SGF truth. This is evidence for the read/listing boundary only; it does not
+claim Git publish, remote fetch, or provider API behavior.
 
 Signed/auth profile specimens live under:
 

@@ -190,6 +190,11 @@ same SGF
 same diagnostics class
 ```
 
+Public poison vectors must bind baseline and hostile rows back to real fixture
+`input_names`, declare the ignored evidence per row, and optionally record the
+hostile listing order when order itself is the poison. A vector must not require
+metadata categories that do not exist for that substrate.
+
 The following mutations must not remain the same:
 
 ```text

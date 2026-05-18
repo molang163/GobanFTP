@@ -23,12 +23,14 @@ admitted read boundaries now present at HEAD, especially `git-tree-goftp1` and
 diagnostics, and rendered projection text, and replay-invariant vectors now
 cover ordinary rule, DAG, ACK, terminal, malformed, and ack-assisted fork
 behavior. Event-id collision is now covered as a synthetic DAG-boundary vector,
-not as an ordinary basename collision claim. The first public non-consensus
-poison vector now binds a baseline/poison witness pair to the WebDAV
-metadata-poison fixture. The next proof slice should expand that poison vector
-set across the remaining core and profile specimens. This is not Git publish,
-live DNS, DNS publish, hosted Web UI, interactive TUI, or a v1.0/P14 completion
-claim.
+not as an ordinary basename collision claim. Public non-consensus poison
+vectors now bind baseline/poison witness pairs to the WebDAV metadata-poison
+and Git-tree path/metadata-poison fixtures, including real fixture
+`input_names` and unchanged event-set preimage, root, replay, board,
+projection, and SGF truth. The next proof slice should expand that poison
+vector set across the remaining core and profile specimens. This is not Git
+publish, Git remote fetch, live DNS, DNS publish, hosted Web UI, interactive
+TUI, or a v1.0/P14 completion claim.
 
 ## Cross-Cutting Acceptance: Elegance Without Obscurity
 

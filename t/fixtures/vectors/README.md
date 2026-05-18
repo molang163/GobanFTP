@@ -31,13 +31,16 @@ fork choice, malformed basenames, parent-is-ACK rejection, dangling ACK targets,
 and ACK targets that are themselves ACKs.
 
 `v1-non-consensus-poison.jsonl` freezes compact baseline/poison witness pairs
-for non-consensus evidence. The first row binds the vector to the WebDAV
-metadata-poison fixture, carries sidecar, projection, temporary, resource-body,
-metadata, recursive-href, wrong-game, duplicate, percent-encoding, and
-listing-order poison, and proves the accepted events, event-set preimage,
-event-set root, canonical ids, board hash, projection text, and SGF hashes stay
-identical. These rows prove the evidence stays outside truth; they do not make
-content, mtime, sidecar, projection, tmp, or transport metadata replay inputs.
+for non-consensus evidence. Each row declares its own `ignored_inputs`,
+`evidence_markers`, and optional `poisoned_order`, then binds the embedded
+`input_names` back to real fixture listings. Current rows promote the WebDAV
+metadata-poison and Git-tree path/metadata-poison fixtures. They prove accepted
+events, event-set preimage, event-set root, canonical ids, board hash,
+projection text, and SGF hashes stay identical when only ignored evidence
+changes. These rows prove the evidence stays outside truth; they do not make
+content, mtime, sidecar, projection, tmp, Git commit/ref/object metadata, or
+transport metadata replay inputs, and they do not claim Git publish or remote
+fetch support or provider APIs.
 
 `v1-dag-invariants.jsonl` freezes DAG-boundary outcomes that cannot accurately be
 expressed as ordinary public replay basenames. Its event-id collision row uses
