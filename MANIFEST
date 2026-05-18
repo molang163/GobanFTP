@@ -424,6 +424,7 @@ t/fixtures/v1/signed-hmac/wrong-signature/signed-hmac-goftp1/attestations.jsonl
 t/fixtures/v1/signed-hmac/wrong-signature/signed-hmac-goftp1/listing.names
 t/fixtures/vectors/event-set-root.jsonl
 t/fixtures/vectors/README.md
+t/fixtures/vectors/v1-signed-hmac-witness.jsonl
 t/fixtures/vectors/v1-witness.jsonl
 t/ftp-cli-parity.t
 t/ftp-live-flow.t
@@ -461,4 +462,5 @@ t/v1-attack-fixtures.t
 t/v1-cross-substrate.t
 t/v1-golden-vectors.t
 t/v1-signed-hmac.t
+t/v1-signed-hmac-golden-vectors.t
 t/witness-api.t

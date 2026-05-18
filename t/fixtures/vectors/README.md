@@ -16,3 +16,8 @@ ids, recursive children, and ignored surfaces stay outside the root.
 input listing fixture and records the accepted events, rejected diagnostic
 classes, event set root, replay status, canonical and legal ids, and projection
 hashes produced by `GobanFTP::Witness`.
+
+`v1-signed-hmac-witness.jsonl` freezes the signed-HMAC profile witness fields
+for valid, missing, wrong, untrusted, and malformed event attestations. Rows name
+both the listing fixture and the public attestation fixture. The vector records
+the public trust selector, but not the HMAC secret used by the verifier test.
