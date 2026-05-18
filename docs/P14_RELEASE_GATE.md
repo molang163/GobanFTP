@@ -13,8 +13,8 @@ Perl: `v5.42.2`
 ## Scope
 
 This records the first P14a release-gate dry run against the current v1.0 proof
-machine. It records command coverage, skipped gates, generated artifacts, and
-known release-route gaps.
+machine and the post-correction clean-worktree rerun. It records command
+coverage, skipped gates, generated artifacts, and known release-route gaps.
 
 The dry run uses existing commands only. It does not add a second witness
 assembler, does not change `GOFTP/1`, does not publish artifacts, and does not
@@ -84,6 +84,38 @@ size=275K
 The archive is not committed by this dry run. It predates this checked-in report
 and is not the final release artifact manifest.
 
+## Post-Correction Clean Worktree Check
+
+After the manifest correction and this report were committed, the same matrix
+was rerun from a fresh detached worktree:
+
+```text
+Commit: 01e460044a64ca524fa6f80fa75b4cd0b6e5ed6e
+Worktree: /tmp/gobanftp-p14-clean.FmmCRF
+Perl: v5.42.2
+```
+
+Result: PASS.
+
+Additional post-correction checks:
+
+```text
+make manifest left MANIFEST and MANIFEST.SKIP unchanged
+tarball contained docs/P14_RELEASE_GATE.md
+tarball contained t/fixtures/attacks/tmp-poison/tmp/pending.part
+```
+
+The post-correction archive observed during the clean-worktree rerun was:
+
+```text
+GobanFTP-0.001.tar.gz
+sha256=4c26f252b4d970a801213c61d351621b212077eff8bfd29cdd66a90bdbe8579f
+size=279K
+```
+
+The archive is still a dry-run artifact. It is not committed and is not a
+publication event.
+
 ## Skipped Or Deferred
 
 - Live FTP tests were skipped because `GOBANFTP_FTP_TEST=1` was not set.
@@ -107,7 +139,8 @@ and is not the final release artifact manifest.
 
 ## Next Release-Route Step
 
-After this manifest correction is committed, rerun the P14 gate from a fresh
-clean worktree at the corrected commit and compare the command matrix against
-this report. Only after a clean post-correction run should the release artifact
-manifest and any tag decision be considered.
+The post-correction clean-worktree rerun is recorded above. The next
+release-route step is to decide whether to create a final release artifact
+manifest and tag plan, while keeping every deferred runtime surface or profile
+claim explicit. Do not tag v1.0 until the final intended release matrix, not just
+this dry run, has passed.

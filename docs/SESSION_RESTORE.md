@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- docs: record P14 clean gate rerun
 - docs: add P14 release gate dry run
 - test: add showcase surface smoke gate
 - feat: add terminal witness observatory
@@ -29,6 +30,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD docs: record P14 clean gate rerun
 HEAD docs: add P14 release gate dry run
 HEAD test: add showcase surface smoke gate
 HEAD feat: add terminal witness observatory
@@ -66,9 +68,10 @@ Key completed boundaries:
 - P14a release-gate dry run is recorded in `docs/P14_RELEASE_GATE.md`. It ran
   the source-art, MakeMaker, perl-rules, shadow-rules, full prove, v1 witness,
   v1 compare, manifest, dist, disttest, and distcheck gates in a temporary
-  worktree. All executed gates passed after correcting manifest skip rules. This
-  is a release-route checkpoint, not a v1.0 tag, P14 completion claim, hosted Web
-  UI claim, or interactive TUI claim.
+  worktree, then reran the same matrix from a clean detached worktree at commit
+  `01e460044a64ca524fa6f80fa75b4cd0b6e5ed6e`. All executed gates passed after
+  correcting manifest skip rules. This is a release-route checkpoint, not a
+  v1.0 tag, P14 completion claim, hosted Web UI claim, or interactive TUI claim.
 - Manifest skip rules now handle `.git` as either a directory or file and avoid
   excluding intentional attack specimens under `t/fixtures/`, including
   `t/fixtures/attacks/tmp-poison/tmp/pending.part`.
@@ -201,6 +204,13 @@ make dist
 GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make disttest
 make distcheck
 
+Post-correction clean worktree at 01e460044a64ca524fa6f80fa75b4cd0b6e5ed6e:
+same P14 matrix passed again
+make manifest left MANIFEST and MANIFEST.SKIP unchanged
+tarball included docs/P14_RELEASE_GATE.md
+tarball included t/fixtures/attacks/tmp-poison/tmp/pending.part
+GobanFTP-0.001.tar.gz sha256=4c26f252b4d970a801213c61d351621b212077eff8bfd29cdd66a90bdbe8579f size=279K
+
 Main worktree after documenting the dry run:
 perl -Ilib -c t/showcase-demo.t
 prove -lr t/showcase-demo.t
@@ -263,13 +273,10 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-after P14a dry-run documentation, rerun the P14 gate from a fresh clean worktree
-at the corrected commit and compare it against docs/P14_RELEASE_GATE.md:
-- confirm manifest generation is stable with the corrected skip rules
-- confirm dist/disttest/distcheck still pass after docs/P14_RELEASE_GATE.md is
-  included in MANIFEST
-- decide whether the next P14 slice is release artifact manifest, interactive
-  TUI fallback/lock-state proof, hosted Web export, or runtime Git/DNS adapter
+after P14a dry-run documentation and post-correction clean-worktree rerun:
+- decide whether the next P14 slice is final release artifact manifest/tag plan,
+  interactive TUI fallback/lock-state proof, hosted Web export, or runtime
+  Git/DNS adapter
 - do not tag v1.0 until the final clean-checkout P14 matrix passes
 - do not let display, source art, Web assets, terminal formatting, or interactive
   input feed replay or event-set roots
