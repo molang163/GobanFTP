@@ -9,6 +9,7 @@ use Exporter qw(import);
 
 our @EXPORT_OK = qw(
     parse_trust_tsv
+    trust_lifecycle_decision
     trust_report_summary
 );
 
@@ -25,6 +26,7 @@ my @TRUST_COLUMNS = qw(
 );
 my %TRUST_STATUS = map { $_ => 1 } qw(trusted rotated revoked expired);
 my %TRUST_ABSENT = map { $_ => 1 } qw(not_before not_after revoked_at reason);
+my %TRUST_PURPOSE = map { $_ => 1 } qw(verify publish);
 
 sub trust_report_summary {
     my %args = @_ == 1 && ref($_[0]) eq 'HASH' ? %{ $_[0] } : @_;
@@ -106,6 +108,39 @@ sub parse_trust_tsv {
     return @records;
 }
 
+sub trust_lifecycle_decision {
+    my %args = _args(@_);
+
+    my $status = $args{status};
+    croak 'parse_trust:status'
+        if !defined($status) || !$TRUST_STATUS{$status};
+
+    my $purpose = $args{purpose} // 'verify';
+    croak 'parse_trust:purpose'
+        if !$TRUST_PURPOSE{$purpose};
+
+    my $accepted = $status eq 'trusted'
+        || ($status eq 'rotated' && $purpose eq 'verify');
+
+    return {
+        status   => $status,
+        purpose  => $purpose,
+        accepted => $accepted ? 1 : 0,
+        reason   => _lifecycle_reason($status, $purpose),
+    };
+}
+
+sub _lifecycle_reason {
+    my ($status, $purpose) = @_;
+
+    return 'key.trusted'        if $status eq 'trusted';
+    return 'key.rotated.verify' if $status eq 'rotated' && $purpose eq 'verify';
+    return 'key.rotated'        if $status eq 'rotated';
+    return 'key.revoked'        if $status eq 'revoked';
+    return 'key.expired'        if $status eq 'expired';
+    return 'key.untrusted';
+}
+
 sub _validate_trust_records {
     my ($records, $public_by_id) = @_;
 
@@ -160,6 +195,12 @@ sub _key_id {
 sub _public_token {
     my ($value) = @_;
     return defined($value) && $value =~ /\A[A-Za-z0-9._:-]+\z/;
+}
+
+sub _args {
+    return %{ $_[0] } if @_ == 1 && ref($_[0]) eq 'HASH';
+    croak 'named arguments must be key/value pairs' if @_ % 2;
+    return @_;
 }
 
 sub _array_ref {

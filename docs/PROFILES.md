@@ -198,6 +198,13 @@ key_id	suite	principal	role	status	not_before	not_after	revoked_at	reason
 k1.example	fixture-ed25519-v1	player:alice	player	trusted	2026-01-01	-	-	fixture
 ```
 
+Trust lifecycle status is deterministic and does not consult wall-clock time.
+For verification, `trusted` keys are accepted, `rotated` keys are accepted for
+old material, and `revoked` or `expired` keys fail. For publishing new material,
+only `trusted` keys are accepted; `rotated`, `revoked`, and `expired` keys fail.
+The date fields are public evidence attached to an explicit row, not replay
+clocks.
+
 Attestation fixtures are also public data. Public-key fixture signatures must
 be visibly non-cryptographic placeholders, for example `fixture:<hex>`, until a
 real suite is selected. HMAC fixture vectors may use public test keys for
@@ -239,6 +246,12 @@ signed/auth acceptance. It is deliberately limited to explicit in-memory
 verifier trust sets and deterministic HMAC-SHA256 fixture keys; it does not
 define production private-key storage, rotation, revocation, or publish
 authentication.
+
+Its `key_id` is an explicit HMAC verifier selector, such as `fixture-key-1`,
+not a `GOFTP-KEY/1` public-key id. `k1.` is reserved for public key records and
+`GOFTP-TRUST/1`; it must not be accepted as a signed-HMAC key selector. A future
+profile may define a public-key signing suite that uses `k1.` identities, but
+that suite is not `signed-hmac-goftp1`.
 
 `signed-hmac-goftp1` event attestation payload:
 

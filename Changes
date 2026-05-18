@@ -49,6 +49,9 @@ Revision history for GobanFTP
   - Added fixture-only `gobanftp v1 trust-report --fixture` support for public
     trust TSV summaries, proving trusted, rotated, revoked, and expired key
     rows remain advisory and do not alter unsigned witness truth.
+  - Defined the signed-HMAC/trust bridge boundary: `signed-hmac-goftp1` keeps
+    explicit HMAC selectors separate from public `GOFTP-KEY/1` `k1.` identities
+    and records deterministic trust lifecycle semantics before enforcement.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

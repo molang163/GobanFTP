@@ -429,3 +429,36 @@ Reason:
   accepted event basenames, not trust metadata
 - fixture trust reporting can expose lifecycle state without creating a real
   private-key system or production trust store
+
+## 030: Signed-HMAC Does Not Use Public `k1.` Key IDs
+
+`signed-hmac-goftp1` keeps using explicit verifier-local HMAC selectors such as
+`fixture-key-1`. These selectors are public diagnostic labels for secrets passed
+through the verifier trust set. They are not `GOFTP-KEY/1` public key ids and
+must not start with `k1.`. Public `k1.` ids remain reserved for public key
+records and `GOFTP-TRUST/1` rows.
+
+Trust lifecycle status has deterministic meaning when a future signed profile
+chooses to enforce it:
+
+```text
+status   verify old material   publish new material
+trusted  accept                accept
+rotated  accept                reject
+revoked  reject                reject
+expired  reject                reject
+```
+
+`not_before`, `not_after`, and `revoked_at` are explicit public row evidence,
+not wall-clock replay inputs. P12c-0 defines this boundary and rejects `k1.`
+HMAC selectors; it does not make advisory `GOFTP-TRUST/1` rows authorize or
+reject `signed-hmac-goftp1` events.
+
+Reason:
+
+- `fixture-ed25519-v1` public keys are parser fixtures and not HMAC secrets
+- silently mapping public `k1.` trust rows onto HMAC secrets would merge two
+  different authentication models
+- rotated keys must be able to verify old material without publishing new
+  material
+- signed/auth lifecycle policy needs deterministic rows, not ambient time

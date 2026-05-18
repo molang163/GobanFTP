@@ -280,8 +280,10 @@ required signature under the signed profile. `wrong_signature` reports a trusted
 key id whose MAC does not verify the canonical payload, including signatures
 bound to a different profile, game descriptor, event basename, event id, or
 algorithm. `untrusted_signature` reports a key id outside the active trust set
-or outside its declared scope. `malformed_signature` reports a signature record
-that cannot be parsed as the signed profile's declared format.
+or outside its declared scope, including a `GOFTP-KEY/1` `k1.` public-key id
+used where `signed-hmac-goftp1` requires an explicit HMAC selector.
+`malformed_signature` reports a signature record that cannot be parsed as the
+signed profile's declared format.
 
 Signature verification reasons are public verifier classifications such as
 `signature.mismatch`, `game_descriptor.mismatch`, `event_basename.mismatch`,

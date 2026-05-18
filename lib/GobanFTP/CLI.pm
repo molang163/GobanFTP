@@ -1262,7 +1262,10 @@ sub _trusted_hmac_key_map {
             if !defined($record) || $record !~ /\A([^=]+)=(.+)\z/;
         my ($key_id, $key) = ($1, $2);
         die 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]'
-            if !_is_public_token($key_id) || exists $keys{$key_id} || $key_id eq $key;
+            if !_is_public_token($key_id)
+                || $key_id =~ /\Ak1[.]/
+                || exists $keys{$key_id}
+                || $key_id eq $key;
         $keys{$key_id} = $key;
         push @secret_values, $key;
     }

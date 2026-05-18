@@ -15,6 +15,7 @@ my $game = 'g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob';
 my $key_id = 'fixture-key-1';
 my $key    = 'gobanftp signed hmac fixture key 1';
 my %trusted_hmac_keys = ($key_id => $key);
+my $public_key_id = 'k1.jk4bs0r77srdlpds260hka9fpp49clpg';
 
 my @events = qw(
     m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m
@@ -100,6 +101,33 @@ subtest 'filename gate diagnostics are preserved before signature checks' => sub
     is $result->{event_count}, 0, 'bad event id cannot enter signed set';
     is scalar(@{ $result->{diagnostics} }), 1, 'only filename gate diagnostic is reported';
     is $result->{diagnostics}[0]{code}, 'parse_event', 'signature gate does not mask parse_event';
+};
+
+subtest 'GOFTP-KEY public namespace cannot authorize signed-HMAC' => sub {
+    my $attestation = sign_event(
+        version         => 'GOFTP-HMAC-EVENT/1',
+        profile         => 'signed-hmac-goftp1',
+        algorithm       => 'hmac-sha256',
+        game_descriptor => $game,
+        event_basename  => $events[0],
+        key_id          => $public_key_id,
+        key             => $key,
+    );
+
+    my $result = signed_hmac_event_set_result(
+        profile_id        => 'signed-hmac-goftp1',
+        game_descriptor   => $game,
+        unsigned_result   => _unsigned_result([$events[0]]),
+        hmac_attestations => [$attestation],
+        trusted_hmac_keys => { $public_key_id => $key },
+    );
+
+    is $result->{event_count}, 0, 'does not accept a k1 public-key id as an HMAC selector';
+    is_deeply $result->{accepted_events}, [], 'public-key namespace leaves signed set empty';
+    is $result->{diagnostics}[0]{code}, 'untrusted_signature',
+        'public-key namespace is a trust failure';
+    is $result->{diagnostics}[0]{reason}, 'key_id.public_key_namespace',
+        'diagnostic names the namespace boundary';
 };
 
 like dies(sub {

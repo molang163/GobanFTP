@@ -239,7 +239,10 @@ For `signed-hmac-goftp1`, pass public attestation records with
 `--attestations` and one or more explicit verifier keys with
 `--trusted-hmac-key <id=key>`. The key id is public, must be a single
 diagnostic-safe token, and may appear in stdout or diagnostics; the key bytes
-must not be printed.
+must not be printed. The HMAC key id is a verifier-local selector, not a
+`GOFTP-KEY/1` public key id. Selectors starting with `k1.` are rejected for
+`--trusted-hmac-key` so fixture public-key trust rows cannot silently authorize
+HMAC attestations.
 
 The command calls `GobanFTP::Witness` and does not recompute roots, signatures,
 or replay results inside CLI code. It does not write events or projections.

@@ -8,7 +8,11 @@ use Test::More;
 use lib "$FindBin::Bin/../lib";
 
 use GobanFTP::Auth::KeyID qw(parse_public_key_record);
-use GobanFTP::Auth::TrustReport qw(parse_trust_tsv trust_report_summary);
+use GobanFTP::Auth::TrustReport qw(
+    parse_trust_tsv
+    trust_lifecycle_decision
+    trust_report_summary
+);
 
 my $fixture_dir = "$FindBin::Bin/fixtures/auth/trust-report/advisory-ok";
 my @keys = map { parse_public_key_record(_read_text($_)) } sort glob "$fixture_dir/keys/*.pub";
@@ -87,6 +91,35 @@ subtest 'trust rows must match derived public key identity' => sub {
     like _exception(sub { trust_report_summary(public_keys => [$keys[0], $keys[0]]) }),
         qr/\Aparse_public_key:duplicate_key\b/,
         'duplicate public key records fail closed';
+};
+
+subtest 'trust lifecycle policy is deterministic and purpose-specific' => sub {
+    my @cases = (
+        [trusted => verify  => 1, 'key.trusted'],
+        [trusted => publish => 1, 'key.trusted'],
+        [rotated => verify  => 1, 'key.rotated.verify'],
+        [rotated => publish => 0, 'key.rotated'],
+        [revoked => verify  => 0, 'key.revoked'],
+        [revoked => publish => 0, 'key.revoked'],
+        [expired => verify  => 0, 'key.expired'],
+        [expired => publish => 0, 'key.expired'],
+    );
+
+    for my $case (@cases) {
+        my ($status, $purpose, $accepted, $reason) = @$case;
+        my $decision = trust_lifecycle_decision(status => $status, purpose => $purpose);
+        is $decision->{accepted}, $accepted, "$status/$purpose accepted flag";
+        is $decision->{reason}, $reason, "$status/$purpose reason";
+    }
+
+    is trust_lifecycle_decision(status => 'rotated')->{accepted}, 1,
+        'default purpose is verify';
+    like _exception(sub { trust_lifecycle_decision(status => 'unknown') }),
+        qr/\Aparse_trust:status\b/,
+        'unknown lifecycle status fails closed';
+    like _exception(sub { trust_lifecycle_decision(status => 'trusted', purpose => 'replay-time') }),
+        qr/\Aparse_trust:purpose\b/,
+        'unknown lifecycle purpose fails closed';
 };
 
 done_testing;

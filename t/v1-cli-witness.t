@@ -385,6 +385,19 @@ subtest 'v1 witness rejects unsafe trusted key selectors' => sub {
     like $stderr, qr/^usage: v1 witness /m, 'duplicate trusted key usage is reported';
     unlike $stdout . $stderr, qr/secret|other-value/,
         'duplicate trusted key bytes are not printed';
+
+    ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'signed-hmac-goftp1',
+        '--fixture', File::Spec->catdir($signed_dir, 'valid'),
+        '--trusted-hmac-key', 'k1.jk4bs0r77srdlpds260hka9fpp49clpg=public-key-namespace-secret',
+    );
+
+    is $exit, 1, 'GOFTP-KEY public namespace is not an HMAC trusted selector';
+    is $stdout, '', 'k1 namespace usage failure writes no stdout';
+    like $stderr, qr/^usage: v1 witness /m, 'k1 namespace usage is reported';
+    unlike $stdout . $stderr, qr/public-key-namespace-secret|jk4bs0r77srdlpds260hka9fpp49clpg/,
+        'k1 namespace failure does not print selector or key bytes';
 };
 
 subtest 'v1 witness rejects bad argument shape' => sub {

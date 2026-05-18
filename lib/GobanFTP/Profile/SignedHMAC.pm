@@ -106,6 +106,17 @@ sub _attestation_diagnostic {
     my $event_id = _event_id_from_basename($event);
     my $key_id   = $attestation->{key_id} // '';
 
+    if (_is_public_key_namespace($key_id)) {
+        return {
+            code       => 'untrusted_signature',
+            profile_id => $profile_id,
+            name       => $event,
+            event_id   => $event_id,
+            key_id     => $key_id,
+            reason     => 'key_id.public_key_namespace',
+        };
+    }
+
     if ($key_id eq '' || !exists $keys->{$key_id}) {
         return {
             code       => 'untrusted_signature',
@@ -228,6 +239,11 @@ sub _event_id_from_basename {
     return undef if !defined $event;
     return $1 if $event =~ /[.]h-([a-z0-9]+)\z/;
     return undef;
+}
+
+sub _is_public_key_namespace {
+    my ($key_id) = @_;
+    return defined($key_id) && $key_id =~ /\Ak1[.]/;
 }
 
 sub _args {

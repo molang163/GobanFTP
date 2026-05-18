@@ -14,7 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
-- feat: add fixture trust report command
+- feat: define signed HMAC trust bridge boundary
 ```
 
 Confirm the latest commit with `git log --oneline -5` when resuming.
@@ -22,6 +22,8 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD feat: define signed HMAC trust bridge boundary
+HEAD docs: clarify signed trust restore step
 HEAD feat: add fixture trust report command
 HEAD feat: add fixture keyid command
 HEAD test: add WebDAV publish failure fixture
@@ -54,6 +56,11 @@ Key completed boundaries:
   first, summarizes optional public `keys/*.pub` and `GOFTP-TRUST/1` rows, emits
   trusted/rotated/revoked/expired lifecycle fields, rejects malformed trust/key
   fixtures without leaking fixture material, and keeps all trust state advisory.
+- P12c-0 signed-HMAC/trust bridge boundary is defined:
+  `signed-hmac-goftp1` keeps explicit HMAC
+  selectors separate from public `GOFTP-KEY/1` `k1.` identities, advisory
+  `GOFTP-TRUST/1` rows do not authorize HMAC signatures, and lifecycle status
+  has deterministic verify/publish meaning without wall-clock replay inputs.
 - WebDAV publish failure now has a fixture and CLI parity gate proving
   existing-final idempotence, delayed `MOVE` visibility, hard `HTTP 423 Locked`
   failure, bounded retries, zero-byte temporary resources, tmp debris exclusion,
@@ -94,12 +101,14 @@ Key completed boundaries:
 
 ## Last Verified
 
-After the fixture trust-report command, these passed:
+After the signed-HMAC/trust bridge boundary, these passed:
 
 ```text
 perl -Ilib -c lib/GobanFTP/Auth/TrustReport.pm
+perl -Ilib -c lib/GobanFTP/Profile/SignedHMAC.pm
 perl -Ilib -c lib/GobanFTP/CLI.pm
 perl -Ilib -c lib/GobanFTP/Diagnostics.pm
+prove -lr t/auth-trust-report.t t/profile-signed-hmac.t t/v1-cli-witness.t t/v1-signed-hmac.t t/v1-signed-hmac-golden-vectors.t t/cli-auth-trust-report.t t/diagnostics-contract.t
 prove -lr t/auth-keyid.t t/cli-auth-keyid.t t/diagnostics-contract.t t/dependency-sync.t t/v1-cli-witness.t t/v1-signed-hmac.t
 prove -lr t/auth-trust-report.t t/cli-auth-trust-report.t t/diagnostics-contract.t
 prove -lr t/auth-keyid.t t/auth-trust-report.t t/cli-auth-keyid.t t/cli-auth-trust-report.t t/diagnostics-contract.t t/v1-cli-witness.t
@@ -112,7 +121,7 @@ prove -lr t
 Full test result:
 
 ```text
-Files=67, Tests=878, all successful.
+Files=67, Tests=880, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -134,15 +143,11 @@ Immediate next implementation:
 ```text
 after showing the README, continue the v1.0 route:
 - pick the next small proof gate by multi-agent discussion
-- likely candidate is P12c-0: define the signed-HMAC/trust bridge before
-  enforcing lifecycle state
-- decide whether signed-HMAC attestations keep explicit HMAC key ids or use
-  `k1.` fixture ids, whether `--trusted-hmac-key` accepts `k1.=secret`, and
-  which `GOFTP-TRUST/1` suite names apply to HMAC fixtures
-- define lifecycle semantics for `trusted`, `rotated`, `revoked`, and `expired`
-  without wall-clock replay inputs
-- only after that, reject missing, untrusted, revoked, or expired signed keys
-  inside `signed-hmac-goftp1`
+- likely candidate is P12c-1: explicit signed-HMAC lifecycle enforcement
+- design an explicit trust input for `signed-hmac-goftp1`, probably separate
+  from public `fixture-ed25519-v1` trust rows
+- reject signed-HMAC events with missing/untrusted/revoked/expired selectors
+  only inside the signed profile, while preserving rotated verify semantics
 - keep unsigned `GOFTP/1` and `local-goftp1` replay unchanged
 - keep every change behavior-tested and update Changes plus this restore file
 ```
@@ -177,6 +182,6 @@ When resuming:
    maintainer guide supplied in the session context.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `feat: add fixture trust report command`.
+4. Confirm HEAD includes `feat: define signed HMAC trust bridge boundary`.
 5. If the user asks to continue, open multi-agent discussion first, then choose
    one small executable step.
