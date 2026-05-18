@@ -343,6 +343,7 @@ prove -lr t/v1-cross-substrate.t
 prove -lr t/v1-attack-fixtures.t
 prove -lr t/v1-golden-vectors.t
 prove -lr t/v1-signed-hmac.t
+prove -lr t/profile-registry.t t/profile-adapter.t t/witness-api.t
 prove -lr t/diagnostics-contract.t
 prove -lr t/rules-flow.t t/rules-superko.t
 

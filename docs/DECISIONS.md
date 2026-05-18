@@ -310,3 +310,25 @@ Reason:
 - key ids are public selectors, while HMAC secrets live only in an explicit
   verifier trust set and must never appear in filenames, projections, or
   diagnostics
+
+## 024: Production Witness API Starts Unsigned
+
+`GobanFTP::Witness` is the production read-only witness assembly point for
+unsigned substrate profiles. It accepts a profile id, game descriptor, and raw
+listing rows, then delegates listing presentation differences to
+`GobanFTP::Profile::Adapter` before computing `event_set_root`, replay status,
+board hash, SGF hash, and diagnostic classes.
+
+Reason:
+
+- unsigned `GOFTP/1` and baseline profiles can move out of test-only harnesses
+  without changing event filename grammar, event id preimages, DAG replay, rules,
+  SGF, or projection semantics
+- Git, DNS, and WebDAV are useful v1.0 proof fixtures as read-normalizers, but
+  their profiles remain planned until full adapter/store and publish contracts
+  exist
+- bad event-looking basenames must still reach replay diagnostics even if the
+  event-set root gate rejects them, because rejected truth should be visible
+  rather than silently filtered away
+- the signed-HMAC gate stays separate until production key lifecycle and signed
+  profile behavior are ready to leave the fixture harness

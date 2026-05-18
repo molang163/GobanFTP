@@ -7,9 +7,8 @@ use File::Spec;
 use Test::More;
 
 use lib "$FindBin::Bin/../lib";
-use lib "$FindBin::Bin/lib";
 
-use GobanFTP::Test::WitnessHarness qw(witness_for_listing);
+use GobanFTP::Witness qw(witness_for_listing);
 
 my $fixture_dir = "$FindBin::Bin/fixtures/v1/cross-substrate";
 my $schema_path = "$FindBin::Bin/../docs/DIAGNOSTICS.md";

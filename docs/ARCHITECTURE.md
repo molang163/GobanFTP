@@ -26,7 +26,8 @@ semantics, or the rule algorithms used to decide legality.
 Core replay should remain a deterministic pipeline:
 
 ```text
-normalized listing names
+profile listing read
+  -> normalized listing names
   -> typed filename events
   -> event ids
   -> DAG
@@ -38,6 +39,15 @@ normalized listing names
 Each stage should have a narrow contract and tests. A stage may reject input with
 diagnostics, but it must not fetch file contents or inspect projection state to
 decide consensus.
+
+`GobanFTP::Witness` is the production read-only assembly point for this proof.
+It takes a declared profile id, a game descriptor basename, and raw profile
+listing rows; asks the profile adapter for visible listing names; computes
+`event_set_root`; replays the normalized event candidates; and reports stable
+diagnostic classes. For unsigned profiles, replay intentionally sees normalized
+event-looking basenames even when the root gate later rejects them, so parser and
+event-id failures remain observable diagnostics instead of disappearing as
+filtered input.
 
 See `docs/ALGORITHMS.md` for the algorithmic elegance gate and `docs/RULES.md`
 for v1 rule-core algorithms.
@@ -61,8 +71,12 @@ lib/GobanFTP/
   AckPublisher.pm   ack event publication
   MovePublisher.pm  move event publication
   DAG.pm            event graph, forks, canonical line
+  Diagnostics.pm    stable diagnostic code/class helpers
   Replay.pm         validate and replay a canonical line
   Redact.pm         diagnostic secret redaction
+  Profile.pm        v1 profile registry
+  Profile/Adapter.pm read-only profile listing normalizers
+  Witness.pm        profile witness assembly and event_set_root reports
   Store.pm          storage interface
   Store/Config.pm   environment-backed store configuration
   Store/Local.pm    local filesystem backend

@@ -60,6 +60,11 @@ fixtures             required test/specimen paths
 smoke_command        reproducible command proving the profile boundary
 ```
 
+The runtime profile registry may expose a compact subset of those fields for
+code dispatch and witness output. The full normative profile record remains this
+document: authoritative inputs, ignored inputs, publish semantics, diagnostics,
+fixtures, and smoke commands are not inferred from a backend nickname.
+
 The profile `consensus_version` identifies the profile contract. It is not part
 of `GOFTP/1` event id calculation and is not part of the default
 `GOFTP-EVENT-SET/1` preimage. Cross-substrate equality requires the same game
@@ -465,6 +470,13 @@ GOBANFTP_FTP_TEST=1 prove -l t/store-ftp.t t/ftp-live-flow.t
 
 The planned profiles below are v1.0 targets. They are not implemented until an
 adapter, fixtures, and smoke command exist.
+
+The production registry already names these profiles so witness fixtures can
+compare substrates through one API. Their current code status is
+`read-normalizer`: `GobanFTP::Profile::Adapter` can normalize fixture-like Git,
+DNS, and WebDAV listing presentations into visible names, but those profiles
+remain `planned` until they have full adapter/store boundaries, publish
+semantics, fixtures, and smoke commands.
 
 ### `git-tree-goftp1`
 

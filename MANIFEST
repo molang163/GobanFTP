@@ -238,6 +238,7 @@ lib/GobanFTP/Board.pm
 lib/GobanFTP/CLI.pm
 lib/GobanFTP/Coord.pm
 lib/GobanFTP/DAG.pm
+lib/GobanFTP/Diagnostics.pm
 lib/GobanFTP/Event.pm
 lib/GobanFTP/EventID.pm
 lib/GobanFTP/EventSetRoot.pm
@@ -246,6 +247,8 @@ lib/GobanFTP/GameSpec.pm
 lib/GobanFTP/Listing.pm
 lib/GobanFTP/MovePublisher.pm
 lib/GobanFTP/Oracle/Smoke.pm
+lib/GobanFTP/Profile.pm
+lib/GobanFTP/Profile/Adapter.pm
 lib/GobanFTP/Projection.pm
 lib/GobanFTP/Redact.pm
 lib/GobanFTP/Replay.pm
@@ -256,6 +259,7 @@ lib/GobanFTP/Store.pm
 lib/GobanFTP/Store/Config.pm
 lib/GobanFTP/Store/FTP.pm
 lib/GobanFTP/Store/Local.pm
+lib/GobanFTP/Witness.pm
 LICENSE
 Makefile.PL
 MANIFEST			This list of files
@@ -430,6 +434,8 @@ t/lib/GobanFTP/Test/WitnessHarness.pm
 t/listing.t
 t/play-flow-store.t
 t/play-watch.t
+t/profile-adapter.t
+t/profile-registry.t
 t/projection-rebuild.t
 t/publish-ack.t
 t/publish-move.t
@@ -454,3 +460,4 @@ t/v1-attack-fixtures.t
 t/v1-cross-substrate.t
 t/v1-golden-vectors.t
 t/v1-signed-hmac.t
+t/witness-api.t

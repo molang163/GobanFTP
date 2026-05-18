@@ -9,9 +9,8 @@ use JSON::PP qw(decode_json);
 use Test::More;
 
 use lib "$FindBin::Bin/../lib";
-use lib "$FindBin::Bin/lib";
 
-use GobanFTP::Test::WitnessHarness qw(witness_for_listing);
+use GobanFTP::Witness qw(witness_for_listing);
 
 my $repo_root   = File::Spec->rel2abs("$FindBin::Bin/..");
 my $vector_path = "$FindBin::Bin/fixtures/vectors/v1-witness.jsonl";
