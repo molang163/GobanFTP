@@ -58,6 +58,9 @@ Revision history for GobanFTP
   - Expanded signed-HMAC witness golden vectors to freeze lifecycle status,
     accepted and rejected event sets, and lifecycle rejection diagnostics for
     trusted, rotated, revoked, and expired HMAC selectors.
+  - Added a signed-HMAC public-trust bridge poison fixture proving public
+    `GOFTP-TRUST/1` rows cannot authorize `k1.` HMAC selectors or revoke
+    explicit HMAC selectors, while unsigned replay remains unchanged.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

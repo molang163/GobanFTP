@@ -14,7 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
-- test: freeze signed HMAC lifecycle vectors
+- test: add signed HMAC public trust poison fixture
 ```
 
 Confirm the latest commit with `git log --oneline -5` when resuming.
@@ -22,6 +22,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD test: add signed HMAC public trust poison fixture
 HEAD test: freeze signed HMAC lifecycle vectors
 HEAD feat: enforce signed HMAC lifecycle status
 HEAD feat: define signed HMAC trust bridge boundary
@@ -74,6 +75,12 @@ Key completed boundaries:
   statuses, accepted/rejected sets, and `rejected_diagnostics` for trusted,
   rotated, revoked, and expired HMAC selectors. Revoked and expired vectors
   freeze `key.revoked` and `key.expired` reasons.
+- P12e signed-HMAC public trust bridge poison is implemented:
+  `t/fixtures/v1/signed-hmac/public-trust-bridge-poison` carries public
+  `GOFTP-TRUST/1` `k1.` rows marked trusted, revoked, and expired, including
+  metadata that points at HMAC selectors. The test proves those rows cannot
+  authorize `k1.` HMAC selectors, cannot revoke `fixture-key-1`, and do not
+  change unsigned `local-goftp1` replay.
 - WebDAV publish failure now has a fixture and CLI parity gate proving
   existing-final idempotence, delayed `MOVE` visibility, hard `HTTP 423 Locked`
   failure, bounded retries, zero-byte temporary resources, tmp debris exclusion,
@@ -114,7 +121,7 @@ Key completed boundaries:
 
 ## Last Verified
 
-After signed-HMAC lifecycle vector freeze, these passed:
+After signed-HMAC public trust bridge poison, these passed:
 
 ```text
 perl -Ilib -c lib/GobanFTP/Auth/TrustReport.pm
@@ -124,6 +131,7 @@ perl -Ilib -c lib/GobanFTP/CLI.pm
 perl -Ilib -c lib/GobanFTP/Diagnostics.pm
 prove -lr t/profile-signed-hmac.t t/v1-cli-witness.t t/v1-signed-hmac.t t/v1-signed-hmac-golden-vectors.t t/auth-trust-report.t t/cli-auth-trust-report.t t/diagnostics-contract.t
 prove -lr t/v1-signed-hmac-golden-vectors.t t/v1-signed-hmac.t t/v1-cli-witness.t t/profile-signed-hmac.t
+prove -lr t/v1-signed-hmac.t t/v1-signed-hmac-golden-vectors.t t/profile-signed-hmac.t t/v1-cli-witness.t t/auth-trust-report.t t/cli-auth-trust-report.t
 prove -lr t/auth-keyid.t t/cli-auth-keyid.t t/diagnostics-contract.t t/dependency-sync.t t/v1-cli-witness.t t/v1-signed-hmac.t
 prove -lr t/auth-trust-report.t t/cli-auth-trust-report.t t/diagnostics-contract.t
 prove -lr t/auth-keyid.t t/auth-trust-report.t t/cli-auth-keyid.t t/cli-auth-trust-report.t t/diagnostics-contract.t t/v1-cli-witness.t
@@ -136,7 +144,7 @@ prove -lr t
 Full test result:
 
 ```text
-Files=67, Tests=891, all successful.
+Files=67, Tests=892, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -158,12 +166,11 @@ Immediate next implementation:
 ```text
 after showing the README, continue the v1.0 route:
 - pick the next small proof gate by multi-agent discussion
-- likely candidate is P12e: signed-HMAC lifecycle attack fixtures or move to
-  P13 source-art/TUI/Web inspection after multi-agent review
-- if staying in P12, add an attack fixture proving public `GOFTP-TRUST/1` rows
-  cannot authorize or revoke HMAC selectors
-- keep public `GOFTP-TRUST/1` rows advisory unless a distinct public-key suite
-  is designed
+- likely candidate is P13 source-art/TUI/Web inspection
+- start with a small terminal or source-art inspection smoke that displays
+  witness fields derived from `GobanFTP::Witness`
+- do not let display, source art, Web assets, or terminal formatting feed
+  replay or event-set roots
 - keep unsigned `GOFTP/1` and `local-goftp1` replay unchanged
 - keep every change behavior-tested and update Changes plus this restore file
 ```
@@ -199,6 +206,6 @@ When resuming:
    maintainer guide supplied in the session context.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `test: freeze signed HMAC lifecycle vectors`.
+4. Confirm HEAD includes `test: add signed HMAC public trust poison fixture`.
 5. If the user asks to continue, open multi-agent discussion first, then choose
    one small executable step.

@@ -493,6 +493,15 @@ t/fixtures/v1/signed-hmac/missing-signature/signed-hmac-goftp1/listing.names
 t/fixtures/v1/signed-hmac/payload-mismatch/game.name
 t/fixtures/v1/signed-hmac/payload-mismatch/signed-hmac-goftp1/attestations.jsonl
 t/fixtures/v1/signed-hmac/payload-mismatch/signed-hmac-goftp1/listing.names
+t/fixtures/v1/signed-hmac/public-trust-bridge-poison/game.name
+t/fixtures/v1/signed-hmac/public-trust-bridge-poison/keys/k1.8fqoc7krroqkucq5avbaa48qoi7p882a.pub
+t/fixtures/v1/signed-hmac/public-trust-bridge-poison/keys/k1.b9qqr423d7t8utun0q6f9nbt9o5jcita.pub
+t/fixtures/v1/signed-hmac/public-trust-bridge-poison/keys/k1.jk4bs0r77srdlpds260hka9fpp49clpg.pub
+t/fixtures/v1/signed-hmac/public-trust-bridge-poison/local-goftp1/listing.names
+t/fixtures/v1/signed-hmac/public-trust-bridge-poison/signed-hmac-goftp1/attestations.jsonl
+t/fixtures/v1/signed-hmac/public-trust-bridge-poison/signed-hmac-goftp1/k1-attestations.jsonl
+t/fixtures/v1/signed-hmac/public-trust-bridge-poison/signed-hmac-goftp1/listing.names
+t/fixtures/v1/signed-hmac/public-trust-bridge-poison/trust.tsv
 t/fixtures/v1/signed-hmac/unsigned-unaffected/attestations.jsonl
 t/fixtures/v1/signed-hmac/unsigned-unaffected/dns-record-goftp1/listing.names
 t/fixtures/v1/signed-hmac/unsigned-unaffected/ftp-goftp1/listing.names

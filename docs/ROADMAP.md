@@ -390,6 +390,8 @@ selectors: `trusted` and `rotated` verify old signed material, while `revoked`
 and `expired` reject inside the signed profile gate without changing unsigned
 replay. The signed-HMAC golden vectors now freeze lifecycle status,
 accepted/rejected sets, and `key.revoked` / `key.expired` rejected diagnostics.
+The `public-trust-bridge-poison` specimen proves public `GOFTP-TRUST/1` rows
+cannot authorize `k1.` HMAC selectors or revoke explicit HMAC selectors.
 
 ## P13: Source-Art, TUI, And Web Surfaces
 

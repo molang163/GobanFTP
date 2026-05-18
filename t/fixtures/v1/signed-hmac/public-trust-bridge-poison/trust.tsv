@@ -1,0 +1,5 @@
+GOFTP-TRUST/1
+key_id	suite	principal	role	status	not_before	not_after	revoked_at	reason
+k1.jk4bs0r77srdlpds260hka9fpp49clpg	fixture-ed25519-v1	hmac:k1.jk4bs0r77srdlpds260hka9fpp49clpg	hmac-selector	trusted	2026-01-01	-	-	k1-selector
+k1.b9qqr423d7t8utun0q6f9nbt9o5jcita	fixture-ed25519-v1	hmac:fixture-key-1	hmac-selector	revoked	2026-01-01	-	2026-02-01	fixture-key-1
+k1.8fqoc7krroqkucq5avbaa48qoi7p882a	fixture-ed25519-v1	hmac:fixture-key-1	hmac-selector	expired	2026-01-01	2026-02-01	-	fixture-key-1

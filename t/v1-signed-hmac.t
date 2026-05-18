@@ -10,6 +10,8 @@ use Test::More;
 use lib "$FindBin::Bin/../lib";
 
 use GobanFTP::Auth::HMAC qw(event_attestation_preimage hmac_sha256_hex);
+use GobanFTP::Auth::KeyID qw(parse_public_key_record);
+use GobanFTP::Auth::TrustReport qw(trust_report_summary);
 use GobanFTP::Witness qw(witness_for_listing);
 
 my $fixture_dir = "$FindBin::Bin/fixtures/v1/signed-hmac";
@@ -32,6 +34,9 @@ my $injected_event =
 
 my $minimal_root = '599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461';
 my $empty_root   = 'c8bdfd7e8dc55bdef0a4571923d9ae370c876aa106ad666d125f8151dc05185d';
+my $public_trusted_key_id = 'k1.jk4bs0r77srdlpds260hka9fpp49clpg';
+my $public_revoked_key_id = 'k1.b9qqr423d7t8utun0q6f9nbt9o5jcita';
+my $public_expired_key_id = 'k1.8fqoc7krroqkucq5avbaa48qoi7p882a';
 
 subtest 'signed-hmac-goftp1 accepts only valid HMAC-attested events' => sub {
     my ($witness, $attestations) = _witness_for_case('valid', 'signed-hmac-goftp1');
@@ -271,6 +276,79 @@ subtest 'signed-HMAC lifecycle status is enforced by witness assembly only for s
     }
 };
 
+subtest 'public GOFTP-TRUST rows cannot bridge into signed-HMAC lifecycle' => sub {
+    my $case_dir = File::Spec->catdir($fixture_dir, 'public-trust-bridge-poison');
+    my @public_keys = map { parse_public_key_record(_read_text($_)) }
+        sort glob File::Spec->catfile($case_dir, 'keys', '*.pub');
+    my $trust = trust_report_summary(
+        public_keys => \@public_keys,
+        trust_tsv   => _read_text(File::Spec->catfile($case_dir, 'trust.tsv')),
+    );
+
+    is $trust->{status}, 'advisory', 'fixture has public advisory trust rows';
+    is_deeply $trust->{trusted_key_ids}, [$public_trusted_key_id],
+        'fixture carries a public trusted k1 key';
+    is_deeply $trust->{revoked_key_ids}, [$public_revoked_key_id],
+        'fixture carries a public revoked k1 key';
+    is_deeply $trust->{expired_key_ids}, [$public_expired_key_id],
+        'fixture carries a public expired k1 key';
+
+    my @k1_attestations = _read_jsonl(
+        File::Spec->catfile($case_dir, 'signed-hmac-goftp1', 'k1-attestations.jsonl'),
+    );
+    my ($public_key_witness) = _witness_for_case(
+        'public-trust-bridge-poison',
+        'signed-hmac-goftp1',
+        hmac_attestations => \@k1_attestations,
+        trusted_hmac_keys => { $public_trusted_key_id => $trusted_hmac_keys{'fixture-key-1'} },
+        trusted_hmac_key_statuses => { $public_trusted_key_id => 'trusted' },
+    );
+
+    is $public_key_witness->{accepted_count}, 0,
+        'public trusted k1 row cannot authorize a signed-HMAC selector';
+    is_deeply $public_key_witness->{rejected_codes}, ['untrusted_signature'],
+        'k1 selector stays an untrusted signed-HMAC signature';
+    is_deeply [
+        map { $_->{reason} } @{ $public_key_witness->{rejected_diagnostics} }
+    ], [
+        ('key_id.public_key_namespace') x 3,
+    ], 'public-key namespace is rejected before HMAC verification';
+    is $public_key_witness->{event_set_root}, $empty_root,
+        'public-key namespace leaves the signed accepted set empty';
+
+    my ($hmac_witness) = _witness_for_case(
+        'public-trust-bridge-poison',
+        'signed-hmac-goftp1',
+        trusted_hmac_key_statuses => { 'fixture-key-1' => 'trusted' },
+    );
+
+    is $hmac_witness->{accepted_count}, 3,
+        'public revoked or expired k1 rows cannot revoke the explicit HMAC selector';
+    is_deeply $hmac_witness->{accepted_events}, \@minimal_events,
+        'explicit signed-HMAC trust set still accepts the valid chain';
+    is $hmac_witness->{event_set_root}, $minimal_root,
+        'public trust poison does not alter the signed accepted root';
+    is $hmac_witness->{rejected_count}, 0,
+        'public trust poison creates no signed-HMAC rejection';
+
+    my ($unsigned_witness) = _witness_for_case(
+        'public-trust-bridge-poison',
+        'local-goftp1',
+        hmac_attestations => \@k1_attestations,
+        trusted_hmac_keys => { $public_trusted_key_id => $trusted_hmac_keys{'fixture-key-1'} },
+        trusted_hmac_key_statuses => { $public_trusted_key_id => 'trusted' },
+    );
+
+    is $unsigned_witness->{accepted_count}, 3,
+        'unsigned local profile ignores public trust bridge poison';
+    is_deeply $unsigned_witness->{accepted_events}, \@minimal_events,
+        'unsigned local profile keeps the filename-derived chain';
+    is $unsigned_witness->{event_set_root}, $minimal_root,
+        'unsigned local root is unchanged by public trust material';
+    is_deeply $unsigned_witness->{rejected_classes}, [],
+        'unsigned local profile has no signature gate rejection';
+};
+
 done_testing;
 
 sub _witness_for_case {
@@ -290,7 +368,7 @@ sub _witness_for_case {
         raw_names               => \@raw,
         diagnostics_schema_path => $schema_path,
         hmac_attestations       => \@attestations,
-        trusted_hmac_keys       => \%trusted_hmac_keys,
+        trusted_hmac_keys       => $overrides{trusted_hmac_keys} // \%trusted_hmac_keys,
         trusted_hmac_key_statuses => $overrides{trusted_hmac_key_statuses} // {},
     );
 
@@ -344,4 +422,15 @@ sub _read_names {
     close $fh or die "close $path: $!";
 
     return @names;
+}
+
+sub _read_text {
+    my ($path) = @_;
+
+    open my $fh, '<:encoding(UTF-8)', $path or die "open $path: $!";
+    local $/;
+    my $text = <$fh>;
+    close $fh or die "close $path: $!";
+
+    return $text;
 }

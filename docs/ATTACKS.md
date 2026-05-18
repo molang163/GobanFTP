@@ -158,6 +158,20 @@ path surfaces. The expected witness remains the clean three-event baseline; a
 metadata or path row that changes the accepted event set changes the root and
 fails the fixture.
 
+Signed/auth profile specimens live under:
+
+```text
+t/fixtures/v1/signed-hmac/
+```
+
+The signed-HMAC specimen `public-trust-bridge-poison` attacks the boundary
+between public advisory `GOFTP-TRUST/1` rows and explicit HMAC verifier trust.
+It carries public `k1.` key rows marked trusted, revoked, and expired, including
+metadata that points at `fixture-key-1`. The expected witness proves that a
+public trusted `k1.` row cannot authorize a `signed-hmac-goftp1` HMAC selector,
+public revoked or expired `k1.` rows cannot revoke the explicit
+`fixture-key-1` selector, and unsigned `local-goftp1` replay remains unchanged.
+
 Publish-failure specimens live under:
 
 ```text
