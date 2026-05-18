@@ -107,9 +107,11 @@ Revision history for GobanFTP
   - Tightened manifest skip rules so detached-worktree `.git` files and local
     scratch suffixes are excluded without dropping intentional attack fixtures
     under `t/fixtures/`.
-  - Added a P14 release manifest and tag plan that was later superseded when
-    the local `v0.2` / package `0.002` candidate was skipped in favor of
-    continuing directly toward v1.0/P14.
+  - Added a P14 release manifest and tag plan, then clarified it as the active
+    v1.0/P14 development release plan after the local `v0.2` / package `0.002`
+    candidate was skipped in favor of continuing directly toward v1.0/P14,
+    while separating the `1.000_001` development freeze matrix from the final
+    reserved `v1.0` / package `1.000` release identity.
   - Prepared and then skipped the local v0.2 / package 0.002 release candidate,
     keeping v1.0/P14 as the active development line.
   - Clarified the next golden-vector and P14 claim-audit slice after Git-tree

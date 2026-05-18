@@ -1,16 +1,19 @@
 # P14 Release Manifest And Tag Plan
 
-Status: superseded planning record. The local `v0.2` / package `0.002`
-candidate was skipped as a public release. Do not publish, push, or reuse the
-old `v0.2` tag or `GobanFTP-0.002.tar.gz` artifact. This is not a v1.0
-completion claim.
+Status: active v1.0/P14 development release plan. The old local `v0.2` /
+package `0.002` candidate is superseded and was skipped as a public release.
+Do not publish, push, or reuse the old `v0.2` tag or
+`GobanFTP-0.002.tar.gz` artifact. This is not a v1.0 completion claim, a P14
+completion claim, or permission to tag during the `1.000_001` development
+cycle.
 
-This document fixes the final release identity and artifact checks that must be
-resolved after the P14 release-gate dry run in `docs/P14_RELEASE_GATE.md`.
+This document records the current development identity, the reserved final
+v1.0 identity, and the artifact checks that must be resolved after the P14
+release-gate dry run in `docs/P14_RELEASE_GATE.md`.
 
 ## Current Identity State
 
-The current public release line has three names that must not be confused:
+The latest public release record has three names that must not be confused:
 
 ```text
 public Git tag:      v0.1
@@ -18,9 +21,10 @@ Perl package version: 0.001
 project milestone:   v0.1 hardening/showcase
 ```
 
-The skipped local v0.2 release candidate had:
+The skipped local v0.2 release candidate proposed:
 
 ```text
+proposed local tag:    v0.2 (not public; do not reuse)
 Changes heading:       0.002  2026-05-18
 lib/GobanFTP.pm:       $VERSION = 0.002
 expected tarball name: GobanFTP-0.002.tar.gz
@@ -44,11 +48,11 @@ release claim:    v1.0/P14 development, not v1.0 complete
 The skipped candidate was:
 
 ```text
-Git tag:          v0.2
-Perl version:     0.002
-Changes heading:  0.002  YYYY-MM-DD
-tarball name:     GobanFTP-0.002.tar.gz
-release claim:    pre-v1.0/P14 release-route checkpoint, not v1.0
+proposed local tag: v0.2 (not public; do not reuse)
+Perl version:       0.002
+Changes heading:    0.002  YYYY-MM-DD
+tarball name:       GobanFTP-0.002.tar.gz
+release claim:      pre-v1.0/P14 release-route checkpoint, not v1.0
 ```
 
 Rationale:
@@ -111,21 +115,23 @@ residue, `.git`, `docs/SESSION_RESTORE.md`, or stale distribution artifacts.
 
 ## Version And Changelog Check
 
-Before the final matrix, the release identity commit must make these agree:
+Before any development freeze or final stable matrix, the candidate commit must
+make the relevant identity fields agree:
 
 ```text
 lib/GobanFTP.pm $VERSION
 Changes top heading and date
 expected tarball name
-chosen Git tag
+chosen Git tag or explicit no-tag development identity
 README current-line wording
 release record template below
 ```
 
 For active v1.0 development, `Changes` must say
 `1.000_001  Not yet released`, and `lib/GobanFTP.pm` must declare
-`1.000_001`. A final v1.0 release must later switch to the reserved stable
-identity above.
+`1.000_001`; `Git tag` remains `none`. A final v1.0 release must later switch
+to the reserved stable identity above before tagging or naming a final
+`GobanFTP-1.000.tar.gz` artifact.
 
 ## MANIFEST Audit
 
@@ -182,9 +188,11 @@ non-fixture *.bak
 .gobanftp-tmp-*
 ```
 
-## Final Matrix
+## Development Freeze Matrix
 
-Run from a fresh clean checkout of the candidate commit:
+Run from a fresh clean checkout of the current `1.000_001` development
+candidate commit. This matrix produces a development tarball and must not be
+treated as the final stable v1.0 release matrix:
 
 ```sh
 perl -c oracle/goban.pl
@@ -225,9 +233,10 @@ GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make disttest
 make distcheck
 ```
 
-For the final stable v1.0 identity, use `dist=GobanFTP-1.000.tar.gz` instead.
-Do not use `GobanFTP-*.tar.gz` as the artifact identity in the final release
-record.
+For the final stable v1.0 identity, first switch to the reserved `v1.0` /
+`1.000` identity, then run the same matrix with
+`dist=GobanFTP-1.000.tar.gz`. Do not use `GobanFTP-*.tar.gz` as the artifact
+identity in the final release record.
 
 ## Artifact Manifest
 
@@ -260,7 +269,7 @@ the local smoke path are the shipped proof.
 
 ## Claim Audit
 
-Allowed v1.0 development claims after the final matrix passes:
+Allowed current v1.0 development claims before the final release-freeze:
 
 ```text
 GOFTP/1 descriptor and direct events/ basenames remain authoritative

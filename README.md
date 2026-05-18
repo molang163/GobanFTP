@@ -186,7 +186,7 @@ SGF is a witness, not the source of truth.
 
 ## What Runs Now
 
-Implemented in this release line:
+Implemented in the current development line:
 
 - strict game descriptor and event filename parsing
 - filename-derived event ids

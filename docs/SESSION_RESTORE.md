@@ -16,6 +16,7 @@ Current HEAD expectation:
 at or after:
 - chore: enter v1.0 development
 - release: prepare v0.2 identity
+- docs: clarify active P14 release plan
 - docs: add P14 release manifest tag plan
 - docs: record P14 clean gate rerun
 - docs: add P14 release gate dry run
@@ -35,6 +36,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ```text
 HEAD chore: enter v1.0 development
 HEAD release: prepare v0.2 identity
+HEAD docs: clarify active P14 release plan
 HEAD docs: add P14 release manifest tag plan
 HEAD docs: record P14 clean gate rerun
 HEAD docs: add P14 release gate dry run
@@ -82,10 +84,13 @@ Key completed boundaries:
   excluding intentional attack specimens under `t/fixtures/`, including
   `t/fixtures/attacks/tmp-poison/tmp/pending.part`.
 - P14 release manifest and tag planning is recorded in
-  `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` as a superseded planning record.
-  The old local v0.2 candidate used tag `v0.2`, Perl version `0.002`, and
-  `Changes` heading `0.002  YYYY-MM-DD`, explicitly as a pre-v1.0/P14
-  checkpoint. That route is no longer the active release path.
+  `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` as the active v1.0/P14
+  development release plan. The old local v0.2 candidate used tag `v0.2`, Perl
+  version `0.002`, and `Changes` heading `0.002  YYYY-MM-DD`, explicitly as a
+  pre-v1.0/P14 checkpoint. That candidate is superseded and is no longer the
+  active release path. The plan separates the `1.000_001` development freeze
+  matrix and development tarball from the reserved final `v1.0` / package
+  `1.000` identity.
 - The v0.2 release identity was prepared locally and then skipped before public
   release. Do not reuse that identity as the current development state.
 - The public v0.2 release path was skipped. Do not push or publish a `v0.2` tag
@@ -245,21 +250,25 @@ Key completed boundaries:
 
 ## Last Verified
 
-Latest verification after promoting the WebDAV href-traversal public
-non-consensus poison vector:
+Latest verification after clarifying the active P14 release plan and separating
+the `1.000_001` development freeze matrix from the reserved final `v1.0`
+identity:
 
 ```text
 git diff --check
 perl -MExtUtils::Manifest=fullcheck -e 'fullcheck()'
-prove -lr t/v1-golden-vectors.t t/v1-profile-attack-fixtures.t \
-  t/store-webdav-mock.t t/webdav-cli-parity.t
+git diff --name-only | sort
+git diff --name-only | rg '^(lib|script|oracle|t)/' && exit 1 || true
+prove -lr t/diagnostics-contract.t t/dependency-sync.t t/showcase-demo.t
 prove -lr t
 ```
 
 Result:
 
 ```text
-Targeted: Files=4, Tests=137, all successful.
+Changed files: Changes, README.md, docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md,
+docs/SESSION_RESTORE.md.
+Targeted: Files=3, Tests=21, all successful.
 Full: Files=73, Tests=993, all successful.
 ```
 
