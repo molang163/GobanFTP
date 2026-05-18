@@ -20,6 +20,7 @@ my $race_root = File::Spec->catdir($root, qw(examples fixtures ftp-race-shrine))
 my $race_game = 'g1.id-ftp-race-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim';
 
 my $v1_minimal = File::Spec->catdir($FindBin::Bin, qw(fixtures v1 cross-substrate minimal));
+my $v1_minimal_root = '599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461';
 
 subtest 'shrine replay is the public clean path' => sub {
     my ($exit, $stdout, $stderr) = _run_gobanftp_with_root(
@@ -116,10 +117,68 @@ subtest 'v1 witness is visible from the same command surface' => sub {
     like $stdout, qr/^adapter_id=local-listing-goftp1$/m, 'v1 witness prints the adapter id';
     like $stdout, qr/^accepted_count=3$/m, 'v1 witness accepts the minimal fixture events';
     like $stdout, qr/^rejected_count=0$/m, 'v1 witness rejects no minimal fixture events';
-    like $stdout, qr/^event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461$/m,
+    like $stdout, qr/^event_set_root=\Q$v1_minimal_root\E$/m,
         'v1 witness prints the stable cross-substrate root';
     like $stdout, qr/^replay_status=ok$/m, 'v1 witness reports clean replay';
     like $stdout, qr/^signature\.status=unsigned$/m, 'v1 witness keeps unsigned profile explicit';
+};
+
+subtest 'v1 witness inspection surfaces are visible from the showcase path' => sub {
+    my ($text_exit, $text_out, $text_err) = _run_v1_witness_surface('text');
+    is $text_exit, 0, 'text surface exits success';
+    is $text_err, '', 'text surface has no diagnostics';
+    like $text_out, qr/\AGOFTP-WITNESS-SURFACE\/1\n/,
+        'text surface reports the witness surface version';
+    unlike $text_out, qr/^gobanftp[.]v1[.]witness=/m,
+        'text surface does not mix in default witness output';
+    like $text_out, qr/^profile_id=local-goftp1$/m,
+        'text surface prints the profile id';
+    like $text_out, qr/^event_set_root=\Q$v1_minimal_root\E$/m,
+        'text surface prints the same event-set root';
+    like $text_out, qr/^signature[.]status=unsigned$/m,
+        'text surface keeps unsigned status visible';
+    like $text_out, qr/^--- projection[.]board ---$/m,
+        'text surface includes the board projection';
+    like $text_out, qr/^--- projection[.]sgf_main ---$/m,
+        'text surface includes the canonical SGF projection';
+
+    my ($html_exit, $html_out, $html_err) = _run_v1_witness_surface('html');
+    is $html_exit, 0, 'HTML surface exits success';
+    is $html_err, '', 'HTML surface has no diagnostics';
+    like $html_out, qr/\A<!doctype html>\n/,
+        'HTML surface is static HTML';
+    unlike $html_out, qr/^gobanftp[.]v1[.]witness=/m,
+        'HTML surface does not mix in default witness output';
+    like $html_out, qr/<dt>profile_id<\/dt><dd>local-goftp1<\/dd>/,
+        'HTML surface prints the profile id';
+    like $html_out, qr/<dt>event_set_root<\/dt><dd>\Q$v1_minimal_root\E<\/dd>/,
+        'HTML surface prints the same event-set root';
+    like $html_out, qr/<dt>signature[.]status<\/dt><dd>unsigned<\/dd>/,
+        'HTML surface keeps unsigned status visible';
+    like $html_out, qr/<h2>projection[.]board<\/h2>/,
+        'HTML surface includes the board projection';
+    like $html_out, qr/<h2>projection[.]sgf_main<\/h2>/,
+        'HTML surface includes the canonical SGF projection';
+
+    my ($terminal_exit, $terminal_out, $terminal_err) = _run_v1_witness_surface('terminal');
+    is $terminal_exit, 0, 'terminal surface exits success';
+    is $terminal_err, '', 'terminal surface has no diagnostics';
+    like $terminal_out, qr/\AGOFTP-TERMINAL-OBSERVATORY\/1\n/,
+        'terminal surface reports the observatory version';
+    unlike $terminal_out, qr/^gobanftp[.]v1[.]witness=/m,
+        'terminal surface does not mix in default witness output';
+    like $terminal_out, qr/^observatory[.]input=witness[+]projection-text$/m,
+        'terminal surface names its supplied input boundary';
+    like $terminal_out, qr/^status[.]profile=local-goftp1$/m,
+        'terminal surface prints the profile id';
+    like $terminal_out, qr/^truth[.]event_set_root=\Q$v1_minimal_root\E$/m,
+        'terminal surface prints the same event-set root';
+    like $terminal_out, qr/^status[.]signature=unsigned$/m,
+        'terminal surface keeps unsigned status visible';
+    like $terminal_out, qr/^--- observed[.]board ---$/m,
+        'terminal surface includes the observed board';
+    like $terminal_out, qr/^--- observed[.]verdict ---$/m,
+        'terminal surface includes the observed verdict';
 };
 
 done_testing;
@@ -136,6 +195,21 @@ sub _run_gobanftp_with_root {
 sub _run_gobanftp {
     my (@args) = @_;
     return _run_cmd($^X, '-I', $lib, $script, @args);
+}
+
+sub _run_v1_witness_surface {
+    my ($surface) = @_;
+
+    return _run_gobanftp(
+        'v1',
+        'witness',
+        '--profile',
+        'local-goftp1',
+        '--fixture',
+        $v1_minimal,
+        '--surface',
+        $surface,
+    );
 }
 
 sub _run_cmd {

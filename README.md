@@ -76,8 +76,10 @@ Run the local showcase gate:
 prove -lr t/showcase-demo.t
 ```
 
-It checks the clean shrine, the race shrine, the source-art oracle smoke, and an
-unsigned `local-goftp1` v1 witness.
+It checks the clean shrine, the race shrine, the source-art oracle smoke, the
+unsigned `local-goftp1` v1 witness, and the text, static HTML, and static
+terminal witness surfaces that expose the same root. Those surfaces are
+read-only inspection output, not hosted Web UI or interactive TUI.
 
 Open the shrine:
 

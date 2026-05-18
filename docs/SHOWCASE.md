@@ -140,9 +140,10 @@ prove -lr t/showcase-demo.t
 ```
 
 It runs the public local command surface: shrine replay, race replay, source-art
-oracle smoke, and the unsigned `local-goftp1` v1 witness. The witness smoke
-keeps v1 proof machinery visible without moving signed consensus into the
-three-minute path.
+oracle smoke, the unsigned `local-goftp1` v1 witness, and the text, static HTML,
+and static terminal witness surfaces. Those surfaces show the same
+`event_set_root` through reader-facing output; they are not hosted Web UI,
+interactive TUI, or new consensus inputs.
 
 ## Boundaries
 

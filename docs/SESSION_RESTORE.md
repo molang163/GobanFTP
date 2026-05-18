@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- test: add showcase surface smoke gate
 - feat: add terminal witness observatory
 - test: freeze v1 witness surface smoke
 - feat: add v1 witness surface output
@@ -27,6 +28,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD test: add showcase surface smoke gate
 HEAD feat: add terminal witness observatory
 HEAD test: freeze v1 witness surface smoke
 HEAD feat: add v1 witness surface output
@@ -116,6 +118,12 @@ Key completed boundaries:
   text. It freezes the minimal terminal digest, preserves fork and validation
   exit behavior, redacts signed-HMAC secrets, and remains a static terminal
   inspection surface rather than an interactive TUI.
+- P13f showcase surface smoke is implemented:
+  `t/showcase-demo.t` now runs the shrine replay, race fork, source-art oracle,
+  default unsigned `local-goftp1` witness, and the text/static HTML/static
+  terminal witness surfaces. The surface checks prove the public demonstration
+  path exposes the same `event_set_root` without adding hosted Web UI,
+  interactive TUI, or another witness assembler.
 - WebDAV publish failure now has a fixture and CLI parity gate proving
   existing-final idempotence, delayed `MOVE` visibility, hard `HTTP 423 Locked`
   failure, bounded retries, zero-byte temporary resources, tmp debris exclusion,
@@ -156,9 +164,15 @@ Key completed boundaries:
 
 ## Last Verified
 
-After terminal witness observatory integration, these passed:
+After showcase surface smoke integration, these passed:
 
 ```text
+perl -Ilib -c t/showcase-demo.t
+prove -lr t/showcase-demo.t
+perl -Ilib -c oracle/goban.pl
+perl -Ilib oracle/goban.pl --smoke
+prove -lr t/showcase-demo.t t/source-art.t t/surface-witness-view.t t/v1-cli-witness-surface.t t/v1-cli-witness-surface-golden.t
+prove -lr t/witness-api.t t/v1-cli-witness.t
 perl -Ilib -c lib/GobanFTP/Surface/WitnessView.pm
 perl -Ilib -c lib/GobanFTP/CLI.pm
 prove -lr t/surface-witness-view.t t/v1-cli-witness-surface.t t/v1-cli-witness-surface-golden.t
@@ -194,7 +208,7 @@ prove -lr t
 Full test result:
 
 ```text
-Files=70, Tests=942, all successful.
+Files=70, Tests=943, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -214,10 +228,10 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-after P13e terminal witness observatory, continue the v1.0 route:
+after P13f showcase surface smoke, continue the v1.0 route:
 - pick the next small proof gate by implementation review
-- likely candidate is a narrow showcase command or smoke gate that runs the
-  frozen source-art, witness text/HTML, and terminal observatory proofs together
+- likely candidate is a P14 release-gate dry run or release artifact manifest
+  that records the command matrix without claiming v1.0 is tagged
 - keep it read-only: consume existing witness/projection data and do not make a
   second witness assembler
 - do not let display, source art, Web assets, terminal formatting, or any future
@@ -254,6 +268,9 @@ docs/CLI.md
 docs/DIAGNOSTICS.md
 docs/SOURCE_ART.md
 docs/ARCHITECTURE.md
+README.md
+docs/SHOWCASE.md
+t/showcase-demo.t
 Changes
 docs/SESSION_RESTORE.md
 ```
@@ -266,6 +283,6 @@ When resuming:
    maintainer guide supplied in the session context.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `feat: add terminal witness observatory`.
+4. Confirm HEAD includes `test: add showcase surface smoke gate`.
 5. If the user asks to continue, review the next step first, then choose one
    small executable step.

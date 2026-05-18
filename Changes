@@ -75,6 +75,9 @@ Revision history for GobanFTP
   - Added `gobanftp v1 witness --surface terminal` as a static terminal
     observatory over the same witness result, freezing its minimal digest while
     avoiding any interactive TUI claim.
+  - Extended the public showcase smoke gate to cover the text, static HTML, and
+    static terminal witness surfaces alongside the shrine, race, source-art, and
+    default v1 witness paths.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl
