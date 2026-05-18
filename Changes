@@ -29,6 +29,9 @@ Revision history for GobanFTP
     raw, normalized, accepted, rejected, and diagnostic count fields.
   - Added a DNS owner-poison v1 profile attack fixture proving wrong-owner and
     ownerless TXT records cannot smuggle event basenames into the witness.
+  - Reworked the README into a release-shaped showcase entrypoint while keeping
+    `v0.1`, `v1.0/P14`, signed-HMAC, WebDAV, and deferred-surface boundaries
+    explicit.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

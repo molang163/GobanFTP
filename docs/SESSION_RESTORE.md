@@ -14,8 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
-- test: add v1 cross-substrate validation vectors
-- test: expand unsigned v1 witness golden fields
+- docs: rewrite README as P14 showcase entrypoint
 ```
 
 Confirm the latest commit with `git log --oneline -5` when resuming.
@@ -23,6 +22,8 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD docs: rewrite README as P14 showcase entrypoint
+81e0fee test: add dns owner poison profile attack
 c763103 test: add bad mtime attack fixture
 cab85ad test: add v1 cross-substrate validation vectors
 0bdbf42 test: add showcase demo smoke gate
@@ -38,6 +39,10 @@ fc7f6a2 test: add WebDAV href traversal attack fixture
 
 Key completed boundaries:
 
+- README is now a release-shaped showcase entrypoint: it opens with the hard
+  GOFTP/1 contract, three-minute proof path, shrine/race demonstration, current
+  implemented surfaces, proof gates, and the `v1.0/P14` release-freeze shape
+  without claiming P14 is already tagged.
 - `signed-hmac-goftp1` now has golden-vector fixtures for valid, missing,
   wrong, payload-mismatched, game-descriptor-mismatched, untrusted, and
   malformed attestations.
@@ -62,10 +67,10 @@ Key completed boundaries:
 
 ## Last Verified
 
-After the DNS owner-poison profile attack fixture, these passed:
+After the README showcase rewrite, these passed:
 
 ```text
-prove -lr t/profile-adapter.t t/v1-profile-attack-fixtures.t t/v1-cross-substrate.t t/v1-golden-vectors.t t/v1-signed-hmac.t
+git diff --check
 prove -lr t
 ```
 
@@ -92,10 +97,11 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-continue the short P10 pass:
-- add another v1 profile-level attack fixture, preferably git-tree object/path
-  metadata poison or another profile-specific owner/path boundary
-- keep it behavior-tested against a clean baseline profile
+after showing the README, continue the v1.0 route:
+- pick the next small proof gate by multi-agent discussion
+- likely candidates are another P10 profile attack fixture, P11 witness compare
+  hardening, or a first P12 signed/auth key-lifecycle CLI/documentation slice
+- keep every change behavior-tested and update Changes plus this restore file
 ```
 
 Likely files:
@@ -103,8 +109,10 @@ Likely files:
 ```text
 t/fixtures/v1/attacks/
 t/v1-profile-attack-fixtures.t
-t/v1-attack-fixtures.t
+lib/GobanFTP/Witness.pm
+script/gobanftp
 Changes
+docs/SESSION_RESTORE.md
 ```
 
 ## Restore Procedure
@@ -114,6 +122,6 @@ When resuming:
 1. Read `AGENTS.md`.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `test: expand unsigned v1 witness golden fields`.
+4. Confirm HEAD includes `docs: rewrite README as P14 showcase entrypoint`.
 5. If the user asks to continue, open multi-agent discussion first, then choose
    one small executable step.
