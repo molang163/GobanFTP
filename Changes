@@ -9,6 +9,10 @@ Revision history for GobanFTP
     temporary entries outside replay consensus.
   - Documented WebDAV environment configuration and added CLI parity coverage
     for play, watch, SGF, and publish-through-play flows.
+  - Added the first v1 profile attack fixture, proving WebDAV metadata,
+    body-like PROPFIND row fields, locks, wrong-game hrefs, shadow resources,
+    recursive hrefs, duplicates, order, and percent-decoding hazards do not
+    change the witness.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

@@ -180,6 +180,8 @@ subtest 'PROPFIND href parsing ignores metadata, duplicates, and recursive desce
     $http->add_href("goftp/$game/events", "$root_url/$game/events/$move_b");
     $http->add_href("goftp/$game/events", "$root_url/$game/events/$move_b/child");
     $http->add_href("goftp/$game/events", "$root_url/$game/events/bad%2Fslash");
+    $http->add_href("goftp/$game/events", "$root_url/$game/events/$move_b%2Fchild");
+    $http->add_href("goftp/$game/events", "$root_url/$game/events/$move_b%252Fchild");
     $http->add_href("goftp/$game/events", "$root_url/$game/events/bad%zz");
 
     is_deeply [ $store->list_names("$game/events") ], [$move_b],

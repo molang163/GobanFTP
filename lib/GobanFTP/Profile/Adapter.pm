@@ -22,7 +22,7 @@ sub profile_listing_names {
 
     return _git_tree_listing_names($game, $raw_names) if $profile_id eq 'git-tree-goftp1';
     return _dns_record_listing_names($raw_names)      if $profile_id eq 'dns-record-goftp1';
-    return _webdav_listing_names($raw_names)          if $profile_id eq 'webdav-goftp1';
+    return _webdav_listing_names($game, $raw_names)   if $profile_id eq 'webdav-goftp1';
 
     return @$raw_names;
 }
@@ -93,14 +93,14 @@ sub _dns_record_event_value {
 }
 
 sub _webdav_listing_names {
-    my ($raw_names) = @_;
+    my ($game, $raw_names) = @_;
 
     my @names;
     for my $line (@$raw_names) {
         my $href = _webdav_href($line);
         next if !defined $href;
 
-        my $name = _webdav_listing_name_from_href($href);
+        my $name = _webdav_listing_name_from_href($game, $href);
         push @names, $name if defined $name;
     }
 
@@ -119,17 +119,19 @@ sub _webdav_href {
 }
 
 sub _webdav_listing_name_from_href {
-    my ($href) = @_;
+    my ($game, $href) = @_;
 
     $href =~ s{\Ahttps?://[^/]*}{};
     $href =~ s/[?#].*\z//;
 
     my @segments = grep { $_ ne '' } split m{/+}, $href;
     for my $i (0 .. $#segments) {
-        next if $segments[$i] ne 'events';
-        next if $i != $#segments - 1;
+        my $game_segment = _percent_decode_once($segments[$i]);
+        next if !defined $game_segment || $game_segment ne $game;
+        next if ($segments[$i + 1] // '') ne 'events';
+        next if $i + 2 != $#segments;
 
-        my $basename = _percent_decode_once($segments[$i + 1]);
+        my $basename = _percent_decode_once($segments[$i + 2]);
         next if !defined $basename;
         next if $basename !~ /\A[a-z0-9._-]+\z/;
 

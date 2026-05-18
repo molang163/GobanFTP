@@ -1,0 +1,15 @@
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/ etag="W/events-shadow" last-modified="Tue, 19 May 2026 00:00:00 GMT" content-length=0 displayname="not the game" lockdiscovery="opaquelocktoken:events"
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000003.b.pass.pa-bihb3re4k9hlucat.by-alice.n-chain3.h-kcvtlonfje163p9q etag="W/pass-first" last-modified="Tue, 19 May 2026 00:03:00 GMT" content-length=999 body="pretend this is not pass" lock-token="opaquelocktoken:event3"
+href="/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m" etag="W/aa-a" last-modified="Tue, 19 May 2026 00:01:00 GMT" content-length=1 body="play-cc"
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/tmp/pending.part etag="W/tmp" last-modified="Tue, 19 May 2026 00:04:00 GMT" content-length=120 body="m1.p000001.b.play-cc.pa-genesis.by-alice.n-poison.h-0000000000000000"
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/sidecar/khjclcui7pejbv3m.json etag="W/sidecar" content-length=4096 body="{claim:'white opened'}"
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/projections/sgf/main.sgf etag="W/projection" content-length=42 body="(;GM[1];B[cc])"
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m/child etag="W/recursive" content-length=7
+href=/dav/g1.id-other.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m etag="W/wrong-game" content-length=1
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m%2Fchild etag="W/event-encoded-slash" content-length=1
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m%252Fchild etag="W/event-double-encoded-slash" content-length=1
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/bad%zz etag="W/bad-percent" content-length=1
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/bad%2Fslash etag="W/encoded-slash" content-length=1
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat etag="W/bb" last-modified="Tue, 19 May 2026 00:02:00 GMT" content-length=2 body="play-dd"
+href=/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/%6D1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat etag="W/bb-percent-encoded" content-length=2
+href='/dav/g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/events/m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m' etag="W/aa-b" last-modified="Tue, 19 May 2026 00:05:00 GMT" content-length=500 displayname="duplicate says something else"

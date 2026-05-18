@@ -305,6 +305,9 @@ Tasks:
 - add metadata-spoof fixtures for reordered listings, forged timestamps, changed
   sizes, changed file bytes, changed entry types, stale caches, stale sidecars,
   and stale projections
+- add profile-level witness attack fixtures for implemented substrates, starting
+  with WebDAV metadata, body, locks, shadow collections, recursive hrefs,
+  duplicates, and percent-decoding hazards
 - add profile-specific publish-failure fixtures for partial writes, existing
   final names, conflicting final names, delayed visibility, and retry behavior
 - add signed/auth negative fixtures once signed/auth profiles exist

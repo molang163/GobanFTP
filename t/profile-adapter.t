@@ -80,14 +80,19 @@ subtest 'DNS record adapter extracts lower-case TXT event values' => sub {
 };
 
 subtest 'WebDAV adapter extracts direct events hrefs and decodes once' => sub {
+    my $encoded_event = $events[0];
+    $encoded_event =~ s/^m/%6D/;
+
     my @raw = (
         "<href>https://dav.example/$game/events/$events[0]</href>",
         qq{<D:response href="/$game/events/$events[1]?etag=ignored" />},
-        qq{href='/events/$events[0]'},
-        qq{href=/events/not%2fan-event},
-        qq{href=/events/bad%zz},
-        qq{href=/events/$events[0]/child},
-        qq{href=/tmp/$events[0]},
+        qq{href='/$game/events/$encoded_event'},
+        qq{href=/wrong-game/events/$events[0]},
+        qq{href=/$game/events/$events[0]%2Fchild},
+        qq{href=/$game/events/$events[0]%252Fchild},
+        qq{href=/$game/events/bad%zz},
+        qq{href=/$game/events/$events[0]/child},
+        qq{href=/$game/tmp/$events[0]},
     );
 
     is_deeply [

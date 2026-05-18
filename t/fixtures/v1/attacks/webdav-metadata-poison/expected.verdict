@@ -1,0 +1,14 @@
+attack=webdav-metadata-poison
+profile=webdav-goftp1
+baseline_profile=local-goftp1
+status=ok
+game=g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob
+accepted_count=3
+event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461
+replay_status=ok
+canonical_ids=khjclcui7pejbv3m,bihb3re4k9hlucat,kcvtlonfje163p9q
+legal_ids=khjclcui7pejbv3m,bihb3re4k9hlucat,kcvtlonfje163p9q
+diagnostic_classes=
+rejected_classes=
+ignored_inputs=webdav-etag,webdav-last-modified,webdav-content-length,webdav-displayname,webdav-locks,webdav-propfind-row-fields,resource-body-not-read,webdav-tmp,webdav-sidecar,webdav-projections,recursive-href,wrong-game-href,bad-percent,percent-encoded-slash,double-encoded-slash,duplicate-href,href-order
+note=WebDAV metadata and shadow resources cannot change the accepted event set or replay witness

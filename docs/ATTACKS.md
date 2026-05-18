@@ -104,7 +104,7 @@ The runnable harness is:
 t/attack-fixtures.t
 ```
 
-The v1 gallery gate is:
+The v1 core gallery gate is:
 
 ```text
 t/v1-attack-fixtures.t
@@ -114,6 +114,30 @@ It is intentionally structural: it checks that the gallery contains the v1
 specimens and that each specimen declares the required files and verdict fields.
 It does not change replay semantics, and it does not make signatures consensus
 input for unsigned `GOFTP/1`.
+
+The v1 profile gallery gate is:
+
+```text
+t/v1-profile-attack-fixtures.t
+```
+
+Profile attack fixtures live under:
+
+```text
+t/fixtures/v1/attacks/
+```
+
+Each profile specimen compares one hostile substrate presentation against a
+clean baseline profile for the same game descriptor. It proves that profile
+metadata, shadow resources, transport-only fields, duplicate rows, and
+substrate-specific encoding hazards normalize to the same accepted event set,
+`event_set_root`, replay status, board hash, SGF hash, and diagnostic classes.
+The first admitted profile specimen is `webdav-metadata-poison`, which attacks
+WebDAV ETag, Last-Modified, Content-Length, displayname, lock, body-like
+PROPFIND row fields, wrong-game hrefs, `tmp/`, sidecar, projection, recursive
+href, bad percent, percent-encoded slash, double-encoded slash, duplicate href,
+and href-order surfaces. Actual WebDAV resource bodies remain covered by store
+and CLI tests that forbid `GET`/`HEAD` replay reads.
 
 The v1 gallery must contain at least:
 

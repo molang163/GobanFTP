@@ -319,6 +319,7 @@ sub _direct_href_child {
 
     my $name = $segments[-1];
     return undef if !defined $name;
+    return undef if $name !~ /\A[A-Za-z0-9._-]+\z/;
     return eval { _name_component($name) };
 }
 
