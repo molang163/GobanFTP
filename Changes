@@ -84,6 +84,10 @@ Revision history for GobanFTP
   - Tightened manifest skip rules so detached-worktree `.git` files and local
     scratch suffixes are excluded without dropping intentional attack fixtures
     under `t/fixtures/`.
+  - Added a P14 release manifest and tag plan that recommends `v0.2` /
+    package `0.002` for the next publishable checkpoint and reserves `v1.0`
+    until the final P14 matrix, version, tarball, and deferred-claim record
+    agree.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

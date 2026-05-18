@@ -143,4 +143,5 @@ The post-correction clean-worktree rerun is recorded above. The next
 release-route step is to decide whether to create a final release artifact
 manifest and tag plan, while keeping every deferred runtime surface or profile
 claim explicit. Do not tag v1.0 until the final intended release matrix, not just
-this dry run, has passed.
+this dry run, has passed. The artifact and tag plan lives in
+`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.

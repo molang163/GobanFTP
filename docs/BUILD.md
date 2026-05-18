@@ -173,6 +173,11 @@ make distcheck
 If a tarball remains in the root after a local release check, document that it is
 a build artifact unless it is the artifact being intentionally distributed.
 
+The P14/v1.0 release artifact identity and tag preconditions are tracked in
+`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`. Do not publish a tarball or create
+a tag while `Changes`, `lib/GobanFTP.pm` `$VERSION`, and the tarball filename
+disagree.
+
 ## v0.1 Release Boundary
 
 For v0.1, release checks are hardening and showcase checks, not protocol

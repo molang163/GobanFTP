@@ -391,6 +391,9 @@ The current P14 release-gate dry run is recorded in
 `docs/P14_RELEASE_GATE.md`. It is a command matrix and artifact check, not a
 v1.0 tag or release-ready declaration.
 
+The final artifact identity, version decision, and tag preconditions are tracked
+in `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
+
 ## v1.0/P14 Shape
 
 GobanFTP v1.0 is not a game server. It is a protocol-abuse proof machine for
@@ -436,6 +439,7 @@ Grammar:      docs/GRAMMAR.md
 Attacks:      docs/ATTACKS.md
 v1.0 DoD:     docs/V1_DOD.md
 P14 dry run:  docs/P14_RELEASE_GATE.md
+P14 tag plan: docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md
 Algorithms:   docs/ALGORITHMS.md
 Rules:        docs/RULES.md
 Diagnostics:  docs/DIAGNOSTICS.md

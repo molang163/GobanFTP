@@ -371,6 +371,11 @@ Dry-run executions of this matrix are recorded separately in
 the dry-run report is evidence for a point in time, not a replacement for the
 final clean-checkout gate.
 
+The final release identity, artifact hash, and tag preconditions are planned in
+`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`. A v1.0 tag is blocked until the
+chosen version, `Changes` heading, tarball name, final matrix, and artifact
+record agree.
+
 Current v1 proof commands:
 
 ```sh

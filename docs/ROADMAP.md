@@ -452,6 +452,8 @@ Tasks:
 Current proof: `docs/P14_RELEASE_GATE.md` records the first P14a dry-run command
 matrix, generated artifact list, skipped gates, and manifest-skip correction.
 It is a release-route checkpoint, not a v1.0 tag or P14 completion claim.
+The final artifact identity and tag preconditions are tracked in
+`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
 
 Acceptance:
 
