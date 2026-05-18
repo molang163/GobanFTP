@@ -5,6 +5,7 @@ use strict;
 use warnings;
 
 use Carp qw(croak);
+use File::Basename qw(basename);
 use File::Spec;
 use JSON::PP qw(decode_json);
 use Scalar::Util qw(reftype);
@@ -14,6 +15,7 @@ use GobanFTP::EventSetRoot qw(event_set_root_result);
 use GobanFTP::Listing qw(normalize_listing sort_event_basenames);
 use GobanFTP::GameSpec qw(build_basename parse_basename);
 use GobanFTP::MovePublisher qw(build_next_move_name normalize_action);
+use GobanFTP::Profile qw(known_profile);
 use GobanFTP::Projection qw(render_projection write_projection write_sgf_projection);
 use GobanFTP::Redact qw(contains_redactable_secret redact_text);
 use GobanFTP::Replay qw(replay);
@@ -28,6 +30,14 @@ use constant {
     EXIT_STORAGE    => 4,
     EXIT_INTERNAL   => 5,
 };
+
+my @V1_COMPARE_DEFAULT_PROFILES = qw(
+    local-goftp1
+    ftp-goftp1
+    git-tree-goftp1
+    dns-record-goftp1
+    webdav-goftp1
+);
 
 sub run {
     my ($class, @argv) = @_;
@@ -575,13 +585,16 @@ sub _command_watch {
 
 sub _command_v1 {
     my (@argv) = @_;
-    die "usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]"
-        if !@argv;
+    die _v1_usage() if !@argv;
 
     my $subcommand = shift @argv;
     return _command_v1_witness(@argv) if $subcommand eq 'witness';
+    return _command_v1_compare('compare-roots', @argv)
+        if $subcommand eq 'compare-roots';
+    return _command_v1_compare('compare-replay', @argv)
+        if $subcommand eq 'compare-replay';
 
-    die "usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]";
+    die _v1_usage();
 }
 
 sub _command_v1_witness {
@@ -640,6 +653,55 @@ sub _command_v1_witness {
     _print_v1_witness_diagnostics($witness, $trusted_secrets);
 
     return $exit;
+}
+
+sub _command_v1_compare {
+    my ($subcommand, @argv) = @_;
+
+    my $usage = "usage: v1 $subcommand --fixture fixture-dir [--profiles profile-id,...]";
+    my %opts;
+
+    while (@argv) {
+        my $option = shift @argv;
+        my ($name, $value);
+
+        if ($option =~ /\A--([^=]+)=(.*)\z/) {
+            ($name, $value) = ($1, $2);
+        }
+        elsif ($option =~ /\A--(.+)\z/) {
+            $name = $1;
+            die $usage if !@argv;
+            $value = shift @argv;
+        }
+        else {
+            die $usage;
+        }
+
+        if ($name eq 'fixture') {
+            $opts{fixture} = $value;
+            next;
+        }
+        if ($name eq 'profiles') {
+            $opts{profiles} = $value;
+            next;
+        }
+
+        die $usage;
+    }
+
+    die $usage if !defined($opts{fixture}) || $opts{fixture} eq '';
+
+    my $comparison = _v1_compare_from_fixture(
+        fixture => $opts{fixture},
+        defined($opts{profiles}) ? (profiles => $opts{profiles}) : (),
+        usage  => $usage,
+        fields => _v1_compare_fields($subcommand),
+    );
+    my $status = @{ $comparison->{mismatch_fields} } ? 'failed' : 'ok';
+
+    _print_v1_compare($subcommand, $status, $comparison);
+
+    return $status eq 'ok' ? EXIT_SUCCESS : EXIT_VALIDATION;
 }
 
 sub _publish_action {
@@ -854,6 +916,124 @@ sub _v1_witness_from_fixture {
         [sort keys %trusted_hmac_keys],
         [values %trusted_hmac_keys],
     );
+}
+
+sub _v1_compare_from_fixture {
+    my (%opts) = @_;
+
+    my $fixture = $opts{fixture};
+    my @profiles = exists($opts{profiles})
+        ? _v1_compare_profiles_from_option($opts{profiles}, $opts{usage})
+        : _v1_compare_profiles_from_fixture($fixture);
+    die "storage: $fixture has no profile listing directories" if !@profiles;
+
+    my $game = _read_single_nonblank(File::Spec->catfile($fixture, 'game.name'));
+    my %witnesses;
+    for my $profile (@profiles) {
+        my @raw_names = _read_nonblank_lines(
+            File::Spec->catfile($fixture, $profile, 'listing.names'),
+        );
+        $witnesses{$profile} = witness_for_listing(
+            profile_id      => $profile,
+            game_descriptor => $game,
+            raw_names       => \@raw_names,
+        );
+    }
+
+    my @fields = @{ $opts{fields} // [] };
+    my $baseline_profile = grep({ $_ eq 'local-goftp1' } @profiles)
+        ? 'local-goftp1'
+        : $profiles[0];
+    my %mismatch_field;
+    my %mismatch_profile;
+    for my $field (@fields) {
+        my $baseline = _stdout_value($witnesses{$baseline_profile}{$field});
+        for my $profile (@profiles) {
+            my $got = _stdout_value($witnesses{$profile}{$field});
+            next if $got eq $baseline;
+            $mismatch_field{$field} = 1;
+            $mismatch_profile{$profile} = 1;
+        }
+    }
+
+    return {
+        fixture          => $fixture,
+        fixture_id       => _safe_fixture_id($fixture),
+        game_descriptor  => $game,
+        profiles         => \@profiles,
+        baseline_profile => $baseline_profile,
+        fields           => \@fields,
+        mismatch_fields  => [sort keys %mismatch_field],
+        mismatch_profiles => [sort keys %mismatch_profile],
+        witnesses        => \%witnesses,
+    };
+}
+
+sub _v1_compare_fields {
+    my ($subcommand) = @_;
+
+    return [qw(event_set_root)] if $subcommand eq 'compare-roots';
+    return [qw(
+        event_set_root
+        accepted_count
+        accepted_events
+        rejected_count
+        rejected_codes
+        rejected_classes
+        replay_status
+        canonical_tip
+        canonical_ids
+        legal_ids
+        board_hash
+        sgf_hash
+        variations_sgf_hash
+        diagnostic_codes
+        diagnostic_classes
+        diagnostic_count
+    )] if $subcommand eq 'compare-replay';
+
+    croak "unsupported v1 compare command: $subcommand";
+}
+
+sub _v1_compare_profiles_from_option {
+    my ($value, $usage) = @_;
+    $usage //= 'usage: v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]';
+
+    my @profiles = split /,/, $value // '', -1;
+    die $usage
+        if !@profiles
+            || grep { $_ eq '' || !_is_public_token($_) || !_is_v1_compare_profile($_) } @profiles;
+
+    my %seen;
+    for my $profile (@profiles) {
+        die $usage if $seen{$profile}++;
+    }
+
+    return @profiles;
+}
+
+sub _v1_compare_profiles_from_fixture {
+    my ($fixture) = @_;
+
+    my @profiles = grep {
+        -f File::Spec->catfile($fixture, $_, 'listing.names')
+    } @V1_COMPARE_DEFAULT_PROFILES;
+
+    return @profiles;
+}
+
+sub _safe_fixture_id {
+    my ($fixture) = @_;
+
+    my $id = basename($fixture);
+    return $id if _is_public_token($id) && !contains_redactable_secret($id);
+    return 'REDACTED';
+}
+
+sub _is_v1_compare_profile {
+    my ($profile_id) = @_;
+    return known_profile($profile_id)
+        && grep({ $_ eq $profile_id } @V1_COMPARE_DEFAULT_PROFILES) ? 1 : 0;
 }
 
 sub _read_single_nonblank {
@@ -1147,6 +1327,61 @@ sub _print_v1_witness_diagnostics {
     }
 }
 
+sub _print_v1_compare {
+    my ($subcommand, $status, $comparison) = @_;
+
+    my $command_key = "gobanftp.v1.$subcommand";
+    my @profiles = @{ $comparison->{profiles} };
+    my $baseline = $comparison->{baseline_profile};
+    my $witnesses = $comparison->{witnesses};
+    my $baseline_witness = $witnesses->{$baseline};
+
+    print STDOUT "$command_key=$status\n";
+    print STDOUT "comparison_scope=fixture-read-normalizer\n";
+    print STDOUT "fixture_id=$comparison->{fixture_id}\n";
+    print STDOUT "game_descriptor=$comparison->{game_descriptor}\n";
+    print STDOUT 'profile_count=' . scalar(@profiles) . "\n";
+    print STDOUT 'profiles=' . join(',', @profiles) . "\n";
+    print STDOUT "baseline_profile=$baseline\n";
+    print STDOUT 'compared_fields=' . join(',', @{ $comparison->{fields} }) . "\n";
+    print STDOUT 'mismatch_count=' . scalar(@{ $comparison->{mismatch_fields} }) . "\n";
+    print STDOUT 'mismatch_fields=' . join(',', @{ $comparison->{mismatch_fields} }) . "\n";
+    print STDOUT 'mismatch_profiles=' . join(',', @{ $comparison->{mismatch_profiles} }) . "\n";
+    print STDOUT 'profile_roots=' . _profile_field_pairs($witnesses, \@profiles, 'event_set_root') . "\n";
+    print STDOUT 'profile_replay_statuses='
+        . _profile_field_pairs($witnesses, \@profiles, 'replay_status') . "\n";
+
+    for my $field (qw(
+        event_set_root
+        accepted_count
+        accepted_events
+        rejected_count
+        rejected_codes
+        rejected_classes
+        replay_status
+        canonical_tip
+        canonical_ids
+        legal_ids
+        diagnostic_codes
+        diagnostic_classes
+        diagnostic_count
+        board_hash
+        sgf_hash
+        variations_sgf_hash
+    )) {
+        next if !exists $baseline_witness->{$field};
+        print STDOUT "$field=" . _stdout_value($baseline_witness->{$field}) . "\n";
+    }
+}
+
+sub _profile_field_pairs {
+    my ($witnesses, $profiles, $field) = @_;
+
+    return join ',', map {
+        $_ . ':' . _stdout_value($witnesses->{$_}{$field})
+    } @$profiles;
+}
+
 sub _print_diagnostics {
     my ($result) = @_;
 
@@ -1245,6 +1480,13 @@ sub _is_public_token {
     return defined($value) && $value =~ /\A[A-Za-z0-9._:-]+\z/;
 }
 
+sub _v1_usage {
+    return join "\n",
+        'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]',
+        'usage: v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]',
+        'usage: v1 compare-replay --fixture fixture-dir [--profiles profile-id,...]';
+}
+
 sub _result_exit {
     my ($result) = @_;
 
@@ -1338,6 +1580,8 @@ commands:
   play [--once] [--move move|--ack event-id] [--nonce n] <game-root|game-descriptor>
   watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>
   v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]
+  v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]
+  v1 compare-replay --fixture fixture-dir [--profiles profile-id,...]
 USAGE
 
     return $status;

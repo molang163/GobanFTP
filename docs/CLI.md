@@ -231,6 +231,52 @@ and exits `2`. A fork-only replay writes `gobanftp.v1.witness=fork` and exits
 signature failures. `diagnostic_*` fields are replay diagnostics for the accepted
 event set.
 
+### `gobanftp v1 compare-roots --fixture <fixture-dir> [--profiles <ids>]`
+
+Compares `event_set_root` across the built-in unsigned fixture read-normalizer
+matrix present under `<fixture-dir>`, or across the comma-joined `--profiles`
+subset. The command reads the same `game.name` and per-profile `listing.names`
+files as `v1 witness`.
+
+This is a fixture/read-normalizer proof command. It demonstrates that the
+declared fixture presentations normalize to the same root; it does not claim
+that planned Git, DNS, or WebDAV profiles are fully admitted substrate adapters.
+`signed-hmac-goftp1` is excluded from this compare matrix because it needs
+explicit attestation and trust inputs.
+
+On equality, exits `0` and writes fields such as:
+
+```text
+gobanftp.v1.compare-roots=ok
+comparison_scope=fixture-read-normalizer
+fixture_id=<fixture-basename>
+profile_count=<n>
+profiles=<comma-joined-profile-ids>
+baseline_profile=<profile-id>
+compared_fields=event_set_root
+mismatch_count=0
+mismatch_fields=
+profile_roots=<profile-id>:<sha256-hex>,...
+event_set_root=<sha256-hex>
+accepted_count=<n>
+accepted_events=<comma-joined-event-basenames>
+rejected_count=<n>
+```
+
+If any compared profile differs from the baseline profile, the command writes
+`gobanftp.v1.compare-roots=failed`, reports `mismatch_fields` and
+`mismatch_profiles`, and exits `2`.
+
+### `gobanftp v1 compare-replay --fixture <fixture-dir> [--profiles <ids>]`
+
+Compares root and replay-derived witness fields across profile fixtures:
+`event_set_root`, accepted and rejected event-set fields, replay status,
+canonical and legal ids, board hash, SGF hashes, and diagnostic/rejection codes
+and classes/counts.
+
+Equal fork or equal validation witnesses are successful comparisons. The command
+fails only when profiles disagree with the baseline witness.
+
 ### `gobanftp create-game <game-descriptor>`
 
 Creates the game root plus empty `events/` and `tmp/` directories through the

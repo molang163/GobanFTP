@@ -27,6 +27,8 @@ my @allowed_classes = qw(parse event-id dag rules fork signature);
 my @stdout_fields = qw(
     board canonical_ids canonical_moves event event_id events game
     game_descriptor profile_id profile_consensus_version adapter_id
+    fixture_id comparison_scope profile_count profiles baseline_profile compared_fields
+    mismatch_count mismatch_fields mismatch_profiles profile_roots profile_replay_statuses
     raw_count normalized_count normalized_events accepted_count accepted_events
     rejected_count rejected_codes rejected_classes replay_status
     canonical_tip diagnostic_codes diagnostic_classes diagnostic_count
@@ -34,7 +36,8 @@ my @stdout_fields = qw(
     trusted_hmac_key_ids signature.status event_set_count event_set_root
     gobanftp.create-game gobanftp.play gobanftp.project
     gobanftp.publish-ack gobanftp.publish-move gobanftp.replay
-    gobanftp.sgf gobanftp.verify gobanftp.v1.witness gobanftp.watch legal_ids legal_moves
+    gobanftp.sgf gobanftp.verify gobanftp.v1.compare-replay
+    gobanftp.v1.compare-roots gobanftp.v1.witness gobanftp.watch legal_ids legal_moves
     listing root sgf snapshot store turn_color turn_player verdict worldline.status
     worldline.canonical_ids worldline.legal_ids worldline.fork.parent_id
     worldline.fork.child_ids

@@ -19,14 +19,27 @@ gobanftp.publish-move
 gobanftp.replay
 gobanftp.sgf
 gobanftp.verify
+gobanftp.v1.compare-replay
+gobanftp.v1.compare-roots
 gobanftp.v1.witness
 gobanftp.watch
 gobanftp.<command>
+fixture_id
 game
 game_descriptor
 profile_id
 profile_consensus_version
 adapter_id
+comparison_scope
+profile_count
+profiles
+baseline_profile
+compared_fields
+mismatch_count
+mismatch_fields
+mismatch_profiles
+profile_roots
+profile_replay_statuses
 events
 raw_count
 normalized_count
@@ -88,6 +101,11 @@ signed profile rejecting an event attestation. `diagnostic_count`,
 `diagnostic_codes`, and `diagnostic_classes` describe replay diagnostics after
 the accepted event set has been built. Both diagnostic families may emit stable
 `diagnostic ...` lines on stderr.
+
+For `gobanftp v1 compare-roots` and `gobanftp v1 compare-replay`, a fork or
+validation replay status is not itself a command failure. The compare commands
+exit successfully when every compared profile agrees with the baseline witness,
+and exit `2` only when `mismatch_fields` is non-empty.
 
 Stderr diagnostics use one line per issue:
 
