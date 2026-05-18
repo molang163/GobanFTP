@@ -181,6 +181,56 @@ the normal `verify` result. Missing trust material is reported as unsigned or
 untrusted advisory state, not as replay failure. Only an explicit signed profile
 may turn missing, bad, stale, or revoked signatures into validation failures.
 
+### `gobanftp v1 witness --profile <profile-id> --fixture <fixture-dir> [--attestations <jsonl>] [--trusted-hmac-key <id=key>]`
+
+Builds a read-only v1 witness from fixture files. The command reads:
+
+```text
+<fixture-dir>/game.name
+<fixture-dir>/<profile-id>/listing.names
+```
+
+For `signed-hmac-goftp1`, pass public attestation records with
+`--attestations` and one or more explicit verifier keys with
+`--trusted-hmac-key <id=key>`. The key id is public, must be a single
+diagnostic-safe token, and may appear in stdout or diagnostics; the key bytes
+must not be printed.
+
+The command calls `GobanFTP::Witness` and does not recompute roots, signatures,
+or replay results inside CLI code. It does not write events or projections.
+
+On success, writes key/value fields such as:
+
+```text
+gobanftp.v1.witness=ok
+profile_id=<profile-id>
+profile_consensus_version=GOFTP-PROFILE/<profile-id>/1
+adapter_id=<adapter-id>
+game_descriptor=<game-descriptor>
+raw_count=<n>
+normalized_count=<n>
+accepted_count=<n>
+rejected_count=<n>
+event_set_root=<sha256-hex>
+replay_status=<ok|fork|validation>
+canonical_tip=<event-id|genesis>
+canonical_ids=<comma-joined-event-ids>
+legal_ids=<comma-joined-event-ids>
+board_hash=<sha256-hex>
+sgf_hash=<sha256-hex>
+variations_sgf_hash=<sha256-hex>
+signature.status=<unsigned|ok|failed>
+```
+
+If the witness has profile-gate rejections or replay validation diagnostics, the
+command writes `gobanftp.v1.witness=failed`, emits stable diagnostics to stderr,
+and exits `2`. A fork-only replay writes `gobanftp.v1.witness=fork` and exits
+`3`.
+
+`rejected_*` fields are profile admission failures before replay, including
+signature failures. `diagnostic_*` fields are replay diagnostics for the accepted
+event set.
+
 ### `gobanftp create-game <game-descriptor>`
 
 Creates the game root plus empty `events/` and `tmp/` directories through the

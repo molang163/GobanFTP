@@ -8,6 +8,7 @@ use Carp qw(croak);
 use Exporter qw(import);
 
 our @EXPORT_OK = qw(
+    default_diagnostics_schema
     diagnostic_class
     diagnostic_classes
     diagnostic_codes
@@ -17,6 +18,42 @@ our @EXPORT_OK = qw(
 );
 
 my %SCHEMA_CACHE;
+my @DEFAULT_SCHEMA = map {
+    my ($code, $selector, $class) = @$_;
+    +{
+        code     => $code,
+        selector => $selector,
+        class    => $class,
+    };
+} (
+    ['parse_event',           'error=event_id.*', 'event-id'],
+    ['parse_event',           'error=*',          'parse'],
+    ['parse_game_descriptor', '*',                'parse'],
+    ['invalid_event_item',    '*',                'parse'],
+    ['event_id_collision',    '*',                'event-id'],
+    ['missing_parent',        '*',                'dag'],
+    ['parent_not_move',       '*',                'dag'],
+    ['cycle',                 '*',                'dag'],
+    ['dangling_ack_target',   '*',                'dag'],
+    ['ack_target_not_move',   '*',                'dag'],
+    ['ack_target_invalid',    '*',                'dag'],
+    ['wrong_color',           '*',                'rules'],
+    ['wrong_player',          '*',                'rules'],
+    ['wrong_ply',             '*',                'rules'],
+    ['illegal_move',          '*',                'rules'],
+    ['parent_not_legal',      '*',                'rules'],
+    ['ack_wrong_player',      '*',                'rules'],
+    ['rules',                 '*',                'rules'],
+    ['fork',                  '*',                'fork'],
+    ['missing_signature',     '*',                'signature'],
+    ['wrong_signature',       '*',                'signature'],
+    ['untrusted_signature',   '*',                'signature'],
+    ['malformed_signature',   '*',                'signature'],
+);
+
+sub default_diagnostics_schema {
+    return [map { +{ %$_ } } @DEFAULT_SCHEMA];
+}
 
 sub replay_status {
     my ($diagnostics) = @_;

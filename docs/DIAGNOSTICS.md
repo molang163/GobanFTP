@@ -19,16 +19,40 @@ gobanftp.publish-move
 gobanftp.replay
 gobanftp.sgf
 gobanftp.verify
+gobanftp.v1.witness
 gobanftp.watch
 gobanftp.<command>
 game
+game_descriptor
+profile_id
+profile_consensus_version
+adapter_id
 events
+raw_count
+normalized_count
+normalized_events
+accepted_count
+accepted_events
+rejected_count
+rejected_codes
+rejected_classes
 event_set_count
 event_set_root
+replay_status
 canonical_moves
 legal_moves
+canonical_tip
 canonical_ids
 legal_ids
+diagnostic_codes
+diagnostic_classes
+diagnostic_count
+board_hash
+sgf_hash
+variations_sgf_hash
+attestation_count
+trusted_hmac_key_ids
+signature.status
 snapshot
 store
 root
@@ -58,6 +82,13 @@ for bounded polls. `worldline.status` is one of `main`, `fork`, or
 `event_set_root` is the lowercase SHA-256 hex digest of that accepted event set.
 It is a witness field for the observed listing, not a replay success claim.
 
+For `gobanftp v1 witness`, `rejected_count`, `rejected_codes`, and
+`rejected_classes` describe profile admission failures before replay, such as a
+signed profile rejecting an event attestation. `diagnostic_count`,
+`diagnostic_codes`, and `diagnostic_classes` describe replay diagnostics after
+the accepted event set has been built. Both diagnostic families may emit stable
+`diagnostic ...` lines on stderr.
+
 Stderr diagnostics use one line per issue:
 
 ```text
@@ -70,7 +101,9 @@ diagnostic code.
 ## Diagnostic Fields
 
 Only scalar values and comma-joined arrays are emitted by the CLI diagnostic
-line format. Nested objects are skipped.
+line format. Nested objects are skipped. The CLI percent-encodes characters
+outside the diagnostic token alphabet so every diagnostic remains one line:
+letters, digits, `.`, `_`, `:`, `/`, `,`, and `-` are printed literally.
 
 Allowed stderr diagnostic fields:
 

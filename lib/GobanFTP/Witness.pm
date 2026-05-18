@@ -9,6 +9,7 @@ use Digest::SHA qw(sha256_hex);
 use Exporter qw(import);
 
 use GobanFTP::Diagnostics qw(
+    default_diagnostics_schema
     diagnostic_classes
     diagnostic_codes
     replay_status
@@ -68,6 +69,7 @@ sub witness_for_listing {
         events          => \@replay_events,
     );
     my @diagnostics = $result->diagnostics;
+    my @rejected_diagnostics = map { _clone_diagnostic($_) } @{ $event_set->{diagnostics} };
 
     my $rendered = render_projection(
         game_descriptor => $game,
@@ -89,6 +91,7 @@ sub witness_for_listing {
         accepted_count            => $event_set->{event_count},
         accepted_events           => [@{ $event_set->{accepted_events} }],
         rejected_count            => scalar(@{ $event_set->{diagnostics} }),
+        rejected_diagnostics      => \@rejected_diagnostics,
         rejected_codes            => [diagnostic_codes($event_set->{diagnostics})],
         rejected_classes          => [diagnostic_classes($event_set->{diagnostics}, $schema)],
         event_set_root            => $event_set->{event_set_root},
@@ -104,6 +107,7 @@ sub witness_for_listing {
         diagnostic_codes          => [diagnostic_codes(\@diagnostics)],
         diagnostic_classes        => [diagnostic_classes(\@diagnostics, $schema)],
         diagnostic_count          => scalar(@diagnostics),
+        replay_diagnostics        => [map { _clone_diagnostic($_) } @diagnostics],
     };
 }
 
@@ -113,7 +117,10 @@ sub _diagnostics_schema {
     return _array_ref($args{diagnostics_schema}, 'diagnostics_schema')
         if exists $args{diagnostics_schema};
 
-    return schema_from_file($args{diagnostics_schema_path});
+    return schema_from_file($args{diagnostics_schema_path})
+        if exists $args{diagnostics_schema_path};
+
+    return default_diagnostics_schema();
 }
 
 sub _args {
@@ -138,6 +145,11 @@ sub _hash_ref {
     my ($value, $name) = @_;
     croak "$name must be a hash reference" if ref($value) ne 'HASH';
     return $value;
+}
+
+sub _clone_diagnostic {
+    my ($diagnostic) = @_;
+    return { %$diagnostic };
 }
 
 1;

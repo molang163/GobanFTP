@@ -6,14 +6,16 @@ use warnings;
 
 use Exporter qw(import);
 
-our @EXPORT_OK = qw(redact_text);
+our @EXPORT_OK = qw(contains_redactable_secret redact_text);
 
 sub redact_text {
-    my ($text) = @_;
+    my ($text, @extra_secrets) = @_;
     $text //= '';
 
-    for my $secret (_secret_env_values()) {
-        _redact_literal(\$text, $secret);
+    for my $secret (_redaction_secrets(@extra_secrets)) {
+        for my $variant (_secret_variants($secret)) {
+            _redact_literal(\$text, $variant);
+        }
     }
 
     $text =~ s{-----BEGIN [^-]*PRIVATE KEY-----.*?-----END [^-]*PRIVATE KEY-----}{[REDACTED]}gis;
@@ -41,6 +43,37 @@ sub redact_text {
     return $text;
 }
 
+sub contains_redactable_secret {
+    my ($text, @extra_secrets) = @_;
+    return 0 if !defined($text) || $text eq '';
+
+    my @candidates = ($text);
+    my $decoded = $text;
+    while (1) {
+        my $next = _percent_decode($decoded);
+        last if $next eq $decoded;
+        push @candidates, $next;
+        $decoded = $next;
+    }
+
+    for my $candidate (@candidates) {
+        for my $secret (_redaction_secrets(@extra_secrets)) {
+            return 1 if _contains_literal($candidate, $secret);
+        }
+    }
+
+    return 0;
+}
+
+sub _redaction_secrets {
+    my (@extra_secrets) = @_;
+
+    my %seen;
+    return sort { length($b) <=> length($a) }
+        grep { defined($_) && $_ ne '' && !$seen{$_}++ }
+        (_secret_env_values(), @extra_secrets);
+}
+
 sub _secret_env_values {
     my @values;
     my %seen;
@@ -65,6 +98,45 @@ sub _redact_literal {
 
     $$text_ref =~ s/$quoted/[REDACTED]/g;
     return;
+}
+
+sub _contains_literal {
+    my ($text, $secret) = @_;
+
+    my $quoted = quotemeta $secret;
+    if (length($secret) < 4 && $secret =~ /\A[A-Za-z0-9_]+\z/) {
+        return $text =~ /(?<![A-Za-z0-9_])$quoted(?![A-Za-z0-9_])/ ? 1 : 0;
+    }
+
+    return index($text, $secret) >= 0 ? 1 : 0;
+}
+
+sub _secret_variants {
+    my ($secret) = @_;
+
+    my @variants = ($secret);
+    my $encoded = $secret;
+    for (1 .. 2) {
+        $encoded = _percent_encode($encoded);
+        last if $encoded eq $variants[-1];
+        push @variants, $encoded;
+    }
+
+    return @variants;
+}
+
+sub _percent_encode {
+    my ($value) = @_;
+
+    $value =~ s/([^A-Za-z0-9._:\/,-])/sprintf('%%%02X', ord($1))/eg;
+    return $value;
+}
+
+sub _percent_decode {
+    my ($value) = @_;
+
+    $value =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
+    return $value;
 }
 
 1;

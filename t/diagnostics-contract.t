@@ -11,6 +11,7 @@ use Test::More;
 use lib "$FindBin::Bin/../lib";
 
 use GobanFTP::CLI;
+use GobanFTP::Diagnostics qw(default_diagnostics_schema);
 
 my $docs_path = "$FindBin::Bin/../docs/DIAGNOSTICS.md";
 my $fixture_dir = "$FindBin::Bin/fixtures/e2e";
@@ -25,10 +26,15 @@ my @allowed_classes = qw(parse event-id dag rules fork signature);
 
 my @stdout_fields = qw(
     board canonical_ids canonical_moves event event_id events game
-    event_set_count event_set_root
+    game_descriptor profile_id profile_consensus_version adapter_id
+    raw_count normalized_count normalized_events accepted_count accepted_events
+    rejected_count rejected_codes rejected_classes replay_status
+    canonical_tip diagnostic_codes diagnostic_classes diagnostic_count
+    board_hash sgf_hash variations_sgf_hash attestation_count
+    trusted_hmac_key_ids signature.status event_set_count event_set_root
     gobanftp.create-game gobanftp.play gobanftp.project
     gobanftp.publish-ack gobanftp.publish-move gobanftp.replay
-    gobanftp.sgf gobanftp.verify gobanftp.watch legal_ids legal_moves
+    gobanftp.sgf gobanftp.verify gobanftp.v1.witness gobanftp.watch legal_ids legal_moves
     listing root sgf snapshot store turn_color turn_player verdict worldline.status
     worldline.canonical_ids worldline.legal_ids worldline.fork.parent_id
     worldline.fork.child_ids
@@ -75,6 +81,13 @@ subtest 'diagnostics document defines emitted fields and secret policy' => sub {
         'parse_event event-id selector is documented';
     ok grep({ $_->{code} eq 'parse_event' && $_->{selector} eq 'error=*' && $_->{class} eq 'parse' } @schema),
         'parse_event parse selector is documented';
+
+    my @default_schema = @{ default_diagnostics_schema() };
+    is_deeply(
+        [map { +{ code => $_->{code}, selector => $_->{selector}, class => $_->{class} } } @default_schema],
+        [map { +{ code => $_->{code}, selector => $_->{selector}, class => $_->{class} } } @schema],
+        'built-in diagnostics schema matches docs',
+    );
 };
 
 subtest 'CLI diagnostics use documented fields and do not echo ignored secrets' => sub {

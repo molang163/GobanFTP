@@ -459,6 +459,7 @@ t/store-ftp-mock.t
 t/store-ftp.t
 t/store-local.t
 t/v1-attack-fixtures.t
+t/v1-cli-witness.t
 t/v1-cross-substrate.t
 t/v1-golden-vectors.t
 t/v1-signed-hmac.t

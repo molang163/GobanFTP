@@ -5,6 +5,8 @@ use strict;
 use warnings;
 
 use Carp qw(croak);
+use File::Spec;
+use JSON::PP qw(decode_json);
 use Scalar::Util qw(reftype);
 
 use GobanFTP::AckPublisher qw(build_ack_for_target);
@@ -13,9 +15,10 @@ use GobanFTP::Listing qw(normalize_listing sort_event_basenames);
 use GobanFTP::GameSpec qw(build_basename parse_basename);
 use GobanFTP::MovePublisher qw(build_next_move_name normalize_action);
 use GobanFTP::Projection qw(render_projection write_projection write_sgf_projection);
-use GobanFTP::Redact qw(redact_text);
+use GobanFTP::Redact qw(contains_redactable_secret redact_text);
 use GobanFTP::Replay qw(replay);
 use GobanFTP::Store::Config qw(context_for_descriptor context_for_game_arg store_mode);
+use GobanFTP::Witness qw(witness_for_listing);
 
 use constant {
     EXIT_SUCCESS    => 0,
@@ -68,6 +71,10 @@ sub run {
 
     if ($command eq 'watch') {
         return _run_checked_command($command, \@argv, \&_command_watch);
+    }
+
+    if ($command eq 'v1') {
+        return _run_checked_command($command, \@argv, \&_command_v1);
     }
 
     print STDERR "unknown command: $command\n";
@@ -566,6 +573,75 @@ sub _command_watch {
     return EXIT_SUCCESS;
 }
 
+sub _command_v1 {
+    my (@argv) = @_;
+    die "usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]"
+        if !@argv;
+
+    my $subcommand = shift @argv;
+    return _command_v1_witness(@argv) if $subcommand eq 'witness';
+
+    die "usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]";
+}
+
+sub _command_v1_witness {
+    my (@argv) = @_;
+
+    my $usage = 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]';
+    my %opts = (
+        trusted_hmac_keys => [],
+    );
+
+    while (@argv) {
+        my $option = shift @argv;
+        my ($name, $value);
+
+        if ($option =~ /\A--([^=]+)=(.*)\z/) {
+            ($name, $value) = ($1, $2);
+        }
+        elsif ($option =~ /\A--(.+)\z/) {
+            $name = $1;
+            die $usage if !@argv;
+            $value = shift @argv;
+        }
+        else {
+            die $usage;
+        }
+
+        if ($name eq 'profile') {
+            $opts{profile_id} = $value;
+            next;
+        }
+        if ($name eq 'fixture') {
+            $opts{fixture} = $value;
+            next;
+        }
+        if ($name eq 'attestations') {
+            $opts{attestations} = $value;
+            next;
+        }
+        if ($name eq 'trusted-hmac-key') {
+            push @{ $opts{trusted_hmac_keys} }, $value;
+            next;
+        }
+
+        die $usage;
+    }
+
+    die $usage if !defined($opts{profile_id}) || $opts{profile_id} eq '';
+    die $usage if !defined($opts{fixture}) || $opts{fixture} eq '';
+
+    my ($witness, $attestation_count, $trusted_key_ids, $trusted_secrets)
+        = _v1_witness_from_fixture(%opts);
+    my $exit = _v1_witness_exit($witness);
+    my $status = _status_for_exit($exit);
+
+    _print_v1_witness($witness, $status, $attestation_count, $trusted_key_ids);
+    _print_v1_witness_diagnostics($witness, $trusted_secrets);
+
+    return $exit;
+}
+
 sub _publish_action {
     my (%args) = @_;
 
@@ -749,6 +825,98 @@ sub _load_context {
     return _reload_context($context, %opts);
 }
 
+sub _v1_witness_from_fixture {
+    my (%opts) = @_;
+
+    my $profile_id = $opts{profile_id};
+    my $fixture    = $opts{fixture};
+    my $game_path  = File::Spec->catfile($fixture, 'game.name');
+    my $listing_path = File::Spec->catfile($fixture, $profile_id, 'listing.names');
+
+    my $game = _read_single_nonblank($game_path);
+    my @raw_names = _read_nonblank_lines($listing_path);
+    my @attestations = defined($opts{attestations})
+        ? _read_jsonl_file($opts{attestations})
+        : ();
+    my %trusted_hmac_keys = _trusted_hmac_key_map(@{ $opts{trusted_hmac_keys} // [] });
+
+    my $witness = witness_for_listing(
+        profile_id              => $profile_id,
+        game_descriptor         => $game,
+        raw_names               => \@raw_names,
+        hmac_attestations       => \@attestations,
+        trusted_hmac_keys       => \%trusted_hmac_keys,
+    );
+
+    return (
+        $witness,
+        scalar(@attestations),
+        [sort keys %trusted_hmac_keys],
+        [values %trusted_hmac_keys],
+    );
+}
+
+sub _read_single_nonblank {
+    my ($path) = @_;
+
+    my @lines = _read_nonblank_lines($path);
+    die "storage: $path must contain exactly one nonblank line" if @lines != 1;
+    return $lines[0];
+}
+
+sub _read_nonblank_lines {
+    my ($path) = @_;
+
+    open my $fh, '<:encoding(UTF-8)', $path or die "storage: open $path: $!";
+    my @lines;
+    while (my $line = <$fh>) {
+        chomp $line;
+        next if $line =~ /\A\s*\z/;
+        push @lines, $line;
+    }
+    close $fh or die "storage: close $path: $!";
+
+    return @lines;
+}
+
+sub _read_jsonl_file {
+    my ($path) = @_;
+
+    open my $fh, '<:encoding(UTF-8)', $path or die "storage: open $path: $!";
+    my @rows;
+    while (my $line = <$fh>) {
+        chomp $line;
+        next if $line =~ /\A\s*\z/;
+        push @rows, decode_json($line);
+    }
+    close $fh or die "storage: close $path: $!";
+
+    return @rows;
+}
+
+sub _trusted_hmac_key_map {
+    my (@records) = @_;
+
+    my %keys;
+    my @secret_values;
+    for my $record (@records) {
+        die 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]'
+            if !defined($record) || $record !~ /\A([^=]+)=(.+)\z/;
+        my ($key_id, $key) = ($1, $2);
+        die 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]'
+            if !_is_public_token($key_id) || exists $keys{$key_id} || $key_id eq $key;
+        $keys{$key_id} = $key;
+        push @secret_values, $key;
+    }
+
+    for my $key_id (keys %keys) {
+        die 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]'
+            if grep { index($key_id, $_) >= 0 } @secret_values;
+    }
+
+    return %keys;
+}
+
 sub _reload_context {
     my ($context, %opts) = @_;
 
@@ -903,6 +1071,82 @@ sub _print_event_set_summary {
     print STDOUT "event_set_root=$event_set->{event_set_root}\n";
 }
 
+sub _print_v1_witness {
+    my ($witness, $status, $attestation_count, $trusted_key_ids) = @_;
+
+    print STDOUT "gobanftp.v1.witness=$status\n";
+    for my $field (qw(
+        profile_id
+        profile_consensus_version
+        adapter_id
+        game_descriptor
+        raw_count
+        normalized_count
+        normalized_events
+        accepted_count
+        accepted_events
+        rejected_count
+        rejected_codes
+        rejected_classes
+        event_set_root
+        replay_status
+        canonical_tip
+        canonical_ids
+        legal_ids
+        diagnostic_codes
+        diagnostic_classes
+        diagnostic_count
+        board_hash
+        sgf_hash
+        variations_sgf_hash
+    )) {
+        next if !exists $witness->{$field};
+        print STDOUT "$field=" . _stdout_value($witness->{$field}) . "\n";
+    }
+    print STDOUT "attestation_count=$attestation_count\n";
+    print STDOUT 'trusted_hmac_key_ids=' . join(',', @$trusted_key_ids) . "\n";
+    print STDOUT "signature.status=" . _signature_status($witness) . "\n";
+}
+
+sub _stdout_value {
+    my ($value) = @_;
+    return join(',', @$value) if ref($value) eq 'ARRAY';
+    return '' if !defined $value || ref($value);
+    return $value;
+}
+
+sub _signature_status {
+    my ($witness) = @_;
+
+    my $profile_id = $witness->{profile_id} // '';
+    return 'unsigned' if $profile_id ne 'signed-hmac-goftp1';
+    return grep({ $_ eq 'signature' } @{ $witness->{rejected_classes} // [] }) ? 'failed' : 'ok';
+}
+
+sub _v1_witness_exit {
+    my ($witness) = @_;
+
+    return EXIT_VALIDATION if ($witness->{rejected_count} // 0) > 0;
+    return EXIT_VALIDATION if ($witness->{replay_status} // '') eq 'validation';
+    return EXIT_CONFLICT   if ($witness->{replay_status} // '') eq 'fork';
+    return EXIT_SUCCESS;
+}
+
+sub _print_v1_witness_diagnostics {
+    my ($witness, $secrets) = @_;
+
+    my %seen;
+    for my $diagnostic (
+        @{ $witness->{replay_diagnostics} // [] },
+        @{ $witness->{rejected_diagnostics} // [] },
+    ) {
+        next if ref($diagnostic) ne 'HASH';
+        my $line = _diagnostic_line($diagnostic, $secrets);
+        next if $seen{$line}++;
+        print STDERR redact_text($line, @{ $secrets // [] }), "\n";
+    }
+}
+
 sub _print_diagnostics {
     my ($result) = @_;
 
@@ -968,7 +1212,7 @@ sub _print_worldline {
 }
 
 sub _diagnostic_line {
-    my ($diagnostic) = @_;
+    my ($diagnostic, $secrets) = @_;
 
     my @fields = ('diagnostic');
     for my $key (sort keys %$diagnostic) {
@@ -979,10 +1223,26 @@ sub _diagnostic_line {
         elsif (ref($value)) {
             next;
         }
-        push @fields, "$key=$value";
+        push @fields, "$key=" . _diagnostic_token($value, $secrets);
     }
 
     return join(' ', @fields);
+}
+
+sub _diagnostic_token {
+    my ($value, $secrets) = @_;
+
+    return '' if !defined $value;
+    return 'REDACTED' if contains_redactable_secret($value, @{ $secrets // [] });
+    $value = redact_text($value, @{ $secrets // [] });
+    $value =~ s/\[REDACTED\]/REDACTED/g;
+    $value =~ s/([^A-Za-z0-9._:\/,-])/sprintf('%%%02X', ord($1))/eg;
+    return $value;
+}
+
+sub _is_public_token {
+    my ($value) = @_;
+    return defined($value) && $value =~ /\A[A-Za-z0-9._:-]+\z/;
 }
 
 sub _result_exit {
@@ -1077,6 +1337,7 @@ commands:
   publish-ack [--nonce n] <game-root|game-descriptor> <event-id>
   play [--once] [--move move|--ack event-id] [--nonce n] <game-root|game-descriptor>
   watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>
+  v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]
 USAGE
 
     return $status;
