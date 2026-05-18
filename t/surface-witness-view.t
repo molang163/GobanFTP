@@ -8,7 +8,11 @@ use Test::More;
 
 use lib "$FindBin::Bin/../lib";
 
-use GobanFTP::Surface::WitnessView qw(render_witness_html render_witness_text);
+use GobanFTP::Surface::WitnessView qw(
+    render_witness_html
+    render_witness_terminal
+    render_witness_text
+);
 use GobanFTP::Witness qw(witness_for_listing);
 
 sub _dies (&);
@@ -56,6 +60,30 @@ subtest 'renders witness fields and projection text only' => sub {
     like $text, qr/^--- projection[.]unsafe ---\n<script>alert\('shadow'\)<\/script>$/m,
         'text surface keeps projection text literal';
 
+    my $terminal = render_witness_terminal(
+        witness     => $witness,
+        projections => $projections,
+    );
+    like $terminal, qr/\AGOFTP-TERMINAL-OBSERVATORY\/1\n/,
+        'terminal surface has observatory header';
+    like $terminal, qr/^status[.]profile=local-goftp1$/m,
+        'terminal surface prints profile id';
+    like $terminal, qr/^status[.]adapter=local-listing-goftp1$/m,
+        'terminal surface prints adapter id';
+    like $terminal,
+        qr/^truth[.]event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461$/m,
+        'terminal surface prints event_set_root';
+    like $terminal, qr/^truth[.]canonical_tip=kcvtlonfje163p9q$/m,
+        'terminal surface prints canonical tip';
+    like $terminal, qr/^status[.]signature=unsigned$/m,
+        'terminal surface prints signature status';
+    like $terminal, qr/^--- observed[.]board ---\n3 \. \. \.$/m,
+        'terminal surface includes observed board';
+    like $terminal, qr/^--- observed[.]verdict ---\nstatus=ok$/m,
+        'terminal surface includes observed verdict';
+    unlike $terminal, qr/<script>alert/,
+        'terminal surface omits projection text not shown in terminal view';
+
     my $html = render_witness_html(
         witness     => $witness,
         projections => $projections,
@@ -93,6 +121,9 @@ subtest 'does not call witness, replay, root, listing, rules, projection, or par
         is render_witness_text(witness => $witness, projections => $projections),
             $expected_text,
             'text rendering is pure formatting after witness assembly';
+        like render_witness_terminal(witness => $witness, projections => $projections),
+            qr/^truth[.]event_set_root=\Q$witness->{event_set_root}\E$/m,
+            'terminal rendering is pure formatting after witness assembly';
         like render_witness_html(witness => $witness, projections => $projections),
             qr/<dt>event_set_root<\/dt><dd>\Q$witness->{event_set_root}\E<\/dd>/,
             'HTML rendering is pure formatting after witness assembly';
@@ -109,6 +140,8 @@ subtest 'signature status is derived from supplied witness fields' => sub {
     );
     like render_witness_text(witness => \%signed_ok), qr/^signature[.]status=ok$/m,
         'signed witness without signature rejection is ok';
+    like render_witness_terminal(witness => \%signed_ok), qr/^status[.]signature=ok$/m,
+        'terminal signed witness without signature rejection is ok';
 
     my %signed_failed = (
         %$witness,
@@ -117,6 +150,8 @@ subtest 'signature status is derived from supplied witness fields' => sub {
     );
     like render_witness_text(witness => \%signed_failed), qr/^signature[.]status=failed$/m,
         'signed witness with signature rejection is failed';
+    like render_witness_terminal(witness => \%signed_failed), qr/^status[.]signature=failed$/m,
+        'terminal signed witness with signature rejection is failed';
     is $signed_failed{event_set_root}, $witness->{event_set_root},
         'surface signature display does not alter event_set_root';
 };

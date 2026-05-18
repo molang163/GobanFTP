@@ -130,13 +130,14 @@ static HTML, and projection excerpts may reveal `GobanFTP::Witness` fields, but
 they must not read storage, parse event names, recompute `event_set_root`, rerun
 replay, or decide signed profile acceptance.
 
-The `v1 witness --surface text|html` CLI path is such a surface. It can emit
-plain text or static HTML for inspection, while exit codes and diagnostics still
-come from the witness and profile gates.
+The `v1 witness --surface text|html|terminal` CLI path is such a surface. It
+can emit plain text, static HTML, or a static terminal observatory for
+inspection, while exit codes and diagnostics still come from the witness and
+profile gates.
 
-The minimal surface smoke freezes text and static HTML output digests as a
-reader-facing proof artifact. It is not a hosted Web UI and does not add any
-input to replay.
+The minimal surface smoke freezes text, static HTML, and terminal observatory
+output digests as reader-facing proof artifacts. It is not a hosted Web UI or
+interactive TUI and does not add any input to replay.
 
 ## v1.0 Surface Gate
 

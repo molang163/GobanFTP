@@ -408,14 +408,16 @@ Tasks:
   witness eye, root monolith, signature seal, observatory surfaces, and a small
   arch-gate easter egg
 - expose profile id, adapter id, `event_set_root`, replay status, fork status,
-  and signature status in terminal output
+  and signature status in terminal output. The first static terminal
+  observatory view is available through `v1 witness --surface terminal`;
+  it is a stdout inspection panel, not an interactive TUI.
 - add a Web-facing inspection surface or static export for witnesses,
   projections, profiles, diagnostics, and attack fixtures. The first reusable
   surface renderer now formats supplied witness fields and projection text
   without reading storage or recomputing truth, and `v1 witness --surface`
-  exposes it as a read-only text/static HTML CLI view. The minimal surface
-  smoke freezes text and HTML output digests without claiming a full Web or TUI
-  surface.
+  exposes it as a read-only text/static HTML/terminal CLI view. The minimal
+  surface smoke freezes text, HTML, and terminal output digests without
+  claiming a full Web or interactive TUI surface.
 - keep all TUI and Web output derived from replay results, witness outputs, or
   projections
 - preserve the rule that changing source art, terminal formatting, Web assets,

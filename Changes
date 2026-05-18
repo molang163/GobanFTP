@@ -72,6 +72,9 @@ Revision history for GobanFTP
     projection text.
   - Added a golden smoke for the minimal `v1 witness --surface` text and static
     HTML outputs, freezing their digests and canonical projection sections.
+  - Added `gobanftp v1 witness --surface terminal` as a static terminal
+    observatory over the same witness result, freezing its minimal digest while
+    avoiding any interactive TUI claim.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

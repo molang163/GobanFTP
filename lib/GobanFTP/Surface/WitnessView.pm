@@ -7,7 +7,7 @@ use warnings;
 use Carp qw(croak);
 use Exporter qw(import);
 
-our @EXPORT_OK = qw(render_witness_html render_witness_text);
+our @EXPORT_OK = qw(render_witness_html render_witness_terminal render_witness_text);
 
 my @WITNESS_FIELDS = qw(
     profile_id
@@ -60,6 +60,39 @@ sub render_witness_text {
 
     for my $projection (_projection_pairs($projections)) {
         push @lines, '', "--- projection.$projection->[0] ---", $projection->[1];
+    }
+
+    return join("\n", @lines, '');
+}
+
+sub render_witness_terminal {
+    my %args = _args(@_);
+    my $witness = _required_hash($args{witness}, 'witness');
+    my $projections = _optional_hash($args{projections}, 'projections');
+
+    my @lines = (
+        'GOFTP-TERMINAL-OBSERVATORY/1',
+        _terminal_box(
+            'GobanFTP witness observatory',
+            'display is derived from supplied witness fields only',
+            _terminal_status_line($witness),
+            _terminal_events_line($witness),
+        ),
+        'observatory.input=witness+projection-text',
+        'status.profile=' . _value($witness->{profile_id}),
+        'status.adapter=' . _value($witness->{adapter_id}),
+        'status.replay_status=' . _value($witness->{replay_status}),
+        'status.signature=' . _signature_status($witness),
+        'truth.event_set_root=' . _value($witness->{event_set_root}),
+        'truth.canonical_tip=' . _value($witness->{canonical_tip}),
+        'truth.board_hash=' . _value($witness->{board_hash}),
+        'truth.sgf_hash=' . _value($witness->{sgf_hash}),
+        'truth.variations_sgf_hash=' . _value($witness->{variations_sgf_hash}),
+        'truth.diagnostic_count=' . _value($witness->{diagnostic_count}),
+    );
+
+    for my $projection (_terminal_projection_pairs($projections)) {
+        push @lines, '', "--- observed.$projection->[0] ---", $projection->[1];
     }
 
     return join("\n", @lines, '');
@@ -143,6 +176,61 @@ sub _projection_pairs {
     }
 
     return @pairs;
+}
+
+sub _terminal_projection_pairs {
+    my ($projections) = @_;
+
+    my @pairs;
+    for my $name (qw(board verdict)) {
+        next if !exists $projections->{$name};
+        my $text = $projections->{$name};
+        next if !defined $text || $text eq '';
+        croak "projection $name must be plain text" if ref($text);
+        push @pairs, [$name, $text];
+    }
+
+    return @pairs;
+}
+
+sub _terminal_box {
+    my (@rows) = @_;
+
+    my $inner = 74;
+    my $rule = '+' . ('-' x ($inner + 2)) . '+';
+    return join "\n",
+        $rule,
+        map({ '| ' . _terminal_cell($_, $inner) . ' |' } @rows),
+        $rule;
+}
+
+sub _terminal_cell {
+    my ($text, $width) = @_;
+
+    $text = _value($text);
+    $text =~ s/[\r\n\t]/ /g;
+    $text = substr($text, 0, $width) if length($text) > $width;
+    return $text . (' ' x ($width - length($text)));
+}
+
+sub _terminal_status_line {
+    my ($witness) = @_;
+
+    return join ' ',
+        'replay_status=' . _value($witness->{replay_status}),
+        'signature=' . _signature_status($witness),
+        'diagnostics=' . _value($witness->{diagnostic_count});
+}
+
+sub _terminal_events_line {
+    my ($witness) = @_;
+
+    return join ' ',
+        'events',
+        'raw=' . _value($witness->{raw_count}),
+        'normalized=' . _value($witness->{normalized_count}),
+        'accepted=' . _value($witness->{accepted_count}),
+        'rejected=' . _value($witness->{rejected_count});
 }
 
 sub _html_field_row {

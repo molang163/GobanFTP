@@ -22,7 +22,11 @@ use GobanFTP::Projection qw(render_projection write_projection write_sgf_project
 use GobanFTP::Redact qw(contains_redactable_secret redact_text);
 use GobanFTP::Replay qw(replay);
 use GobanFTP::Store::Config qw(context_for_descriptor context_for_game_arg store_mode);
-use GobanFTP::Surface::WitnessView qw(render_witness_html render_witness_text);
+use GobanFTP::Surface::WitnessView qw(
+    render_witness_html
+    render_witness_terminal
+    render_witness_text
+);
 use GobanFTP::Witness qw(witness_for_listing);
 
 use constant {
@@ -753,7 +757,7 @@ sub _command_v1_witness {
             next;
         }
         if ($name eq 'surface') {
-            die $usage if defined($opts{surface}) || $value !~ /\A(?:text|html)\z/;
+            die $usage if defined($opts{surface}) || $value !~ /\A(?:text|html|terminal)\z/;
             $opts{surface} = $value;
             next;
         }
@@ -1529,9 +1533,16 @@ sub _print_v1_witness_surface {
         projections => $witness->{projection_text} // {},
     );
 
-    print STDOUT $surface eq 'html'
-        ? render_witness_html(%args)
-        : render_witness_text(%args);
+    if ($surface eq 'html') {
+        print STDOUT render_witness_html(%args);
+        return;
+    }
+    if ($surface eq 'terminal') {
+        print STDOUT render_witness_terminal(%args);
+        return;
+    }
+
+    print STDOUT render_witness_text(%args);
 }
 
 sub _print_v1_keyid {
@@ -1800,7 +1811,7 @@ sub _v1_usage {
 }
 
 sub _v1_witness_usage_line {
-    return 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-status id=status] [--surface text|html]';
+    return 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-status id=status] [--surface text|html|terminal]';
 }
 
 sub _result_exit {
@@ -1897,7 +1908,7 @@ commands:
   watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>
   v1 keyid --fixture public-key-file
   v1 trust-report --fixture fixture-dir
-  v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-status id=status] [--surface text|html]
+  v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-status id=status] [--surface text|html|terminal]
   v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]
   v1 compare-replay --fixture fixture-dir [--profiles profile-id,...]
 USAGE

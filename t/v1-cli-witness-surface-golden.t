@@ -68,6 +68,35 @@ subtest 'minimal witness HTML surface is frozen' => sub {
         'HTML surface does not mix in default key/value output';
 };
 
+subtest 'minimal witness terminal surface is frozen' => sub {
+    my ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'local-goftp1',
+        '--fixture', $fixture,
+        '--surface', 'terminal',
+    );
+
+    is $exit, 0, 'terminal surface exits success';
+    is $stderr, '', 'terminal surface has no diagnostics';
+    is length($stdout), 1497, 'terminal surface byte length is frozen';
+    is sha256_hex($stdout),
+        'bd5a9004c5cb3156153369ad07df366a75c92f43209eaef74291cbee5409d5d5',
+        'terminal surface digest is frozen';
+    like $stdout, qr/\AGOFTP-TERMINAL-OBSERVATORY\/1\n/,
+        'terminal surface starts with observatory header';
+    like $stdout,
+        qr/^truth[.]event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461$/m,
+        'terminal surface keeps root visible';
+    like $stdout, qr/^--- observed[.]board ---$/m,
+        'terminal surface keeps board section';
+    like $stdout, qr/^--- observed[.]verdict ---$/m,
+        'terminal surface keeps verdict section';
+    unlike $stdout, qr/^--- observed[.]sgf_main ---$/m,
+        'terminal surface omits full SGF projection';
+    unlike $stdout, qr/^gobanftp[.]v1[.]witness=/m,
+        'terminal surface does not mix in default key/value output';
+};
+
 done_testing;
 
 sub _run_cli {

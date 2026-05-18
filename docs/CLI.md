@@ -226,7 +226,7 @@ The fixture form reads:
 parse `attestations.tsv`, does not enforce signed-HMAC revocation, and does not
 use wall-clock time for expiry decisions.
 
-### `gobanftp v1 witness --profile <profile-id> --fixture <fixture-dir> [--attestations <jsonl>] [--trusted-hmac-key <id=key>] [--trusted-hmac-status <id=status>] [--surface text|html]`
+### `gobanftp v1 witness --profile <profile-id> --fixture <fixture-dir> [--attestations <jsonl>] [--trusted-hmac-key <id=key>] [--trusted-hmac-status <id=status>] [--surface text|html|terminal]`
 
 Builds a read-only v1 witness from fixture files. The command reads:
 
@@ -255,11 +255,14 @@ so rotated publish rejection is only a documented lifecycle rule.
 The command calls `GobanFTP::Witness` and does not recompute roots, signatures,
 or replay results inside CLI code. It does not write events or projections.
 
-`--surface text|html` replaces the default key/value stdout summary with a
+`--surface text|html|terminal` replaces the default key/value stdout summary with a
 read-only inspection surface. `text` writes a `GOFTP-WITNESS-SURFACE/1` plain
 text view. `html` writes self-contained static HTML suitable for redirecting to
-a file. Both formats are derived from the same witness result and projection
-text already rendered by `GobanFTP::Witness`; the CLI does not read
+a file. `terminal` writes a `GOFTP-TERMINAL-OBSERVATORY/1` static terminal
+status panel with the witness root, replay status, signature status, board
+hashes, and board/verdict projection excerpts. All formats are derived from the
+same witness result and projection text already rendered by `GobanFTP::Witness`;
+the CLI does not read
 `projections/`, rerun replay, recompute `event_set_root`, or decide profile
 acceptance. Exit codes and stderr diagnostics are unchanged.
 

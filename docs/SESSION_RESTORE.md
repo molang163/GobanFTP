@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- feat: add terminal witness observatory
 - test: freeze v1 witness surface smoke
 - feat: add v1 witness surface output
 - feat: add witness surface renderer
@@ -26,6 +27,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD feat: add terminal witness observatory
 HEAD test: freeze v1 witness surface smoke
 HEAD feat: add v1 witness surface output
 HEAD feat: add witness surface renderer
@@ -108,6 +110,12 @@ Key completed boundaries:
   `v1 witness --surface text|html` outputs now have digest and byte-length
   coverage, visible `event_set_root`, and canonical projection-section checks.
   This is a static inspection-surface gate, not a full Web or TUI release.
+- P13e terminal witness observatory is implemented:
+  `v1 witness --surface terminal` renders a deterministic ASCII/stdout status
+  panel from the existing `GobanFTP::Witness` result and opt-in projection
+  text. It freezes the minimal terminal digest, preserves fork and validation
+  exit behavior, redacts signed-HMAC secrets, and remains a static terminal
+  inspection surface rather than an interactive TUI.
 - WebDAV publish failure now has a fixture and CLI parity gate proving
   existing-final idempotence, delayed `MOVE` visibility, hard `HTTP 423 Locked`
   failure, bounded retries, zero-byte temporary resources, tmp debris exclusion,
@@ -148,9 +156,12 @@ Key completed boundaries:
 
 ## Last Verified
 
-After v1 witness surface smoke freeze, these passed:
+After terminal witness observatory integration, these passed:
 
 ```text
+perl -Ilib -c lib/GobanFTP/Surface/WitnessView.pm
+perl -Ilib -c lib/GobanFTP/CLI.pm
+prove -lr t/surface-witness-view.t t/v1-cli-witness-surface.t t/v1-cli-witness-surface-golden.t
 perl -Ilib -c t/v1-cli-witness-surface-golden.t
 prove -lr t/v1-cli-witness-surface-golden.t t/v1-cli-witness-surface.t
 perl -Ilib -c lib/GobanFTP/Witness.pm
@@ -183,7 +194,7 @@ prove -lr t
 Full test result:
 
 ```text
-Files=70, Tests=939, all successful.
+Files=70, Tests=942, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -203,15 +214,14 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-after P13d v1 witness surface smoke freeze, continue the v1.0 route:
+after P13e terminal witness observatory, continue the v1.0 route:
 - pick the next small proof gate by implementation review
-- likely candidate is the next P13 surface gate: a small terminal observatory
-  status panel over existing witness data, or a narrow showcase command that
-  runs the frozen source-art and witness surface proofs together
+- likely candidate is a narrow showcase command or smoke gate that runs the
+  frozen source-art, witness text/HTML, and terminal observatory proofs together
 - keep it read-only: consume existing witness/projection data and do not make a
   second witness assembler
-- do not let display, source art, Web assets, or terminal formatting feed
-  replay or event-set roots
+- do not let display, source art, Web assets, terminal formatting, or any future
+  interactive input feed replay or event-set roots
 - keep unsigned `GOFTP/1` and `local-goftp1` replay unchanged
 - keep every change behavior-tested and update Changes plus this restore file
 ```
@@ -256,6 +266,6 @@ When resuming:
    maintainer guide supplied in the session context.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `test: freeze v1 witness surface smoke`.
+4. Confirm HEAD includes `feat: add terminal witness observatory`.
 5. If the user asks to continue, review the next step first, then choose one
    small executable step.
