@@ -11,6 +11,7 @@ use JSON::PP qw(decode_json);
 use Scalar::Util qw(reftype);
 
 use GobanFTP::AckPublisher qw(build_ack_for_target);
+use GobanFTP::Auth::KeyID qw(parse_public_key_record);
 use GobanFTP::EventSetRoot qw(event_set_root_result);
 use GobanFTP::Listing qw(normalize_listing sort_event_basenames);
 use GobanFTP::GameSpec qw(build_basename parse_basename);
@@ -588,6 +589,7 @@ sub _command_v1 {
     die _v1_usage() if !@argv;
 
     my $subcommand = shift @argv;
+    return _command_v1_keyid(@argv) if $subcommand eq 'keyid';
     return _command_v1_witness(@argv) if $subcommand eq 'witness';
     return _command_v1_compare('compare-roots', @argv)
         if $subcommand eq 'compare-roots';
@@ -595,6 +597,54 @@ sub _command_v1 {
         if $subcommand eq 'compare-replay';
 
     die _v1_usage();
+}
+
+sub _command_v1_keyid {
+    my (@argv) = @_;
+
+    my $usage = 'usage: v1 keyid --fixture public-key-file';
+    my %opts;
+
+    while (@argv) {
+        my $option = shift @argv;
+        my ($name, $value);
+
+        if ($option =~ /\A--([^=]+)=(.*)\z/) {
+            ($name, $value) = ($1, $2);
+        }
+        elsif ($option =~ /\A--(.+)\z/) {
+            $name = $1;
+            die $usage if !@argv;
+            $value = shift @argv;
+        }
+        else {
+            die $usage;
+        }
+
+        if ($name eq 'fixture') {
+            $opts{fixture} = $value;
+            next;
+        }
+
+        die $usage;
+    }
+
+    die $usage if !defined($opts{fixture}) || $opts{fixture} eq '';
+
+    my $text = _read_text_file($opts{fixture});
+    my $record = eval { parse_public_key_record($text) };
+    if (!$record) {
+        my $error = _clean_error($@ || 'parse_public_key');
+        print STDOUT "gobanftp.v1.keyid=failed\n";
+        print STDERR _diagnostic_line({
+            code  => 'parse_public_key',
+            error => $error,
+        }), "\n";
+        return EXIT_VALIDATION;
+    }
+
+    _print_v1_keyid($record);
+    return EXIT_SUCCESS;
 }
 
 sub _command_v1_witness {
@@ -1079,6 +1129,17 @@ sub _read_jsonl_file {
     return @rows;
 }
 
+sub _read_text_file {
+    my ($path) = @_;
+
+    open my $fh, '<:encoding(UTF-8)', $path or die "storage: open $path: $!";
+    local $/;
+    my $text = <$fh>;
+    close $fh or die "storage: close $path: $!";
+
+    return $text;
+}
+
 sub _trusted_hmac_key_map {
     my (@records) = @_;
 
@@ -1298,6 +1359,21 @@ sub _print_v1_witness {
     print STDOUT "signature.status=" . _signature_status($witness) . "\n";
 }
 
+sub _print_v1_keyid {
+    my ($record) = @_;
+
+    print STDOUT "gobanftp.v1.keyid=ok\n";
+    for my $field (qw(
+        key_id
+        key_id_version
+        public_key_version
+        suite
+        public_key_bytes
+    )) {
+        print STDOUT "$field=$record->{$field}\n";
+    }
+}
+
 sub _stdout_value {
     my ($value) = @_;
     return join(',', @$value) if ref($value) eq 'ARRAY';
@@ -1497,6 +1573,7 @@ sub _is_public_token {
 
 sub _v1_usage {
     return join "\n",
+        'usage: v1 keyid --fixture public-key-file',
         'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]',
         'usage: v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]',
         'usage: v1 compare-replay --fixture fixture-dir [--profiles profile-id,...]';
@@ -1594,6 +1671,7 @@ commands:
   publish-ack [--nonce n] <game-root|game-descriptor> <event-id>
   play [--once] [--move move|--ack event-id] [--nonce n] <game-root|game-descriptor>
   watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>
+  v1 keyid --fixture public-key-file
   v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key]
   v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]
   v1 compare-replay --fixture fixture-dir [--profiles profile-id,...]
@@ -1605,6 +1683,7 @@ USAGE
 sub _clean_error {
     my ($error) = @_;
 
+    chomp $error;
     $error =~ s/\s+at \S+ line [0-9]+\.?\z//;
     return $error;
 }

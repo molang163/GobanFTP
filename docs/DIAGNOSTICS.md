@@ -21,12 +21,18 @@ gobanftp.sgf
 gobanftp.verify
 gobanftp.v1.compare-replay
 gobanftp.v1.compare-roots
+gobanftp.v1.keyid
 gobanftp.v1.witness
 gobanftp.watch
 gobanftp.<command>
 fixture_id
 game
 game_descriptor
+key_id
+key_id_version
+public_key_version
+suite
+public_key_bytes
 profile_id
 profile_consensus_version
 adapter_id
@@ -200,6 +206,7 @@ code|selector|class|required|optional
 parse_event|error=event_id.*|event-id|code,name,error|-
 parse_event|error=*|parse|code,name,error|-
 parse_game_descriptor|*|parse|code,error|-
+parse_public_key|*|parse|code,error|-
 invalid_event_item|*|parse|code,index,stage|-
 event_id_collision|*|event-id|code,event_id,names|-
 missing_parent|*|dag|code,event_id,parent_id|-
@@ -302,6 +309,7 @@ parent_not_legal
 parent_not_move
 parse_event
 parse_game_descriptor
+parse_public_key
 rules
 untrusted_signature
 wrong_signature

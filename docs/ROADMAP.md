@@ -379,6 +379,11 @@ Acceptance:
   changes
 - sidecar signatures remain advisory outside a signed/auth profile
 
+Current implemented proof: fixture-only public key identity is available through
+`gobanftp v1 keyid --fixture`. It derives `GOFTP-KEY/1` `k1.` ids from public
+fixture records and does not create trust, private keys, signatures, or replay
+inputs.
+
 ## P13: Source-Art, TUI, And Web Surfaces
 
 Goal: make the proof machine inspectable without letting display surfaces become

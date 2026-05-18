@@ -43,6 +43,9 @@ Revision history for GobanFTP
     final names, delayed MOVE visibility, hard 423 failures, zero-byte temporary
     payloads, retry bounds, and tmp debris do not create hidden witness truth or
     leak bearer tokens.
+  - Added fixture-only `gobanftp v1 keyid --fixture` support for `GOFTP-KEY/1`
+    public key ids, keeping public key metadata separate from HMAC secrets,
+    signatures, trust, and unsigned replay truth.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

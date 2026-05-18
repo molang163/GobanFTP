@@ -1,0 +1,8 @@
+gobanftp-public-key-v1
+suite=fixture-ed25519-v1
+public_hex=000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+label=alice-main
+principal=player:alice
+comment=metadata-does-not-change-key-id
+status=trusted
+revoked_at=-

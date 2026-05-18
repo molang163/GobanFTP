@@ -4,10 +4,10 @@ This directory is reserved for public auth and trust fixtures. It must not
 contain real private keys, signing seeds, passwords, tokens, HMAC secrets, or
 credential URLs.
 
-Fixtures exercise future `gobanftp keyid`, `attest`, and `trust-report`
-plumbing without creating a real private key system. All fixture key material is
-public and non-authoritative unless a future signed profile explicitly says
-otherwise.
+Fixtures exercise `gobanftp v1 keyid --fixture` plus future `attest` and
+`trust-report` plumbing without creating a real private key system. All fixture
+key material is public and non-authoritative unless a future signed profile
+explicitly says otherwise.
 
 The `hmac/` vectors use public test keys to lock down deterministic
 HMAC-SHA256 framing. They are test vectors, not credentials, and must not be

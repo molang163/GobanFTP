@@ -93,16 +93,16 @@ The fixture form must not create a signing-capable private key. It may emit only
 deterministic public fixture key records for tests and documentation. A fixture
 record is not a private key and cannot authorize a signed profile.
 
-Future `keyid` is read-only:
+`v1 keyid --fixture` is implemented as a read-only fixture command. Production
+`keyid` remains reserved until a real public-key suite is selected:
 
 ```text
-gobanftp keyid <public-key-file>
-gobanftp keyid --fixture <public-key-file>
+gobanftp v1 keyid --fixture <public-key-file>
 ```
 
-It reads a public key record, validates the public format, and prints the
-derived key id. It must not read private key files and must not echo key file
-contents in diagnostics. The fixture form accepts only fixture public key
+It reads a fixture public key record, validates the public format, and prints
+the derived key id. It must not read private key files and must not echo key
+file contents in diagnostics. The fixture form accepts only fixture public key
 records.
 
 Canonical public key record:
@@ -147,6 +147,17 @@ Its key id is:
 
 ```text
 k1.jk4bs0r77srdlpds260hka9fpp49clpg
+```
+
+Successful fixture output is:
+
+```text
+gobanftp.v1.keyid=ok
+key_id=k1.jk4bs0r77srdlpds260hka9fpp49clpg
+key_id_version=GOFTP-KEY/1
+public_key_version=gobanftp-public-key-v1
+suite=fixture-ed25519-v1
+public_key_bytes=32
 ```
 
 Future `attest` writes only advisory public attestation records unless the

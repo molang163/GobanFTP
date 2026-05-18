@@ -184,6 +184,9 @@ public_hex=<64 lowercase hex chars>
 
 `fixture-ed25519-v1` is parser fixture data only. It is not a real signing suite
 and must not create a production signature or private-key lifecycle.
+`gobanftp v1 keyid --fixture <public-key-file>` is implemented for this fixture
+record shape. It derives a public `k1.` identity only; it does not create trust,
+signatures, private keys, or signed-profile acceptance.
 
 Trust fixtures are line-oriented public data. They may say which key ids are
 trusted, revoked, or expired for a fixture, but they are not GOFTP/1 replay

@@ -390,3 +390,22 @@ Reason:
   only and must not alter unsigned event acceptance
 - the WebDAV store should share the local/FTP storage interface so CLI flows can
   remain listing-first and projection writes can stay local-only
+
+## 028: Fixture Key IDs Are Public Identity, Not Trust
+
+`gobanftp v1 keyid --fixture` derives `GOFTP-KEY/1` `k1.` key ids from public
+fixture key records. The id preimage contains only the suite id and public key
+bytes; labels, principals, comments, trust status, creation time, and revocation
+metadata are excluded. This fixture command is read-only and does not create
+private keys, signatures, trust, or signed-profile acceptance.
+
+Reason:
+
+- v1.0 needs stable public key identity before it can honestly describe
+  rotation, revocation, or trust reports
+- HMAC key selectors are secret-verifier fixture inputs and must not be confused
+  with public `GOFTP-KEY/1` identities
+- unsigned `GOFTP/1` must continue ignoring public key records, trust files,
+  sidecars, and attestations
+- fixture key ids provide a testable auth surface without pretending that a real
+  Ed25519 lifecycle or production private-key store exists

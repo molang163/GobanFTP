@@ -29,6 +29,7 @@ my @DEFAULT_SCHEMA = map {
     ['parse_event',           'error=event_id.*', 'event-id'],
     ['parse_event',           'error=*',          'parse'],
     ['parse_game_descriptor', '*',                'parse'],
+    ['parse_public_key',      '*',                'parse'],
     ['invalid_event_item',    '*',                'parse'],
     ['event_id_collision',    '*',                'event-id'],
     ['missing_parent',        '*',                'dag'],

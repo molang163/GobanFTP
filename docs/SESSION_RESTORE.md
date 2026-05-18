@@ -14,7 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
-- test: add WebDAV publish failure fixture
+- feat: add fixture keyid command
 ```
 
 Confirm the latest commit with `git log --oneline -5` when resuming.
@@ -22,6 +22,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD feat: add fixture keyid command
 HEAD test: add WebDAV publish failure fixture
 HEAD test: add git tree metadata poison fixture
 HEAD test: add signed HMAC injected event fixture
@@ -42,6 +43,11 @@ fc7f6a2 test: add WebDAV href traversal attack fixture
 
 Key completed boundaries:
 
+- P12a fixture public key identity is implemented through
+  `gobanftp v1 keyid --fixture`. It parses public fixture key records, derives
+  documented `GOFTP-KEY/1` `k1.` ids, rejects malformed/private-looking records
+  with `parse_public_key`, and keeps public key metadata separate from HMAC
+  secrets, signatures, trust, and unsigned replay truth.
 - WebDAV publish failure now has a fixture and CLI parity gate proving
   existing-final idempotence, delayed `MOVE` visibility, hard `HTTP 423 Locked`
   failure, bounded retries, zero-byte temporary resources, tmp debris exclusion,
@@ -82,10 +88,11 @@ Key completed boundaries:
 
 ## Last Verified
 
-After the WebDAV publish failure fixture, these passed:
+After the fixture keyid command, these passed:
 
 ```text
 git diff --check
+prove -lr t/auth-keyid.t t/cli-auth-keyid.t t/diagnostics-contract.t t/dependency-sync.t t/v1-cli-witness.t t/v1-signed-hmac.t
 prove -lr t/v1-profile-publish-fixtures.t t/webdav-cli-parity.t t/store-webdav-mock.t
 prove -lr t/profile-adapter.t t/v1-profile-attack-fixtures.t t/v1-cross-substrate.t t/v1-golden-vectors.t
 prove -lr t
@@ -94,7 +101,7 @@ prove -lr t
 Full test result:
 
 ```text
-Files=63, Tests=862, all successful.
+Files=65, Tests=869, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -116,22 +123,25 @@ Immediate next implementation:
 ```text
 after showing the README, continue the v1.0 route:
 - pick the next small proof gate by multi-agent discussion
-- likely candidate is a first narrow P12 key lifecycle slice for
-  signed-hmac-goftp1: public fixture key ids, trust-report/keyid CLI output, and
-  revocation/rotation fixture behavior without changing unsigned GOFTP/1 truth
+- likely candidate is P12b: `gobanftp v1 trust-report --fixture`
+- define trust TSV parsing, trusted/rotated/revoked/expired output fields, and
+  advisory-vs-signed exit semantics without changing unsigned GOFTP/1 truth
 - keep every change behavior-tested and update Changes plus this restore file
 ```
 
 Likely files:
 
 ```text
-lib/GobanFTP/Auth/HMAC.pm
+lib/GobanFTP/Auth/KeyID.pm
+lib/GobanFTP/Auth/TrustReport.pm
 lib/GobanFTP/CLI.pm
-t/fixtures/v1/signed-hmac/
-t/v1-signed-hmac.t
-t/v1-cli-witness.t
-t/v1-signed-hmac-golden-vectors.t
+lib/GobanFTP/Diagnostics.pm
+t/fixtures/auth/
+t/cli-auth-keyid.t
+t/diagnostics-contract.t
 docs/PROFILES.md
+docs/CLI.md
+docs/DIAGNOSTICS.md
 Changes
 docs/SESSION_RESTORE.md
 ```
@@ -143,6 +153,6 @@ When resuming:
 1. Read `AGENTS.md`.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `test: add WebDAV publish failure fixture`.
+4. Confirm HEAD includes `feat: add fixture keyid command`.
 5. If the user asks to continue, open multi-agent discussion first, then choose
    one small executable step.

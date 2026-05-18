@@ -234,6 +234,7 @@ lib/GobanFTP.pm
 lib/GobanFTP/.keep
 lib/GobanFTP/AckPublisher.pm
 lib/GobanFTP/Auth/HMAC.pm
+lib/GobanFTP/Auth/KeyID.pm
 lib/GobanFTP/Board.pm
 lib/GobanFTP/CLI.pm
 lib/GobanFTP/Coord.pm
@@ -340,6 +341,14 @@ t/fixtures/attacks/tmp-poison/listing.names
 t/fixtures/attacks/tmp-poison/tmp/pending.part
 t/fixtures/auth/hmac/digests.jsonl
 t/fixtures/auth/hmac/event-signatures.jsonl
+t/fixtures/auth/keyid/alice.pub
+t/fixtures/auth/keyid/alice-with-metadata.pub
+t/fixtures/auth/keyid/bad-header.pub
+t/fixtures/auth/keyid/bad-suite.pub
+t/fixtures/auth/keyid/duplicate-field.pub
+t/fixtures/auth/keyid/missing-public-hex.pub
+t/fixtures/auth/keyid/private-material.pub
+t/fixtures/auth/keyid/uppercase-hex.pub
 t/fixtures/auth/README.md
 t/fixtures/cli/events.names
 t/fixtures/cli/fork-events.names
@@ -485,6 +494,8 @@ t/ftp-cli-parity.t
 t/ftp-live-flow.t
 t/gamespec.t
 t/hmac-auth.t
+t/auth-keyid.t
+t/cli-auth-keyid.t
 t/lib/GobanFTP/Test/RulesMechanics.pm
 t/lib/GobanFTP/Test/StoreContract.pm
 t/listing.t
