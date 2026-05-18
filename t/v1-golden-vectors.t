@@ -146,7 +146,8 @@ for my $vector (@replay_vectors) {
             ok exists $vector->{$field}, "vector has $field";
         }
 
-        is $vector->{policy}, 'conservative', 'v1 replay vector uses conservative policy';
+        like $vector->{policy}, qr/\A(?:conservative|ack-assisted)\z/,
+            'v1 replay vector uses a supported policy';
         ok @{ $vector->{input_events} }, 'vector has input events';
         ok !grep({ m{/} } @{ $vector->{input_events} }), 'input events are basenames';
 
@@ -191,6 +192,18 @@ for my $case (qw(
     illegal-sibling-preserves-legal-line
     invalid-root-preflight-diagnostics
     outsider-ack-keeps-move-canonical
+    ack-assisted-fork-choice
+    malformed-basename
+    parent-not-move
+    dangling-ack-target
+    ack-target-not-move
+    capture-removes-surrounded-stone
+    suicide-rejection-preserves-board
+    bounds-rejection-stays-at-genesis
+    single-pass-advances-turn
+    two-pass-terminal
+    resign-terminal
+    simple-ko-superko-rejects-recapture
 )) {
     ok $seen_replay_id{$case}, "$case replay invariant vector is present";
 }

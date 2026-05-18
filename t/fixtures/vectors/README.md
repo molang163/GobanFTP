@@ -24,7 +24,14 @@ DNS record publishing.
 `v1-replay-invariants.jsonl` freezes compact core replay outcomes that are not
 cross-substrate listing cases: an illegal sibling does not block the sole legal
 line, invalid root move metadata stays out of canonical replay, and an ACK by a
-non-player is rejected without changing the canonical move line.
+non-player is rejected without changing the canonical move line. It also covers
+capture, suicide rejection, bounds parse rejection, single pass, two-pass
+terminal play, resign terminal play, simple-ko superko rejection, ack-assisted
+fork choice, malformed basenames, parent-is-ACK rejection, dangling ACK targets,
+and ACK targets that are themselves ACKs. Event-id collision is not represented
+as an ordinary public replay basename vector because replay reparses event names
+against the game descriptor before DAG construction; a fabricated collision
+becomes an event-id mismatch unless a real hash collision exists.
 
 `v1-signed-hmac-witness.jsonl` freezes the signed-HMAC profile witness fields
 for valid, injected-event, missing, wrong, payload-mismatched,

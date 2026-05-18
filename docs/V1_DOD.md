@@ -340,8 +340,12 @@ ruleset seal
 
 The P14b witness-vector refresh made the public witness rows self-contained with
 raw input names, rejected diagnostics, replay diagnostics, and rendered
-board/verdict/listing/SGF projection text. The next vector slice must fill the
-remaining behavior cases above while keeping `git-tree-goftp1` and
+board/verdict/listing/SGF projection text. The P14c replay-invariant refresh
+covers the missing ordinary replay behavior cases above except event-id
+collision, which is not safely representable as an ordinary public replay
+basename without a real hash collision. The next vector slice must fold
+non-consensus poison evidence into public vectors and decide the proper
+DAG-level or synthetic collision vector while keeping `git-tree-goftp1` and
 `dns-record-goftp1` read-only and avoiding any claim of Git publish, live DNS,
 AXFR, DNSSEC trust, provider APIs, dynamic update, or DNS record publishing.
 

@@ -202,7 +202,16 @@ Key completed boundaries:
 - `t/fixtures/vectors/v1-replay-invariants.jsonl` freezes compact replay
   invariants outside the cross-substrate listing matrix: illegal sibling
   isolation, invalid root preflight diagnostics, and outsider ACK rejection
-  without changing the canonical move line.
+  without changing the canonical move line. It now also covers capture, suicide
+  rejection, bounds parse rejection, single pass, two-pass terminal play, resign
+  terminal play, simple-ko superko rejection, ack-assisted fork choice,
+  malformed basenames, parent-is-ACK rejection, dangling ACK targets, and ACK
+  targets that are themselves ACKs.
+- Event-id collision is not claimed as an ordinary public replay basename
+  vector. `Replay` verifies names against the game descriptor before DAG
+  construction, so fake same-id names are rejected as event-id mismatches unless
+  a real hash collision exists. A future collision proof should be a DAG-level
+  vector or a deliberately scoped synthetic fixture.
 - `dns-record-goftp1` is documented as read-only runtime admission over local or
   otherwise declared record files via `GOBANFTP_STORE=dns-record` and
   `GOBANFTP_DNS_RECORD_FILE`. The DNS profile adapter requires the TXT owner to
@@ -220,12 +229,14 @@ Key completed boundaries:
 
 ## Last Verified
 
-Latest verification after hardening unsigned and signed-HMAC witness vectors:
+Latest verification after expanding v1 replay-invariant behavior vectors:
 
 ```text
 git diff --check
 perl -MExtUtils::Manifest=fullcheck -e 'fullcheck()'
-prove -lr t/v1-golden-vectors.t t/v1-signed-hmac-golden-vectors.t
+prove -lr t/v1-golden-vectors.t
+prove -lr t/replay.t t/replay-ack-assisted.t t/dag.t t/replay-input-boundary.t
+prove -lr t/rules-play.t t/rules-flow.t t/rules-superko.t t/rules-engine.t t/ruleset-seal.t
 prove -lr t/witness-api.t t/profile-adapter.t t/profile-signed-hmac.t t/v1-cross-substrate.t t/v1-signed-hmac.t
 script/gobanftp v1 compare-replay --fixture t/fixtures/v1/cross-substrate/minimal
 prove -lr t
@@ -234,7 +245,7 @@ prove -lr t
 Full test result:
 
 ```text
-Files=73, Tests=957, all successful.
+Files=73, Tests=981, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -340,10 +351,10 @@ after entering v1.0/P14 development:
   files only; do not add or claim live DNS, AXFR, DNSSEC trust, provider API,
   dynamic update, or record publish support
 - current golden-vector refresh has hardened existing witness vectors with raw
-  input/projection text and added compact replay-invariant vectors
-- next proof slice should expand missing DoD replay cases into public vectors:
-  capture, suicide, bounds, pass/two-pass, resign, ko, malformed basename,
-  parent-not-move, dangling ACK, ACK-target-not-move, and event-id collision
+  input/projection text and expanded compact replay-invariant behavior vectors
+- next proof slice should fold non-consensus poison evidence into public vectors
+  and decide the proper DAG-level/synthetic representation for event-id
+  collision without pretending a normal basename collision exists
 - continue the P14 claim audit for the admitted read boundaries now present at
   HEAD, especially `git-tree-goftp1` and `dns-record-goftp1`
 - that slice must not add or claim Git publish, live DNS, AXFR, DNSSEC trust,

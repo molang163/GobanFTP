@@ -45,6 +45,11 @@ Revision history for GobanFTP
   - Added v1 replay-invariant golden vectors for illegal sibling isolation,
     invalid root preflight diagnostics, and outsider ACK rejection without
     changing the canonical move line.
+  - Expanded v1 replay-invariant golden vectors for capture, suicide rejection,
+    bounds parse rejection, single pass, two-pass terminal play, resign
+    terminal play, simple-ko superko rejection, ack-assisted fork choice,
+    malformed basenames, parent-is-ACK rejection, dangling ACK targets, and ACK
+    targets that are themselves ACKs.
   - Added a DNS owner-poison v1 profile attack fixture proving wrong-owner and
     ownerless TXT records cannot smuggle event basenames into the witness.
   - Reworked the README into a release-shaped showcase entrypoint while keeping
