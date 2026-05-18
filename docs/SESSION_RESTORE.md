@@ -194,6 +194,11 @@ Key completed boundaries:
 - Unsigned v1 witness golden vectors now freeze profile consensus version,
   adapter id, raw and normalized counts, normalized events, accepted and
   rejected counts, and diagnostic count.
+- Unsigned and signed-HMAC witness golden vectors now carry self-contained
+  `input_names`, `rejected_diagnostics`, `replay_diagnostics`, and rendered
+  `projection_text` for board, verdict, listing transcript, main SGF, and
+  variations SGF. Signed-HMAC vectors still read public attestation fixtures and
+  explicitly keep the HMAC secret out of public vector data.
 - `t/fixtures/vectors/v1-replay-invariants.jsonl` freezes compact replay
   invariants outside the cross-substrate listing matrix: illegal sibling
   isolation, invalid root preflight diagnostics, and outsider ACK rejection
@@ -215,12 +220,14 @@ Key completed boundaries:
 
 ## Last Verified
 
-Latest verification after adding v1 replay-invariant vectors:
+Latest verification after hardening unsigned and signed-HMAC witness vectors:
 
 ```text
 git diff --check
 perl -MExtUtils::Manifest=fullcheck -e 'fullcheck()'
-prove -lr t/v1-golden-vectors.t t/replay.t
+prove -lr t/v1-golden-vectors.t t/v1-signed-hmac-golden-vectors.t
+prove -lr t/witness-api.t t/profile-adapter.t t/profile-signed-hmac.t t/v1-cross-substrate.t t/v1-signed-hmac.t
+script/gobanftp v1 compare-replay --fixture t/fixtures/v1/cross-substrate/minimal
 prove -lr t
 ```
 
@@ -332,9 +339,11 @@ after entering v1.0/P14 development:
 - `dns-record-goftp1` runtime admission is read-only over local/declared record
   files only; do not add or claim live DNS, AXFR, DNSSEC trust, provider API,
   dynamic update, or record publish support
-- current golden-vector refresh has added compact replay-invariant vectors;
-  next proof slice should either expand missing DoD replay cases into public
-  vectors or harden existing witness vectors with raw input/projection text
+- current golden-vector refresh has hardened existing witness vectors with raw
+  input/projection text and added compact replay-invariant vectors
+- next proof slice should expand missing DoD replay cases into public vectors:
+  capture, suicide, bounds, pass/two-pass, resign, ko, malformed basename,
+  parent-not-move, dangling ACK, ACK-target-not-move, and event-id collision
 - continue the P14 claim audit for the admitted read boundaries now present at
   HEAD, especially `git-tree-goftp1` and `dns-record-goftp1`
 - that slice must not add or claim Git publish, live DNS, AXFR, DNSSEC trust,

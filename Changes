@@ -38,6 +38,10 @@ Revision history for GobanFTP
     parents, and wrong-player rule failures.
   - Expanded unsigned v1 witness golden vectors to freeze profile, adapter,
     raw, normalized, accepted, rejected, and diagnostic count fields.
+  - Hardened unsigned and signed-HMAC witness golden vectors with self-contained
+    input names, replay diagnostics, rejected diagnostics, and rendered board,
+    verdict, listing, and SGF projection text while keeping HMAC secrets out of
+    public vectors.
   - Added v1 replay-invariant golden vectors for illegal sibling isolation,
     invalid root preflight diagnostics, and outsider ACK rejection without
     changing the canonical move line.

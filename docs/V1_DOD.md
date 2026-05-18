@@ -338,10 +338,11 @@ SGF
 ruleset seal
 ```
 
-The next vector slice is a refresh of the public witness evidence for the
-admitted read boundaries now present at HEAD. It must keep `git-tree-goftp1` and
-`dns-record-goftp1` read-only, prove that their runtime admission matches the
-fixture/read-normalizer roots, and avoid any claim of Git publish, live DNS,
+The P14b witness-vector refresh made the public witness rows self-contained with
+raw input names, rejected diagnostics, replay diagnostics, and rendered
+board/verdict/listing/SGF projection text. The next vector slice must fill the
+remaining behavior cases above while keeping `git-tree-goftp1` and
+`dns-record-goftp1` read-only and avoiding any claim of Git publish, live DNS,
 AXFR, DNSSEC trust, provider APIs, dynamic update, or DNS record publishing.
 
 ## Release Gates

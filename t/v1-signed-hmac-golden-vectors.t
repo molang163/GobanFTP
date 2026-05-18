@@ -5,7 +5,7 @@ use warnings;
 use FindBin;
 use File::Basename qw(dirname);
 use File::Spec;
-use JSON::PP qw(decode_json);
+use JSON::PP qw(decode_json encode_json);
 use Test::More;
 
 use lib "$FindBin::Bin/../lib";
@@ -47,9 +47,11 @@ my @witness_fields = qw(
     diagnostic_codes
     diagnostic_classes
     diagnostic_count
+    replay_diagnostics
     board_hash
     sgf_hash
     variations_sgf_hash
+    projection_text
 );
 
 my @vectors = _read_jsonl($vector_path);
@@ -61,7 +63,7 @@ for my $vector (@vectors) {
     subtest $id => sub {
         ok !$seen_id{$id}++, 'vector id is unique';
 
-        for my $field (qw(id input_fixture attestation_fixture attestation_count trusted_hmac_key_ids trusted_hmac_key_statuses), @witness_fields) {
+        for my $field (qw(id input_fixture input_names attestation_fixture attestation_count trusted_hmac_key_ids trusted_hmac_key_statuses), @witness_fields) {
             ok exists $vector->{$field}, "vector has $field";
         }
 
@@ -87,7 +89,15 @@ for my $vector (@vectors) {
         my $game = _read_single($game_path);
         is $game, $vector->{game_descriptor}, 'vector game descriptor matches fixture';
 
-        my @raw = _read_names($listing_path);
+        my @fixture_names = _read_names($listing_path);
+        is_deeply $vector->{input_names}, \@fixture_names,
+            'self-contained input names match listing fixture';
+        is scalar(@{ $vector->{input_names} }), $vector->{raw_count},
+            'self-contained input names match raw count';
+        unlike encode_json($vector), qr/\Qgobanftp signed hmac fixture key 1\E/,
+            'vector keeps HMAC secret out of public evidence';
+
+        my @raw = @{ $vector->{input_names} };
         my @attestations = _read_jsonl(
             File::Spec->rel2abs($vector->{attestation_fixture}, $repo_root),
         );
@@ -102,6 +112,7 @@ for my $vector (@vectors) {
             hmac_attestations       => \@attestations,
             trusted_hmac_keys       => \%trusted_hmac_keys,
             trusted_hmac_key_statuses => $vector->{trusted_hmac_key_statuses},
+            include_projection_text => 1,
         );
 
         for my $field (@witness_fields) {

@@ -17,10 +17,12 @@ read-only runtime store. DNS record admission is read-only over local or
 otherwise declared record files, with no live DNS, AXFR, DNSSEC trust, provider
 API, dynamic update, or publish path. `GOFTP/1` remains unchanged.
 
-The next route work is golden-vector expansion and P14 claim audit for the
+The current route work is golden-vector expansion and P14 claim audit for the
 admitted read boundaries now present at HEAD, especially `git-tree-goftp1` and
-`dns-record-goftp1`. This is a proof refresh, not Git publish, live DNS, DNS
-publish, hosted Web UI, interactive TUI, or a v1.0/P14 completion claim.
+`dns-record-goftp1`. The witness vectors now carry self-contained input names,
+diagnostics, and rendered projection text. The next proof slice should fill the
+remaining behavior vectors from the v1.0 DoD. This is not Git publish, live DNS,
+DNS publish, hosted Web UI, interactive TUI, or a v1.0/P14 completion claim.
 
 ## Cross-Cutting Acceptance: Elegance Without Obscurity
 
@@ -467,10 +469,11 @@ matrix, generated artifact list, skipped gates, and manifest-skip correction.
 It is a release-route checkpoint, not a v1.0 tag or P14 completion claim.
 The final artifact identity and tag preconditions are tracked in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
-The immediate follow-up is to refresh golden vectors and audit P14 claims around
-the read-only Git-tree and DNS-record runtime admissions, not to add Git publish,
-live DNS, AXFR, DNSSEC trust, provider APIs, dynamic update, DNS publish, hosted
-Web UI, interactive TUI, or a v1.0/P14 completion claim.
+The immediate follow-up is to add the missing DoD behavior vectors and continue
+the P14 claim audit around the read-only Git-tree and DNS-record runtime
+admissions, not to add Git publish, live DNS, AXFR, DNSSEC trust, provider APIs,
+dynamic update, DNS publish, hosted Web UI, interactive TUI, or a v1.0/P14
+completion claim.
 
 Acceptance:
 

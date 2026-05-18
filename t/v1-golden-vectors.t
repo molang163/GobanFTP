@@ -41,6 +41,7 @@ my @witness_fields = qw(
     accepted_count
     accepted_events
     rejected_count
+    rejected_diagnostics
     rejected_codes
     rejected_classes
     event_set_root
@@ -51,9 +52,11 @@ my @witness_fields = qw(
     diagnostic_codes
     diagnostic_classes
     diagnostic_count
+    replay_diagnostics
     board_hash
     sgf_hash
     variations_sgf_hash
+    projection_text
 );
 
 my @vectors = _read_jsonl($vector_path);
@@ -65,7 +68,7 @@ for my $vector (@vectors) {
     subtest $id => sub {
         ok !$seen_id{$id}++, 'vector id is unique';
 
-        for my $field (qw(id input_fixture), @witness_fields) {
+        for my $field (qw(id input_fixture input_names), @witness_fields) {
             ok exists $vector->{$field}, "vector has $field";
         }
 
@@ -81,11 +84,15 @@ for my $vector (@vectors) {
         is $game, $vector->{game_descriptor}, 'vector game descriptor matches fixture';
 
         my @raw = _read_names($listing_path);
+        is_deeply $vector->{input_names}, \@raw,
+            'vector input names match fixture';
+
         my $witness = witness_for_listing(
             profile_id              => $vector->{profile_id},
             game_descriptor         => $game,
-            raw_names               => \@raw,
+            raw_names               => $vector->{input_names},
             diagnostics_schema_path => $schema_path,
+            include_projection_text => 1,
         );
 
         for my $field (@witness_fields) {

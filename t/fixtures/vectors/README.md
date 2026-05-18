@@ -13,9 +13,10 @@ ids, recursive children, and ignored surfaces stay outside the root.
 `v1-witness.jsonl` freezes the v1 witness fields computed from
 `t/fixtures/v1/cross-substrate/` for `local-goftp1`, `ftp-goftp1`,
 `git-tree-goftp1`, `dns-record-goftp1`, and `webdav-goftp1`. Each row names the
-input listing fixture and records the accepted events, rejected diagnostic
-classes, event set root, replay status, canonical and legal ids, and projection
-hashes produced by `GobanFTP::Witness`, including the ruleset seal fields.
+input listing fixture, embeds the raw input names, and records the accepted
+events, rejected diagnostics, replay diagnostics, event set root, replay status,
+canonical and legal ids, projection hashes, rendered board/verdict/listing/SGF
+text, and ruleset seal fields produced by `GobanFTP::Witness`.
 These rows are public witness evidence for read admission. They do not claim Git
 publish support, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic update, or
 DNS record publishing.
@@ -31,8 +32,9 @@ game-descriptor-mismatched, untrusted, and malformed event attestations. It
 also freezes lifecycle rows for trusted, rotated, revoked, and expired HMAC
 selectors. Rows name both the listing fixture and the public attestation
 fixture. The vector records the public trust selector, lifecycle status,
-accepted/rejected events, and rejected diagnostics, but not the HMAC secret used
-by the verifier test.
+accepted/rejected events, rejected diagnostics, replay diagnostics, raw input
+names, and rendered projection text, but not the HMAC secret used by the
+verifier test.
 
 `ruleset-seal.jsonl` freezes the `chinese-area-v1` ruleset seal, fixture digest
 manifest, and byte-level preimage hex for `GOFTP-RULESET-SEAL/1`.
