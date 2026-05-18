@@ -134,10 +134,15 @@ Immediate next implementation:
 ```text
 after showing the README, continue the v1.0 route:
 - pick the next small proof gate by multi-agent discussion
-- likely candidate is P12c: signed-HMAC trust enforcement against fixture trust
-  lifecycle state
-- use trust rows to reject missing, untrusted, revoked, or expired signed keys
-  only inside `signed-hmac-goftp1`
+- likely candidate is P12c-0: define the signed-HMAC/trust bridge before
+  enforcing lifecycle state
+- decide whether signed-HMAC attestations keep explicit HMAC key ids or use
+  `k1.` fixture ids, whether `--trusted-hmac-key` accepts `k1.=secret`, and
+  which `GOFTP-TRUST/1` suite names apply to HMAC fixtures
+- define lifecycle semantics for `trusted`, `rotated`, `revoked`, and `expired`
+  without wall-clock replay inputs
+- only after that, reject missing, untrusted, revoked, or expired signed keys
+  inside `signed-hmac-goftp1`
 - keep unsigned `GOFTP/1` and `local-goftp1` replay unchanged
 - keep every change behavior-tested and update Changes plus this restore file
 ```
@@ -151,7 +156,10 @@ lib/GobanFTP/Witness.pm
 lib/GobanFTP/CLI.pm
 lib/GobanFTP/Diagnostics.pm
 t/fixtures/auth/
+t/fixtures/v1/signed-hmac/
+t/fixtures/vectors/v1-signed-hmac-witness.jsonl
 t/v1-signed-hmac.t
+t/v1-signed-hmac-golden-vectors.t
 t/cli-auth-trust-report.t
 t/diagnostics-contract.t
 docs/PROFILES.md
@@ -165,7 +173,8 @@ docs/SESSION_RESTORE.md
 
 When resuming:
 
-1. Read `AGENTS.md`.
+1. Read `AGENTS.md` if present; otherwise continue with this file and the AI
+   maintainer guide supplied in the session context.
 2. Read this file.
 3. Run `git status --short`.
 4. Confirm HEAD includes `feat: add fixture trust report command`.
