@@ -338,6 +338,12 @@ SGF
 ruleset seal
 ```
 
+The next vector slice is a refresh of the public witness evidence for the
+admitted read boundaries now present at HEAD. It must keep `git-tree-goftp1` and
+`dns-record-goftp1` read-only, prove that their runtime admission matches the
+fixture/read-normalizer roots, and avoid any claim of Git publish, live DNS,
+AXFR, DNSSEC trust, provider APIs, dynamic update, or DNS record publishing.
+
 ## Release Gates
 
 v1.0 may not be tagged until these gates pass from a clean checkout:
@@ -370,6 +376,14 @@ Dry-run executions of this matrix are recorded separately in
 `docs/P14_RELEASE_GATE.md`. This file remains the normative v1.0 requirement;
 the dry-run report is evidence for a point in time, not a replacement for the
 final clean-checkout gate.
+
+Any final P14 run after Git-tree or DNS-record runtime admission must audit the
+release text against the current HEAD. A stale dry-run claim that Git-like or
+DNS-like support is only fixture/read-normalizer evidence is not enough once
+runtime read paths are admitted, but runtime read admission still does not imply
+publish support, live DNS, AXFR, DNSSEC trust, provider API support, dynamic
+update, DNS record publishing, hosted Web UI, interactive TUI, or v1.0
+completion.
 
 The final release identity, artifact hash, and tag preconditions are planned in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`. A v1.0 tag is blocked until the

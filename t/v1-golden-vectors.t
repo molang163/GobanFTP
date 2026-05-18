@@ -10,11 +10,20 @@ use Test::More;
 
 use lib "$FindBin::Bin/../lib";
 
+use GobanFTP::Diagnostics qw(
+    diagnostic_classes
+    diagnostic_codes
+    replay_status
+    schema_from_file
+);
+use GobanFTP::Replay qw(replay);
 use GobanFTP::Witness qw(witness_for_listing);
 
-my $repo_root   = File::Spec->rel2abs("$FindBin::Bin/..");
-my $vector_path = "$FindBin::Bin/fixtures/vectors/v1-witness.jsonl";
-my $schema_path = "$FindBin::Bin/../docs/DIAGNOSTICS.md";
+my $repo_root          = File::Spec->rel2abs("$FindBin::Bin/..");
+my $vector_path        = "$FindBin::Bin/fixtures/vectors/v1-witness.jsonl";
+my $replay_vector_path = "$FindBin::Bin/fixtures/vectors/v1-replay-invariants.jsonl";
+my $schema_path        = "$FindBin::Bin/../docs/DIAGNOSTICS.md";
+my $schema             = schema_from_file($schema_path);
 
 my @witness_fields = qw(
     profile_id
@@ -98,6 +107,87 @@ for my $case (qw(minimal fork fork-with-ack bad-event-id future-version missing-
     }
 }
 
+my @replay_vectors = _read_jsonl($replay_vector_path);
+ok @replay_vectors, 'loaded v1 replay invariant golden vectors';
+
+my @replay_vector_fields = qw(
+    game_descriptor
+    policy
+    input_events
+    replay_status
+    canonical_ids
+    legal_ids
+    diagnostic_codes
+    diagnostic_classes
+    diagnostic_count
+    diagnostics
+    illegal_by_id
+    ack_ids_by_target
+    final_board_rows
+    final_next_color
+    final_consecutive_passes
+    final_terminal
+);
+
+my %seen_replay_id;
+for my $vector (@replay_vectors) {
+    my $id = $vector->{id} // '<missing id>';
+    subtest "replay invariant $id" => sub {
+        ok !$seen_replay_id{$id}++, 'replay vector id is unique';
+
+        for my $field (qw(id), @replay_vector_fields) {
+            ok exists $vector->{$field}, "vector has $field";
+        }
+
+        is $vector->{policy}, 'conservative', 'v1 replay vector uses conservative policy';
+        ok @{ $vector->{input_events} }, 'vector has input events';
+        ok !grep({ m{/} } @{ $vector->{input_events} }), 'input events are basenames';
+
+        my $result = replay(
+            game_descriptor => $vector->{game_descriptor},
+            events          => $vector->{input_events},
+            policy          => $vector->{policy},
+        );
+        my @diagnostics = $result->diagnostics;
+        my $final_state = $result->final_state;
+
+        is replay_status(\@diagnostics), $vector->{replay_status},
+            'replay status matches golden vector';
+        is_deeply [$result->canonical_ids], $vector->{canonical_ids},
+            'canonical ids match golden vector';
+        is_deeply [$result->legal_ids], $vector->{legal_ids},
+            'legal ids match golden vector';
+        is_deeply [diagnostic_codes(\@diagnostics)], $vector->{diagnostic_codes},
+            'diagnostic codes match golden vector';
+        is_deeply [diagnostic_classes(\@diagnostics, $schema)], $vector->{diagnostic_classes},
+            'diagnostic classes match golden vector';
+        is scalar(@diagnostics), $vector->{diagnostic_count},
+            'diagnostic count matches golden vector';
+        is_deeply \@diagnostics, $vector->{diagnostics},
+            'diagnostics match golden vector';
+        is_deeply $result->illegal_by_id, $vector->{illegal_by_id},
+            'illegal replay map matches golden vector';
+        is_deeply $result->ack_ids_by_target, $vector->{ack_ids_by_target},
+            'accepted ACK target map matches golden vector';
+        is_deeply _board_rows($final_state), $vector->{final_board_rows},
+            'final board rows match golden vector';
+        is $final_state->{next_color}, $vector->{final_next_color},
+            'final next color matches golden vector';
+        is $final_state->{consecutive_passes}, $vector->{final_consecutive_passes},
+            'final pass count matches golden vector';
+        is $final_state->{terminal} ? 1 : 0, $vector->{final_terminal},
+            'final terminal flag matches golden vector';
+    };
+}
+
+for my $case (qw(
+    illegal-sibling-preserves-legal-line
+    invalid-root-preflight-diagnostics
+    outsider-ack-keeps-move-canonical
+)) {
+    ok $seen_replay_id{$case}, "$case replay invariant vector is present";
+}
+
 done_testing;
 
 sub _read_jsonl {
@@ -138,4 +228,20 @@ sub _read_names {
     close $fh or die "close $path: $!";
 
     return @names;
+}
+
+sub _board_rows {
+    my ($state) = @_;
+
+    die 'final_state must contain a board' if ref($state) ne 'HASH' || !$state->{board};
+
+    my $board = $state->{board};
+    my $size  = $board->size;
+    my @cells = unpack 'C*', $board->canonical_bytes;
+    my @rows;
+    for my $y (0 .. $size - 1) {
+        push @rows, join '', @cells[$y * $size .. ($y + 1) * $size - 1];
+    }
+
+    return \@rows;
 }

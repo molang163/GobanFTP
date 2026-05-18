@@ -16,6 +16,14 @@ ids, recursive children, and ignored surfaces stay outside the root.
 input listing fixture and records the accepted events, rejected diagnostic
 classes, event set root, replay status, canonical and legal ids, and projection
 hashes produced by `GobanFTP::Witness`, including the ruleset seal fields.
+These rows are public witness evidence for read admission. They do not claim Git
+publish support, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic update, or
+DNS record publishing.
+
+`v1-replay-invariants.jsonl` freezes compact core replay outcomes that are not
+cross-substrate listing cases: an illegal sibling does not block the sole legal
+line, invalid root move metadata stays out of canonical replay, and an ACK by a
+non-player is rejected without changing the canonical move line.
 
 `v1-signed-hmac-witness.jsonl` freezes the signed-HMAC profile witness fields
 for valid, injected-event, missing, wrong, payload-mismatched,

@@ -530,6 +530,7 @@ t/fixtures/v1/signed-hmac/wrong-signature/signed-hmac-goftp1/listing.names
 t/fixtures/vectors/event-set-root.jsonl
 t/fixtures/vectors/README.md
 t/fixtures/vectors/ruleset-seal.jsonl
+t/fixtures/vectors/v1-replay-invariants.jsonl
 t/fixtures/vectors/v1-signed-hmac-witness.jsonl
 t/fixtures/vectors/v1-witness.jsonl
 t/ftp-cli-parity.t

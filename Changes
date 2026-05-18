@@ -38,6 +38,9 @@ Revision history for GobanFTP
     parents, and wrong-player rule failures.
   - Expanded unsigned v1 witness golden vectors to freeze profile, adapter,
     raw, normalized, accepted, rejected, and diagnostic count fields.
+  - Added v1 replay-invariant golden vectors for illegal sibling isolation,
+    invalid root preflight diagnostics, and outsider ACK rejection without
+    changing the canonical move line.
   - Added a DNS owner-poison v1 profile attack fixture proving wrong-owner and
     ownerless TXT records cannot smuggle event basenames into the witness.
   - Reworked the README into a release-shaped showcase entrypoint while keeping
@@ -100,6 +103,9 @@ Revision history for GobanFTP
     continuing directly toward v1.0/P14.
   - Prepared and then skipped the local v0.2 / package 0.002 release candidate,
     keeping v1.0/P14 as the active development line.
+  - Clarified the next golden-vector and P14 claim-audit slice after Git-tree
+    and DNS-record runtime read admission, without claiming Git publish, live
+    DNS, DNS publish, hosted Web UI, interactive TUI, or v1.0/P14 completion.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

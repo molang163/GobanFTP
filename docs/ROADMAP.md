@@ -17,8 +17,10 @@ read-only runtime store. DNS record admission is read-only over local or
 otherwise declared record files, with no live DNS, AXFR, DNSSEC trust, provider
 API, dynamic update, or publish path. `GOFTP/1` remains unchanged.
 
-The next route work is golden-vector expansion and P14 claim audit: prove the
-newly admitted boundaries without declaring the v1.0/P14 freeze complete.
+The next route work is golden-vector expansion and P14 claim audit for the
+admitted read boundaries now present at HEAD, especially `git-tree-goftp1` and
+`dns-record-goftp1`. This is a proof refresh, not Git publish, live DNS, DNS
+publish, hosted Web UI, interactive TUI, or a v1.0/P14 completion claim.
 
 ## Cross-Cutting Acceptance: Elegance Without Obscurity
 
@@ -466,7 +468,9 @@ It is a release-route checkpoint, not a v1.0 tag or P14 completion claim.
 The final artifact identity and tag preconditions are tracked in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
 The immediate follow-up is to refresh golden vectors and audit P14 claims around
-the read-only DNS admission boundary, not to add live DNS or publish support.
+the read-only Git-tree and DNS-record runtime admissions, not to add Git publish,
+live DNS, AXFR, DNSSEC trust, provider APIs, dynamic update, DNS publish, hosted
+Web UI, interactive TUI, or a v1.0/P14 completion claim.
 
 Acceptance:
 

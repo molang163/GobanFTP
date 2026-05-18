@@ -194,6 +194,10 @@ Key completed boundaries:
 - Unsigned v1 witness golden vectors now freeze profile consensus version,
   adapter id, raw and normalized counts, normalized events, accepted and
   rejected counts, and diagnostic count.
+- `t/fixtures/vectors/v1-replay-invariants.jsonl` freezes compact replay
+  invariants outside the cross-substrate listing matrix: illegal sibling
+  isolation, invalid root preflight diagnostics, and outsider ACK rejection
+  without changing the canonical move line.
 - `dns-record-goftp1` is documented as read-only runtime admission over local or
   otherwise declared record files via `GOBANFTP_STORE=dns-record` and
   `GOBANFTP_DNS_RECORD_FILE`. The DNS profile adapter requires the TXT owner to
@@ -202,11 +206,32 @@ Key completed boundaries:
   The boundary does not include live DNS, AXFR, DNSSEC trust, provider APIs,
   dynamic update, record publishing, or consensus use of TTL, order, cache age,
   DNSSEC status, or provider metadata.
+- The P14a release-gate dry run predates the later Git-tree and DNS-record
+  runtime read admissions. Treat it as historical evidence, not as the final
+  release matrix for the current HEAD. The next release-route proof slice must
+  refresh the golden-vector evidence and claim audit for those admitted read
+  boundaries before any final P14 artifact or tag decision.
 - Ruleset seal, v1 witness CLI, and v1 compare CLI are already implemented.
 
 ## Last Verified
 
-After P14a release-gate dry-run integration, these passed or were recorded:
+Latest verification after adding v1 replay-invariant vectors:
+
+```text
+git diff --check
+perl -MExtUtils::Manifest=fullcheck -e 'fullcheck()'
+prove -lr t/v1-golden-vectors.t t/replay.t
+prove -lr t
+```
+
+Full test result:
+
+```text
+Files=73, Tests=957, all successful.
+Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
+```
+
+Earlier P14a release-gate dry-run integration passed or recorded:
 
 ```text
 P14 dry-run temporary worktree:
@@ -278,7 +303,7 @@ git diff --check
 prove -lr t
 ```
 
-Full test result:
+Earlier full test result:
 
 ```text
 Files=70, Tests=943, all successful.
@@ -307,9 +332,14 @@ after entering v1.0/P14 development:
 - `dns-record-goftp1` runtime admission is read-only over local/declared record
   files only; do not add or claim live DNS, AXFR, DNSSEC trust, provider API,
   dynamic update, or record publish support
-- next slice is golden vectors plus P14 claim audit around admitted profile
-  boundaries, unless current route discussion deliberately chooses another
-  proof-machine gap
+- current golden-vector refresh has added compact replay-invariant vectors;
+  next proof slice should either expand missing DoD replay cases into public
+  vectors or harden existing witness vectors with raw input/projection text
+- continue the P14 claim audit for the admitted read boundaries now present at
+  HEAD, especially `git-tree-goftp1` and `dns-record-goftp1`
+- that slice must not add or claim Git publish, live DNS, AXFR, DNSSEC trust,
+  provider API, dynamic update, DNS record publishing, hosted Web UI,
+  interactive TUI, or v1.0/P14 completion
 - do not tag v1.0 until the final clean-checkout P14 matrix passes
 - do not let display, source art, Web assets, terminal formatting, or interactive
   input feed replay or event-set roots
