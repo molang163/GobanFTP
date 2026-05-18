@@ -19,10 +19,12 @@ hashes produced by `GobanFTP::Witness`, including the ruleset seal fields.
 
 `v1-signed-hmac-witness.jsonl` freezes the signed-HMAC profile witness fields
 for valid, injected-event, missing, wrong, payload-mismatched,
-game-descriptor-mismatched, untrusted, and malformed event attestations. Rows
-name both the listing fixture and the public attestation fixture. The vector
-records the public trust selector, but not the HMAC secret used by the verifier
-test.
+game-descriptor-mismatched, untrusted, and malformed event attestations. It
+also freezes lifecycle rows for trusted, rotated, revoked, and expired HMAC
+selectors. Rows name both the listing fixture and the public attestation
+fixture. The vector records the public trust selector, lifecycle status,
+accepted/rejected events, and rejected diagnostics, but not the HMAC secret used
+by the verifier test.
 
 `ruleset-seal.jsonl` freezes the `chinese-area-v1` ruleset seal, fixture digest
 manifest, and byte-level preimage hex for `GOFTP-RULESET-SEAL/1`.

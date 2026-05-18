@@ -36,6 +36,7 @@ my @witness_fields = qw(
     accepted_count
     accepted_events
     rejected_count
+    rejected_diagnostics
     rejected_codes
     rejected_classes
     event_set_root
@@ -60,7 +61,7 @@ for my $vector (@vectors) {
     subtest $id => sub {
         ok !$seen_id{$id}++, 'vector id is unique';
 
-        for my $field (qw(id input_fixture attestation_fixture attestation_count trusted_hmac_key_ids), @witness_fields) {
+        for my $field (qw(id input_fixture attestation_fixture attestation_count trusted_hmac_key_ids trusted_hmac_key_statuses), @witness_fields) {
             ok exists $vector->{$field}, "vector has $field";
         }
 
@@ -72,6 +73,12 @@ for my $vector (@vectors) {
             'attestation fixture points at signed-HMAC attestations';
         is_deeply $vector->{trusted_hmac_key_ids}, ['fixture-key-1'],
             'vector records the public trust selector';
+        is_deeply [sort keys %{ $vector->{trusted_hmac_key_statuses} }],
+            ['fixture-key-1'],
+            'vector records the lifecycle status selector';
+        like $vector->{trusted_hmac_key_statuses}{'fixture-key-1'},
+            qr/\A(?:trusted|rotated|revoked|expired)\z/,
+            'vector records a supported lifecycle status';
 
         my $listing_path = File::Spec->rel2abs($vector->{input_fixture}, $repo_root);
         my $case_dir     = dirname(dirname($listing_path));
@@ -94,6 +101,7 @@ for my $vector (@vectors) {
             diagnostics_schema_path => $schema_path,
             hmac_attestations       => \@attestations,
             trusted_hmac_keys       => \%trusted_hmac_keys,
+            trusted_hmac_key_statuses => $vector->{trusted_hmac_key_statuses},
         );
 
         for my $field (@witness_fields) {
@@ -111,6 +119,10 @@ for my $vector (@vectors) {
 
 for my $case (qw(valid injected-event missing-signature wrong-signature payload-mismatch game-descriptor-mismatch untrusted-key-id malformed-signature)) {
     ok $seen_id{"signed-hmac-$case"}, "$case signed-HMAC vector is present";
+}
+
+for my $status (qw(trusted rotated revoked expired)) {
+    ok $seen_id{"signed-hmac-lifecycle-$status"}, "$status signed-HMAC lifecycle vector is present";
 }
 
 done_testing;

@@ -14,7 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
-- feat: enforce signed HMAC lifecycle status
+- test: freeze signed HMAC lifecycle vectors
 ```
 
 Confirm the latest commit with `git log --oneline -5` when resuming.
@@ -22,6 +22,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD test: freeze signed HMAC lifecycle vectors
 HEAD feat: enforce signed HMAC lifecycle status
 HEAD feat: define signed HMAC trust bridge boundary
 HEAD docs: clarify signed trust restore step
@@ -68,6 +69,11 @@ Key completed boundaries:
   verifies old material; `revoked` and `expired` reject inside the signed
   profile gate with `untrusted_signature` lifecycle reasons. Unsigned profiles
   ignore the lifecycle input.
+- P12d signed-HMAC lifecycle golden vectors are frozen:
+  `t/fixtures/vectors/v1-signed-hmac-witness.jsonl` now records lifecycle
+  statuses, accepted/rejected sets, and `rejected_diagnostics` for trusted,
+  rotated, revoked, and expired HMAC selectors. Revoked and expired vectors
+  freeze `key.revoked` and `key.expired` reasons.
 - WebDAV publish failure now has a fixture and CLI parity gate proving
   existing-final idempotence, delayed `MOVE` visibility, hard `HTTP 423 Locked`
   failure, bounded retries, zero-byte temporary resources, tmp debris exclusion,
@@ -108,7 +114,7 @@ Key completed boundaries:
 
 ## Last Verified
 
-After signed-HMAC lifecycle enforcement, these passed:
+After signed-HMAC lifecycle vector freeze, these passed:
 
 ```text
 perl -Ilib -c lib/GobanFTP/Auth/TrustReport.pm
@@ -117,6 +123,7 @@ perl -Ilib -c lib/GobanFTP/Witness.pm
 perl -Ilib -c lib/GobanFTP/CLI.pm
 perl -Ilib -c lib/GobanFTP/Diagnostics.pm
 prove -lr t/profile-signed-hmac.t t/v1-cli-witness.t t/v1-signed-hmac.t t/v1-signed-hmac-golden-vectors.t t/auth-trust-report.t t/cli-auth-trust-report.t t/diagnostics-contract.t
+prove -lr t/v1-signed-hmac-golden-vectors.t t/v1-signed-hmac.t t/v1-cli-witness.t t/profile-signed-hmac.t
 prove -lr t/auth-keyid.t t/cli-auth-keyid.t t/diagnostics-contract.t t/dependency-sync.t t/v1-cli-witness.t t/v1-signed-hmac.t
 prove -lr t/auth-trust-report.t t/cli-auth-trust-report.t t/diagnostics-contract.t
 prove -lr t/auth-keyid.t t/auth-trust-report.t t/cli-auth-keyid.t t/cli-auth-trust-report.t t/diagnostics-contract.t t/v1-cli-witness.t
@@ -129,7 +136,7 @@ prove -lr t
 Full test result:
 
 ```text
-Files=67, Tests=883, all successful.
+Files=67, Tests=891, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -151,10 +158,10 @@ Immediate next implementation:
 ```text
 after showing the README, continue the v1.0 route:
 - pick the next small proof gate by multi-agent discussion
-- likely candidate is P12d: signed-HMAC lifecycle golden vectors or fixture
-  attack cases
-- freeze lifecycle witness outputs for trusted, rotated, revoked, and expired
-  signed-HMAC selectors
+- likely candidate is P12e: signed-HMAC lifecycle attack fixtures or move to
+  P13 source-art/TUI/Web inspection after multi-agent review
+- if staying in P12, add an attack fixture proving public `GOFTP-TRUST/1` rows
+  cannot authorize or revoke HMAC selectors
 - keep public `GOFTP-TRUST/1` rows advisory unless a distinct public-key suite
   is designed
 - keep unsigned `GOFTP/1` and `local-goftp1` replay unchanged
@@ -192,6 +199,6 @@ When resuming:
    maintainer guide supplied in the session context.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `feat: enforce signed HMAC lifecycle status`.
+4. Confirm HEAD includes `test: freeze signed HMAC lifecycle vectors`.
 5. If the user asks to continue, open multi-agent discussion first, then choose
    one small executable step.

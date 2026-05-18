@@ -55,6 +55,9 @@ Revision history for GobanFTP
   - Added explicit signed-HMAC lifecycle enforcement for verifier-supplied HMAC
     selectors, allowing rotated keys to verify old material while revoked and
     expired selectors reject before MAC verification.
+  - Expanded signed-HMAC witness golden vectors to freeze lifecycle status,
+    accepted and rejected event sets, and lifecycle rejection diagnostics for
+    trusted, rotated, revoked, and expired HMAC selectors.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

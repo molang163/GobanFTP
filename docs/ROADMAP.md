@@ -388,7 +388,8 @@ after the normal unsigned witness and does not enforce signed trust.
 `signed-hmac-goftp1` now has an explicit verifier lifecycle input for HMAC
 selectors: `trusted` and `rotated` verify old signed material, while `revoked`
 and `expired` reject inside the signed profile gate without changing unsigned
-replay.
+replay. The signed-HMAC golden vectors now freeze lifecycle status,
+accepted/rejected sets, and `key.revoked` / `key.expired` rejected diagnostics.
 
 ## P13: Source-Art, TUI, And Web Surfaces
 
