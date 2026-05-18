@@ -22,10 +22,11 @@ admitted read boundaries now present at HEAD, especially `git-tree-goftp1` and
 `dns-record-goftp1`. The witness vectors now carry self-contained input names,
 diagnostics, and rendered projection text, and replay-invariant vectors now
 cover ordinary rule, DAG, ACK, terminal, malformed, and ack-assisted fork
-behavior. The next proof slice should fold non-consensus poison evidence into
-public vectors and decide the proper event-id collision vector shape. This is
-not Git publish, live DNS, DNS publish, hosted Web UI, interactive TUI, or a
-v1.0/P14 completion claim.
+behavior. Event-id collision is now covered as a synthetic DAG-boundary vector,
+not as an ordinary basename collision claim. The next proof slice should fold
+non-consensus poison evidence into public vectors. This is not Git publish, live
+DNS, DNS publish, hosted Web UI, interactive TUI, or a v1.0/P14 completion
+claim.
 
 ## Cross-Cutting Acceptance: Elegance Without Obscurity
 
@@ -473,10 +474,10 @@ It is a release-route checkpoint, not a v1.0 tag or P14 completion claim.
 The final artifact identity and tag preconditions are tracked in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
 The immediate follow-up is to fold non-consensus poison evidence into public
-vectors, decide the proper event-id collision vector shape, and continue the P14
-claim audit around the read-only Git-tree and DNS-record runtime admissions, not
-to add Git publish, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic update,
-DNS publish, hosted Web UI, interactive TUI, or a v1.0/P14 completion claim.
+vectors and continue the P14 claim audit around the read-only Git-tree and
+DNS-record runtime admissions, not to add Git publish, live DNS, AXFR, DNSSEC
+trust, provider APIs, dynamic update, DNS publish, hosted Web UI, interactive
+TUI, or a v1.0/P14 completion claim.
 
 Acceptance:
 

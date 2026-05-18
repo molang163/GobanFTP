@@ -28,10 +28,15 @@ non-player is rejected without changing the canonical move line. It also covers
 capture, suicide rejection, bounds parse rejection, single pass, two-pass
 terminal play, resign terminal play, simple-ko superko rejection, ack-assisted
 fork choice, malformed basenames, parent-is-ACK rejection, dangling ACK targets,
-and ACK targets that are themselves ACKs. Event-id collision is not represented
-as an ordinary public replay basename vector because replay reparses event names
-against the game descriptor before DAG construction; a fabricated collision
-becomes an event-id mismatch unless a real hash collision exists.
+and ACK targets that are themselves ACKs.
+
+`v1-dag-invariants.jsonl` freezes DAG-boundary outcomes that cannot accurately be
+expressed as ordinary public replay basenames. Its event-id collision row uses
+synthetic DAG `input_items` with distinct synthetic names and the same
+`event_id`, and explicitly records that it is not an ordinary basename
+collision. Replay reparses ordinary event basenames against the game descriptor
+before DAG construction, so a fabricated ordinary basename collision would
+become an event-id mismatch unless a real hash collision exists.
 
 `v1-signed-hmac-witness.jsonl` freezes the signed-HMAC profile witness fields
 for valid, injected-event, missing, wrong, payload-mismatched,

@@ -10,6 +10,7 @@ use Test::More;
 
 use lib "$FindBin::Bin/../lib";
 
+use GobanFTP::DAG qw(build);
 use GobanFTP::Diagnostics qw(
     diagnostic_classes
     diagnostic_codes
@@ -22,6 +23,7 @@ use GobanFTP::Witness qw(witness_for_listing);
 my $repo_root          = File::Spec->rel2abs("$FindBin::Bin/..");
 my $vector_path        = "$FindBin::Bin/fixtures/vectors/v1-witness.jsonl";
 my $replay_vector_path = "$FindBin::Bin/fixtures/vectors/v1-replay-invariants.jsonl";
+my $dag_vector_path    = "$FindBin::Bin/fixtures/vectors/v1-dag-invariants.jsonl";
 my $schema_path        = "$FindBin::Bin/../docs/DIAGNOSTICS.md";
 my $schema             = schema_from_file($schema_path);
 
@@ -206,6 +208,86 @@ for my $case (qw(
     simple-ko-superko-rejects-recapture
 )) {
     ok $seen_replay_id{$case}, "$case replay invariant vector is present";
+}
+
+my @dag_vectors = _read_jsonl($dag_vector_path);
+ok @dag_vectors, 'loaded v1 DAG invariant golden vectors';
+
+my @dag_vector_fields = qw(
+    boundary
+    synthetic
+    ordinary_basename_collision
+    input_items
+    absent_node_ids
+    move_ids
+    ack_ids
+    topological_move_ids
+    children_of
+    forks
+    diagnostic_codes
+    diagnostic_classes
+    diagnostic_count
+    diagnostics
+);
+
+my %seen_dag_id;
+for my $vector (@dag_vectors) {
+    my $id = $vector->{id} // '<missing id>';
+    subtest "DAG invariant $id" => sub {
+        ok !$seen_dag_id{$id}++, 'DAG vector id is unique';
+
+        for my $field (qw(id), @dag_vector_fields) {
+            ok exists $vector->{$field}, "vector has $field";
+        }
+
+        is $vector->{boundary}, 'dag', 'vector is explicitly a DAG-boundary vector';
+        ok $vector->{synthetic}, 'vector is explicitly synthetic';
+        ok !$vector->{ordinary_basename_collision},
+            'vector does not claim ordinary basenames collide';
+        ok @{ $vector->{input_items} }, 'vector has input items';
+
+        for my $item (@{ $vector->{input_items} }) {
+            ok ref($item) eq 'HASH', 'input item is an object';
+            ok exists $item->{name}, 'input item has name';
+            ok exists $item->{event}, 'input item has synthetic parsed event';
+            unlike $item->{name}, qr/\A(?:m1|a1)\./,
+                'synthetic item name is not an ordinary GOFTP event basename';
+        }
+
+        my $dag = build(events => $vector->{input_items});
+        my @diagnostics = $dag->diagnostics;
+
+        for my $node_id (@{ $vector->{absent_node_ids} }) {
+            is $dag->node($node_id), undef, "$node_id is absent from DAG nodes";
+        }
+
+        is_deeply [$dag->move_ids], $vector->{move_ids},
+            'move ids match golden vector';
+        is_deeply [$dag->ack_ids], $vector->{ack_ids},
+            'ack ids match golden vector';
+        is_deeply [$dag->topological_move_ids], $vector->{topological_move_ids},
+            'topological move ids match golden vector';
+
+        for my $parent_id (sort keys %{ $vector->{children_of} }) {
+            is_deeply [$dag->children_of($parent_id)], $vector->{children_of}{$parent_id},
+                "$parent_id children match golden vector";
+        }
+
+        is_deeply $dag->forks, $vector->{forks},
+            'forks match golden vector';
+        is_deeply [diagnostic_codes(\@diagnostics)], $vector->{diagnostic_codes},
+            'diagnostic codes match golden vector';
+        is_deeply [diagnostic_classes(\@diagnostics, $schema)], $vector->{diagnostic_classes},
+            'diagnostic classes match golden vector';
+        is scalar(@diagnostics), $vector->{diagnostic_count},
+            'diagnostic count matches golden vector';
+        is_deeply \@diagnostics, $vector->{diagnostics},
+            'DAG diagnostics match golden vector';
+    };
+}
+
+for my $case (qw(event-id-collision-synthetic)) {
+    ok $seen_dag_id{$case}, "$case DAG invariant vector is present";
 }
 
 done_testing;

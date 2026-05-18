@@ -352,9 +352,10 @@ after entering v1.0/P14 development:
   dynamic update, or record publish support
 - current golden-vector refresh has hardened existing witness vectors with raw
   input/projection text and expanded compact replay-invariant behavior vectors
+- event-id collision is covered only as a synthetic DAG-boundary vector; do not
+  pretend a normal basename collision exists unless a real GOFTP/1 hash
+  collision passes filename verification
 - next proof slice should fold non-consensus poison evidence into public vectors
-  and decide the proper DAG-level/synthetic representation for event-id
-  collision without pretending a normal basename collision exists
 - continue the P14 claim audit for the admitted read boundaries now present at
   HEAD, especially `git-tree-goftp1` and `dns-record-goftp1`
 - that slice must not add or claim Git publish, live DNS, AXFR, DNSSEC trust,

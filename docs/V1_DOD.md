@@ -305,7 +305,7 @@ wrong player
 wrong color
 wrong ply
 event id mismatch
-event id collision
+event id collision (DAG-level synthetic vector unless backed by a real GOFTP/1 hash collision)
 future event version
 malformed basename
 sidecar poison ignored
@@ -343,11 +343,12 @@ raw input names, rejected diagnostics, replay diagnostics, and rendered
 board/verdict/listing/SGF projection text. The P14c replay-invariant refresh
 covers the missing ordinary replay behavior cases above except event-id
 collision, which is not safely representable as an ordinary public replay
-basename without a real hash collision. The next vector slice must fold
-non-consensus poison evidence into public vectors and decide the proper
-DAG-level or synthetic collision vector while keeping `git-tree-goftp1` and
-`dns-record-goftp1` read-only and avoiding any claim of Git publish, live DNS,
-AXFR, DNSSEC trust, provider APIs, dynamic update, or DNS record publishing.
+basename without a real hash collision. Event-id collision is instead frozen by
+a synthetic DAG-boundary vector with no `event_set_root`, board, SGF, or replay
+status claim. The next vector slice must fold non-consensus poison evidence into
+public vectors while keeping `git-tree-goftp1` and `dns-record-goftp1` read-only
+and avoiding any claim of Git publish, live DNS, AXFR, DNSSEC trust, provider
+APIs, dynamic update, or DNS record publishing.
 
 ## Release Gates
 

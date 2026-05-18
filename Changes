@@ -115,6 +115,8 @@ Revision history for GobanFTP
   - Clarified the next golden-vector and P14 claim-audit slice after Git-tree
     and DNS-record runtime read admission, without claiming Git publish, live
     DNS, DNS publish, hosted Web UI, interactive TUI, or v1.0/P14 completion.
+  - Added a synthetic DAG-boundary golden vector for `event_id_collision`,
+    without claiming an ordinary GOFTP/1 basename hash collision.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl
