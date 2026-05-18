@@ -125,6 +125,11 @@ Additional source-art tests should assert behavior, not layout trivia. A changed
 border must not fail a protocol test. A changed glyph must not alter any replay
 fixture. Art can be beautiful; data stays boring.
 
+Reusable surface renderers follow the same rule. Layout, CSS, terminal frames,
+static HTML, and projection excerpts may reveal `GobanFTP::Witness` fields, but
+they must not read storage, parse event names, recompute `event_set_root`, rerun
+replay, or decide signed profile acceptance.
+
 ## v1.0 Surface Gate
 
 Before v1.0 release, source-art work should demonstrate:

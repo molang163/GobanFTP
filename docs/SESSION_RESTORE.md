@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- feat: add witness surface renderer
 - test: route source-art smoke through witness
 - test: add signed HMAC public trust poison fixture
 ```
@@ -23,6 +24,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD feat: add witness surface renderer
 HEAD test: route source-art smoke through witness
 HEAD test: add signed HMAC public trust poison fixture
 HEAD test: freeze signed HMAC lifecycle vectors
@@ -88,6 +90,11 @@ Key completed boundaries:
   protocol proof fields from `GobanFTP::Witness`. The test proves visual board
   glyphs and Inline::C availability do not change `event_set_root`,
   replay status, canonical tip, board hash, SGF hash, or diagnostic count.
+- P13b witness/projection-only surface rendering is implemented:
+  `GobanFTP::Surface::WitnessView` formats supplied witness fields and
+  projection text as inspection output. It does not read storage, parse event
+  names, normalize listings, recompute `event_set_root`, rerun replay/rules, or
+  decide signed profile acceptance.
 - WebDAV publish failure now has a fixture and CLI parity gate proving
   existing-final idempotence, delayed `MOVE` visibility, hard `HTTP 423 Locked`
   failure, bounded retries, zero-byte temporary resources, tmp debris exclusion,
@@ -128,9 +135,12 @@ Key completed boundaries:
 
 ## Last Verified
 
-After source-art witness smoke, these passed:
+After witness surface rendering, these passed:
 
 ```text
+perl -Ilib -c lib/GobanFTP/Surface/WitnessView.pm
+prove -lr t/surface-witness-view.t
+prove -lr t/surface-witness-view.t t/source-art.t t/witness-api.t t/v1-cli-witness.t t/showcase-demo.t
 perl -Ilib -c lib/GobanFTP/Oracle/Smoke.pm
 perl -Ilib oracle/goban.pl --smoke
 prove -lr t/source-art.t
@@ -155,7 +165,7 @@ prove -lr t
 Full test result:
 
 ```text
-Files=67, Tests=928, all successful.
+Files=68, Tests=933, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -175,11 +185,12 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-after P13a source-art witness smoke, continue the v1.0 route:
+after P13b witness surface rendering, continue the v1.0 route:
 - pick the next small proof gate by implementation review
-- likely candidate is P13b witness/projection-only surface rendering
-- start with a small `GobanFTP::Surface::*` or static viewer module that only
-  consumes a `GobanFTP::Witness` hash and projection text
+- likely candidate is P13c terminal/static export integration over
+  `GobanFTP::Surface::WitnessView`
+- keep it read-only: consume existing witness/projection data and do not make
+  the renderer a second witness assembler
 - do not let display, source art, Web assets, or terminal formatting feed
   replay or event-set roots
 - keep unsigned `GOFTP/1` and `local-goftp1` replay unchanged
@@ -194,6 +205,7 @@ lib/GobanFTP/Profile/SignedHMAC.pm
 lib/GobanFTP/Witness.pm
 lib/GobanFTP/CLI.pm
 lib/GobanFTP/Oracle/Smoke.pm
+lib/GobanFTP/Surface/WitnessView.pm
 oracle/goban.pl
 lib/GobanFTP/Diagnostics.pm
 t/fixtures/auth/
@@ -203,12 +215,14 @@ t/v1-signed-hmac.t
 t/v1-signed-hmac-golden-vectors.t
 t/v1-cli-witness.t
 t/source-art.t
+t/surface-witness-view.t
 t/cli-auth-trust-report.t
 t/diagnostics-contract.t
 docs/PROFILES.md
 docs/CLI.md
 docs/DIAGNOSTICS.md
 docs/SOURCE_ART.md
+docs/ARCHITECTURE.md
 Changes
 docs/SESSION_RESTORE.md
 ```
@@ -221,6 +235,6 @@ When resuming:
    maintainer guide supplied in the session context.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `test: route source-art smoke through witness`.
+4. Confirm HEAD includes `feat: add witness surface renderer`.
 5. If the user asks to continue, review the next step first, then choose one
    small executable step.

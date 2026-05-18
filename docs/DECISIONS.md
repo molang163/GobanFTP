@@ -509,3 +509,25 @@ Reason:
   truth
 - optional acceleration and decorative glyphs must remain outside replay,
   `event_set_root`, board hash, SGF hash, and diagnostics
+
+## 033: Surface Renderers Format Existing Witnesses
+
+Reusable inspection surfaces may format fields that already exist in a
+`GobanFTP::Witness` result and may include already-rendered projection text.
+They must not read storage, normalize listings, parse event names, compute event
+ids, recompute `event_set_root`, run replay or rules, hash projection text, or
+decide signed profile acceptance.
+
+`GobanFTP::Surface::WitnessView` is the first module on this boundary. It can
+render plain text and static HTML for inspection, and tests force the consensus
+entry points to fail while the renderer still works from supplied data.
+
+Reason:
+
+- P13 needs a shared base for terminal and static Web observatory surfaces
+- display code should be removable or replaceable without changing proof
+  fields
+- static HTML and terminal formatting are presentation artifacts, not another
+  witness assembler
+- witness roots, replay status, SGF hashes, board hashes, diagnostics, and
+  signature status must stay consequences of the supplied witness data

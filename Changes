@@ -64,6 +64,9 @@ Revision history for GobanFTP
   - Routed the executable source-art smoke surface through `GobanFTP::Witness`,
     so it displays `event_set_root`, replay status, board hash, SGF hash, and
     diagnostics without owning protocol truth.
+  - Added a witness/projection-only surface renderer that formats fields already
+    produced by `GobanFTP::Witness` and projection text without reading storage,
+    parsing events, recomputing roots, or deciding profile acceptance.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

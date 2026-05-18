@@ -21,6 +21,11 @@ Surface work must not change the listing layer contract. In particular, it must
 not change filename grammar, event id preimages, replay inputs, storage
 semantics, or the rule algorithms used to decide legality.
 
+`GobanFTP::Surface::*` modules live after witness and projection assembly. They
+may format a `GobanFTP::Witness` hash and already-rendered projection text for
+terminal or static inspection, but they must not read storage, parse event
+names, compute hashes, replay rules, or decide profile acceptance.
+
 ## Algorithm Shape
 
 Core replay should remain a deterministic pipeline:
@@ -83,6 +88,7 @@ lib/GobanFTP/
   Store/Local.pm    local filesystem backend
   Store/FTP.pm      FTP backend
   Store/WebDAV.pm   WebDAV backend
+  Surface/WitnessView.pm witness/projection-only inspection renderer
   SGF.pm            SGF export
   Projection.pm     projections/ output generation
   Oracle/Smoke.pm   source-art smoke scenario

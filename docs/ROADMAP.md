@@ -410,7 +410,9 @@ Tasks:
 - expose profile id, adapter id, `event_set_root`, replay status, fork status,
   and signature status in terminal output
 - add a Web-facing inspection surface or static export for witnesses,
-  projections, profiles, diagnostics, and attack fixtures
+  projections, profiles, diagnostics, and attack fixtures. The first reusable
+  surface renderer now formats supplied witness fields and projection text
+  without reading storage or recomputing truth.
 - keep all TUI and Web output derived from replay results, witness outputs, or
   projections
 - preserve the rule that changing source art, terminal formatting, Web assets,
