@@ -88,7 +88,7 @@ sub witness_for_listing {
     my @legal_ids     = $result->legal_ids;
     my %projection_hashes = _projection_hashes($rendered);
 
-    return {
+    my $witness = {
         profile_id                => $profile_id,
         profile_consensus_version => $profile->{consensus_version},
         adapter_id                => $profile->{adapter_id},
@@ -114,6 +114,10 @@ sub witness_for_listing {
         diagnostic_count          => scalar(@diagnostics),
         replay_diagnostics        => [map { _clone_diagnostic($_) } @diagnostics],
     };
+    $witness->{projection_text} = _projection_text($rendered)
+        if $args{include_projection_text};
+
+    return $witness;
 }
 
 sub _diagnostics_schema {
@@ -169,6 +173,26 @@ sub _projection_hashes {
             $rendered->{sgf_variations} // $rendered->{variations_sgf} // ''
         ),
     );
+}
+
+sub _projection_text {
+    my ($rendered) = @_;
+    return {} if ref($rendered) ne 'HASH' || !%$rendered;
+
+    my %text;
+    for my $field (qw(
+        board
+        verdict
+        listing
+        sgf_main
+        sgf_variations
+    )) {
+        next if !exists $rendered->{$field};
+        next if ref($rendered->{$field});
+        $text{$field} = $rendered->{$field};
+    }
+
+    return \%text;
 }
 
 sub _has_diagnostic_code {

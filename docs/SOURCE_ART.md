@@ -130,6 +130,10 @@ static HTML, and projection excerpts may reveal `GobanFTP::Witness` fields, but
 they must not read storage, parse event names, recompute `event_set_root`, rerun
 replay, or decide signed profile acceptance.
 
+The `v1 witness --surface text|html` CLI path is such a surface. It can emit
+plain text or static HTML for inspection, while exit codes and diagnostics still
+come from the witness and profile gates.
+
 ## v1.0 Surface Gate
 
 Before v1.0 release, source-art work should demonstrate:

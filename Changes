@@ -67,6 +67,9 @@ Revision history for GobanFTP
   - Added a witness/projection-only surface renderer that formats fields already
     produced by `GobanFTP::Witness` and projection text without reading storage,
     parsing events, recomputing roots, or deciding profile acceptance.
+  - Added `gobanftp v1 witness --surface text|html` as a read-only CLI
+    inspection surface over the existing witness result and its already-rendered
+    projection text.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

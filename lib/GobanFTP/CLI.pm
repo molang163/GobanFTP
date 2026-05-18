@@ -22,6 +22,7 @@ use GobanFTP::Projection qw(render_projection write_projection write_sgf_project
 use GobanFTP::Redact qw(contains_redactable_secret redact_text);
 use GobanFTP::Replay qw(replay);
 use GobanFTP::Store::Config qw(context_for_descriptor context_for_game_arg store_mode);
+use GobanFTP::Surface::WitnessView qw(render_witness_html render_witness_text);
 use GobanFTP::Witness qw(witness_for_listing);
 
 use constant {
@@ -751,6 +752,11 @@ sub _command_v1_witness {
             push @{ $opts{trusted_hmac_statuses} }, $value;
             next;
         }
+        if ($name eq 'surface') {
+            die $usage if defined($opts{surface}) || $value !~ /\A(?:text|html)\z/;
+            $opts{surface} = $value;
+            next;
+        }
 
         die $usage;
     }
@@ -763,7 +769,12 @@ sub _command_v1_witness {
     my $exit = _v1_witness_exit($witness);
     my $status = _status_for_exit($exit);
 
-    _print_v1_witness($witness, $status, $attestation_count, $trusted_key_ids);
+    if (defined $opts{surface}) {
+        _print_v1_witness_surface($witness, $opts{surface});
+    }
+    else {
+        _print_v1_witness($witness, $status, $attestation_count, $trusted_key_ids);
+    }
     _print_v1_witness_diagnostics($witness, $trusted_secrets);
 
     return $exit;
@@ -1027,6 +1038,7 @@ sub _v1_witness_from_fixture {
         hmac_attestations       => \@attestations,
         trusted_hmac_keys       => \%trusted_hmac_keys,
         trusted_hmac_key_statuses => \%trusted_hmac_key_statuses,
+        defined($opts{surface}) ? (include_projection_text => 1) : (),
     );
 
     return (
@@ -1509,6 +1521,19 @@ sub _print_v1_witness {
     print STDOUT "signature.status=" . _signature_status($witness) . "\n";
 }
 
+sub _print_v1_witness_surface {
+    my ($witness, $surface) = @_;
+
+    my %args = (
+        witness     => $witness,
+        projections => $witness->{projection_text} // {},
+    );
+
+    print STDOUT $surface eq 'html'
+        ? render_witness_html(%args)
+        : render_witness_text(%args);
+}
+
 sub _print_v1_keyid {
     my ($record) = @_;
 
@@ -1775,7 +1800,7 @@ sub _v1_usage {
 }
 
 sub _v1_witness_usage_line {
-    return 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-status id=status]';
+    return 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-status id=status] [--surface text|html]';
 }
 
 sub _result_exit {
@@ -1872,7 +1897,7 @@ commands:
   watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>
   v1 keyid --fixture public-key-file
   v1 trust-report --fixture fixture-dir
-  v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-status id=status]
+  v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-status id=status] [--surface text|html]
   v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]
   v1 compare-replay --fixture fixture-dir [--profiles profile-id,...]
 USAGE

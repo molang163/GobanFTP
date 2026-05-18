@@ -412,7 +412,8 @@ Tasks:
 - add a Web-facing inspection surface or static export for witnesses,
   projections, profiles, diagnostics, and attack fixtures. The first reusable
   surface renderer now formats supplied witness fields and projection text
-  without reading storage or recomputing truth.
+  without reading storage or recomputing truth, and `v1 witness --surface`
+  exposes it as a read-only text/static HTML CLI view.
 - keep all TUI and Web output derived from replay results, witness outputs, or
   projections
 - preserve the rule that changing source art, terminal formatting, Web assets,

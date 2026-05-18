@@ -2,6 +2,7 @@ use v5.34;
 use strict;
 use warnings;
 
+use Digest::SHA qw(sha256_hex);
 use FindBin;
 use File::Spec;
 use Test::More;
@@ -61,6 +62,27 @@ subtest 'minimal local witness exposes production fields' => sub {
         'minimal variations SGF hash is stable';
     ok !grep({ m{/} } @{ $witness->{accepted_events} }),
         'accepted events are basenames';
+    ok !exists $witness->{projection_text}, 'projection text is opt-in';
+
+    my $witness_with_projection = witness_for_listing(
+        profile_id              => 'local-goftp1',
+        game_descriptor         => $game,
+        raw_names               => \@raw,
+        diagnostics_schema_path => $schema_path,
+        include_projection_text => 1,
+    );
+    is ref($witness_with_projection->{projection_text}), 'HASH',
+        'projection text can be requested';
+    like $witness_with_projection->{projection_text}{board}, qr/^3 B \. \.$/m,
+        'projection text includes board';
+    like $witness_with_projection->{projection_text}{verdict}, qr/^status=ok$/m,
+        'projection text includes verdict';
+    is sha256_hex($witness_with_projection->{projection_text}{board}),
+        $witness_with_projection->{board_hash},
+        'projection board text matches board hash';
+    is sha256_hex($witness_with_projection->{projection_text}{sgf_main}),
+        $witness_with_projection->{sgf_hash},
+        'projection SGF text matches SGF hash';
 };
 
 subtest 'bad event id still reaches replay diagnostics' => sub {

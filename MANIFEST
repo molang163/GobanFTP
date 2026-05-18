@@ -566,6 +566,7 @@ t/store-webdav-mock.t
 t/surface-witness-view.t
 t/v1-attack-fixtures.t
 t/v1-cli-compare.t
+t/v1-cli-witness-surface.t
 t/v1-cli-witness.t
 t/v1-cross-substrate.t
 t/v1-golden-vectors.t

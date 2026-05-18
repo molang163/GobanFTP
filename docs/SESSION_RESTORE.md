@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- feat: add v1 witness surface output
 - feat: add witness surface renderer
 - test: route source-art smoke through witness
 - test: add signed HMAC public trust poison fixture
@@ -24,6 +25,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD feat: add v1 witness surface output
 HEAD feat: add witness surface renderer
 HEAD test: route source-art smoke through witness
 HEAD test: add signed HMAC public trust poison fixture
@@ -95,6 +97,11 @@ Key completed boundaries:
   projection text as inspection output. It does not read storage, parse event
   names, normalize listings, recompute `event_set_root`, rerun replay/rules, or
   decide signed profile acceptance.
+- P13c `v1 witness --surface text|html` is implemented as a read-only CLI
+  inspection surface. It uses the existing `GobanFTP::Witness` result plus
+  opt-in projection text already rendered inside `Witness`, then routes that
+  data through `GobanFTP::Surface::WitnessView`. The CLI does not read
+  `projections/`, rerun replay, recompute roots, or decide profile acceptance.
 - WebDAV publish failure now has a fixture and CLI parity gate proving
   existing-final idempotence, delayed `MOVE` visibility, hard `HTTP 423 Locked`
   failure, bounded retries, zero-byte temporary resources, tmp debris exclusion,
@@ -135,9 +142,12 @@ Key completed boundaries:
 
 ## Last Verified
 
-After witness surface rendering, these passed:
+After v1 witness surface output, these passed:
 
 ```text
+perl -Ilib -c lib/GobanFTP/Witness.pm
+perl -Ilib -c lib/GobanFTP/CLI.pm
+prove -lr t/witness-api.t t/v1-cli-witness-surface.t t/v1-cli-witness.t t/surface-witness-view.t
 perl -Ilib -c lib/GobanFTP/Surface/WitnessView.pm
 prove -lr t/surface-witness-view.t
 prove -lr t/surface-witness-view.t t/source-art.t t/witness-api.t t/v1-cli-witness.t t/showcase-demo.t
@@ -165,7 +175,7 @@ prove -lr t
 Full test result:
 
 ```text
-Files=68, Tests=933, all successful.
+Files=69, Tests=937, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -185,12 +195,13 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-after P13b witness surface rendering, continue the v1.0 route:
+after P13c v1 witness surface output, continue the v1.0 route:
 - pick the next small proof gate by implementation review
-- likely candidate is P13c terminal/static export integration over
-  `GobanFTP::Surface::WitnessView`
-- keep it read-only: consume existing witness/projection data and do not make
-  the renderer a second witness assembler
+- likely candidate is the next P13 surface gate: either a small terminal
+  observatory status panel over existing witness data, or a frozen static HTML
+  golden fixture for the new `--surface html` path
+- keep it read-only: consume existing witness/projection data and do not make a
+  second witness assembler
 - do not let display, source art, Web assets, or terminal formatting feed
   replay or event-set roots
 - keep unsigned `GOFTP/1` and `local-goftp1` replay unchanged
@@ -214,6 +225,7 @@ t/fixtures/vectors/v1-signed-hmac-witness.jsonl
 t/v1-signed-hmac.t
 t/v1-signed-hmac-golden-vectors.t
 t/v1-cli-witness.t
+t/v1-cli-witness-surface.t
 t/source-art.t
 t/surface-witness-view.t
 t/cli-auth-trust-report.t
@@ -235,6 +247,6 @@ When resuming:
    maintainer guide supplied in the session context.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `feat: add witness surface renderer`.
+4. Confirm HEAD includes `feat: add v1 witness surface output`.
 5. If the user asks to continue, review the next step first, then choose one
    small executable step.
