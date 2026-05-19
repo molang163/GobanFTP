@@ -423,7 +423,7 @@ prove -lr t/v1-signed-hmac.t
 prove -lr t/v1-signed-hmac-overlay.t
 prove -lr t/v1-signed-hmac-golden-vectors.t
 prove -lr t/auth-publish-token.t t/cli-auth-publish-token.t
-prove -lr t/publish-auth-preflight.t t/ftp-cli-parity.t t/webdav-cli-parity.t
+prove -lr t/publish-auth-preflight.t t/tui-play.t t/store-git-tree.t t/dns-cli-parity.t t/ftp-cli-parity.t t/webdav-cli-parity.t
 prove -lr t/profile-registry.t t/profile-adapter.t t/witness-api.t
 prove -lr t/diagnostics-contract.t
 prove -lr t/rules-flow.t t/rules-superko.t

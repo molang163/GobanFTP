@@ -89,7 +89,7 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'signed-HMAC overlay is read-only witness evidence and does not authorize publish',
         'fixture key lifecycle semantics cover trusted, rotated, revoked, and expired fixture status without changing unsigned replay',
         'publish auth fixture semantics distinguish verification from new-material publishing without authorizing real writers',
-        'default-off verifier-local publish preflight can block local, FTP, and WebDAV store writes without changing default unsigned publish paths',
+        'default-off verifier-local publish preflight can block local, FTP, and WebDAV store writes while staying separate from Git-tree and DNS-record read-only storage boundaries without changing default unsigned publish paths',
         'signed-HMAC verifier lifecycle status is explicit verifier input, not GOFTP-TRUST public-key authority',
         'public key and trust fixture reports are advisory outside signed profiles',
         'text, static HTML, and static terminal witness surfaces are read-only displays',

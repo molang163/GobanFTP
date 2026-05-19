@@ -195,6 +195,53 @@ subtest 'play --move denied preflight prints no board snapshot and writes no eve
         'play denial does not leak key material';
 };
 
+subtest 'play --ack denied preflight prints no post-publish snapshot and writes no ack' => sub {
+    my ($root, $game_root) = _make_game_root();
+    my ($key_path, $key) = _write_key($root);
+    my ($move, $move_id) = _move(nonce => 'root');
+    _write_text(File::Spec->catfile($game_root, 'events', $move), '');
+
+    my ($ack, $ack_id) = build_ack_name(
+        game_descriptor => $GAME,
+        target_id       => $move_id,
+        player          => 'bob',
+        nonce           => 'ack1',
+    );
+    my ($wrong_event, $wrong_id) = _move(nonce => 'wrong-event');
+    my $token_path = _write_token($root, 'wrong-event-token.jsonl',
+        _token($key, $wrong_event, $wrong_id));
+
+    my ($exit, $stdout, $stderr) = _run_cli(
+        'play',
+        '--ack', $move_id,
+        '--nonce', 'ack1',
+        '--publish-auth-token', $token_path,
+        '--publish-auth-trusted-hmac-key-file', $key_path,
+        $game_root,
+    );
+
+    is $exit, 2, 'play --ack denied exits validation';
+    like $stdout, qr/^gobanftp[.]play=failed$/m, 'play reports failed';
+    like $stdout, qr/^event=\Q$ack\E$/m, 'reports the candidate ack';
+    like $stdout, qr/^event_id=\Q$ack_id\E$/m, 'reports the candidate ack id';
+    like $stdout, qr/^publish_auth[.]status=denied$/m, 'play prints denied auth status';
+    like $stdout, qr/^publish_auth[.]diagnostic_codes=wrong_signature$/m,
+        'stdout exposes wrong signature code';
+    unlike $stdout, qr/^event_set_(?:count|root)=/m,
+        'denied play --ack does not print post-publish event set';
+    unlike $stdout, qr/^worldline[.]/m,
+        'denied play --ack does not print worldline state';
+    unlike $stdout, qr/^turn_(?:color|player)=/m,
+        'denied play --ack does not print turn state';
+    unlike $stdout, qr/^  a b c d e f g h i$/m,
+        'denied play --ack does not print a board';
+    like $stderr, qr/diagnostic .*code=wrong_signature.*reason=event_basename[.]mismatch/,
+        'play --ack denial reports token binding mismatch';
+    is_deeply [_event_names($game_root)], [$move], 'denied play --ack writes no a1 event';
+    unlike $stdout . $stderr, qr/\Q$key->{secret_hex}\E|GOFTP-HMAC-KEY|secret_hex/,
+        'play --ack denial does not leak key material';
+};
+
 done_testing;
 
 sub _make_game_root {

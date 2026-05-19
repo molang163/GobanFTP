@@ -220,7 +220,7 @@ prove -lr t/v1-signed-hmac-overlay.t
 prove -lr t/v1-signed-hmac-golden-vectors.t
 prove -lr t/auth-hmac-key.t t/cli-auth-hmac.t
 prove -lr t/auth-publish-token.t t/cli-auth-publish-token.t
-prove -lr t/publish-auth-preflight.t t/ftp-cli-parity.t t/webdav-cli-parity.t
+prove -lr t/publish-auth-preflight.t t/tui-play.t t/store-git-tree.t t/dns-cli-parity.t t/ftp-cli-parity.t t/webdav-cli-parity.t
 prove -lr t/profile-registry.t t/profile-adapter.t t/witness-api.t
 prove -lr t/diagnostics-contract.t
 prove -lr t/rules-flow.t t/rules-superko.t
@@ -314,7 +314,7 @@ signed-HMAC cross-substrate overlay proves signed acceptance invariance across a
 signed-HMAC overlay is read-only witness evidence and does not authorize publish
 fixture key lifecycle semantics cover trusted, rotated, revoked, and expired fixture status without changing unsigned replay
 publish auth fixture semantics distinguish verification from new-material publishing without authorizing real writers
-default-off verifier-local publish preflight can block local, FTP, and WebDAV store writes without changing default unsigned publish paths
+default-off verifier-local publish preflight can block local, FTP, and WebDAV store writes while staying separate from Git-tree and DNS-record read-only storage boundaries without changing default unsigned publish paths
 signed-HMAC verifier lifecycle status is explicit verifier input, not GOFTP-TRUST public-key authority
 public key and trust fixture reports are advisory outside signed profiles
 text, static HTML, and static terminal witness surfaces are read-only displays

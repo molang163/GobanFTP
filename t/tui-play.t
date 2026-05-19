@@ -7,13 +7,17 @@ use File::Path qw(make_path);
 use File::Spec;
 use File::Temp qw(tempdir);
 use IPC::Open3 qw(open3);
+use JSON::PP;
 use Symbol qw(gensym);
 use Test::More;
 
 use lib "$FindBin::Bin/../lib";
 
+use GobanFTP::Auth::HMACKey qw(generate_hmac_key_record write_hmac_key_file);
+use GobanFTP::Auth::PublishToken qw(sign_publish_token);
 use GobanFTP::Board;
 use GobanFTP::CLI;
+use GobanFTP::MovePublisher qw(build_move_name);
 use GobanFTP::TUI::Play qw(
     apply_tui_event
     board_layout
@@ -249,6 +253,37 @@ subtest 'CLI play --tui has a real pty smoke path when script(1) is available' =
     like $mouse_stdout, qr/event=m1[.].*play-bb/, 'pty mouse publishes the hit-tested bb point';
     is scalar(_event_names($mouse_game)), 1, 'pty mouse publishes exactly one event';
     is $mouse_stderr, '', 'pty mouse publish has no stderr';
+
+    my ($auth_root, $auth_game) = _make_game_root();
+    my ($key_path, $key) = _write_hmac_key($auth_root);
+    my ($event, $event_id) = _move_name(action => 'play-ba', nonce => 'authdeny');
+    my $token_path = _write_publish_token($auth_root, $key, $event, $event_id);
+    my ($auth_exit, $auth_stdout, $auth_stderr) = _run_pty_cli(
+        "\e[C\r",
+        'play',
+        '--tui',
+        '--nonce', 'authdeny',
+        '--publish-auth-token', $token_path,
+        '--publish-auth-trusted-hmac-key-file', $key_path,
+        '--publish-auth-trusted-hmac-status', "$key->{key_id}=rotated",
+        $auth_game,
+    );
+    is $auth_exit, 2, 'pty denied publish-auth exits validation';
+    like $auth_stdout, qr/GOBANFTP-PLAY-TUI\/1/, 'pty denied publish-auth renders the TUI frame';
+    like $auth_stdout, qr/\e\[ [?]1006l\e\[ [?]1000l\e\[ [?]25h\e\[ [?]1049l/x,
+        'pty denied publish-auth restores mouse, cursor, and alternate screen modes';
+    like $auth_stdout, qr/gobanftp[.]play=failed\n/, 'pty denied publish-auth reports failed';
+    like $auth_stdout, qr/^event=\Q$event\E$/m, 'pty denied publish-auth reports the candidate event';
+    like $auth_stdout, qr/^event_id=\Q$event_id\E$/m, 'pty denied publish-auth reports the candidate id';
+    like $auth_stdout, qr/^publish_auth[.]status=denied$/m,
+        'pty denied publish-auth reports denied status';
+    like $auth_stdout, qr/diagnostic .*code=untrusted_signature.*reason=key[.]rotated/,
+        'pty denied publish-auth reports lifecycle denial';
+    is_deeply [_event_names($auth_game)], [], 'pty denied publish-auth writes no event';
+    unlike $auth_stdout . $auth_stderr,
+        qr/\Q$key->{secret_hex}\E|\Q$key->{secret}\E|GOFTP-HMAC-KEY|secret_hex/,
+        'pty denied publish-auth does not leak HMAC secret material';
+    is $auth_stderr, '', 'pty denied publish-auth has no script stderr';
 };
 
 done_testing;
@@ -338,6 +373,49 @@ sub _event_names {
     closedir $dh or die "closedir $dir: $!";
 
     return @names;
+}
+
+sub _write_hmac_key {
+    my ($root) = @_;
+
+    my $key = generate_hmac_key_record(secret => ('t' x 32));
+    my $path = File::Spec->catfile($root, 'player.hmac-key');
+    write_hmac_key_file($path, $key);
+
+    return ($path, $key);
+}
+
+sub _move_name {
+    my (%args) = @_;
+
+    return build_move_name(
+        game_descriptor => $GAME,
+        ply             => 1,
+        color           => 'b',
+        action          => $args{action},
+        parent_id       => 'genesis',
+        player          => 'alice',
+        nonce           => $args{nonce},
+    );
+}
+
+sub _write_publish_token {
+    my ($root, $key, $event, $event_id) = @_;
+
+    my $token = sign_publish_token(
+        profile         => 'signed-hmac-goftp1',
+        game_descriptor => $GAME,
+        event_basename  => $event,
+        event_id        => $event_id,
+        key_id          => $key->{key_id},
+        key             => $key->{secret},
+    );
+    my $path = File::Spec->catfile($root, 'publish-token.jsonl');
+    open my $fh, '>:encoding(UTF-8)', $path or die "write $path: $!";
+    print {$fh} JSON::PP->new->canonical(1)->encode($token), "\n";
+    close $fh or die "close $path: $!";
+
+    return $path;
 }
 
 sub _which {

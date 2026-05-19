@@ -24,6 +24,10 @@ Revision history for GobanFTP
     `play --tui`, checking a `GOFTP-HMAC-PUBLISH/1` token after candidate
     replay validation and before store publication without changing unsigned
     replay.
+  - Hardened publish preflight coverage for `play --ack`, `play --tui`, and
+    Git-tree/DNS-record read-only store boundaries, proving denied tokens do
+    not print post-publish snapshots, write events, leak key material, or blur
+    verifier-local auth denial with read-only store rejection.
   - Began v1.0/P14 development after skipping the public v0.2 / package 0.002
     release candidate.
   - Recorded a fresh clean-checkout `1.000_001` development-freeze matrix for

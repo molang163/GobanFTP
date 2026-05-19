@@ -7,10 +7,13 @@ use File::Basename qw(dirname);
 use File::Path qw(make_path);
 use File::Spec;
 use File::Temp qw(tempdir);
+use JSON::PP;
 use Test::More;
 
 use lib "$FindBin::Bin/../lib";
 
+use GobanFTP::Auth::HMACKey qw(generate_hmac_key_record write_hmac_key_file);
+use GobanFTP::Auth::PublishToken qw(sign_publish_token);
 use GobanFTP::CLI;
 use GobanFTP::EventSetRoot qw(event_set_root_result);
 use GobanFTP::Listing qw(normalize_listing);
@@ -143,6 +146,54 @@ subtest 'CLI reads a real Git tree through GOBANFTP_STORE=git-tree' => sub {
         'read-only publish reports the storage boundary';
 };
 
+subtest 'Git tree publish auth preflight is separate from read-only publish support' => sub {
+    my $repo = _repo_with_game();
+    my $auth_dir = tempdir(CLEANUP => 1);
+    my ($key_path, $key) = _write_publish_key($auth_dir);
+    my ($event, $event_id) = _candidate_publish_move('authgate');
+    my $token_path = _write_publish_token($auth_dir, 'publish-token.jsonl',
+        $key, $event, $event_id);
+
+    local %ENV = %ENV;
+    $ENV{GOBANFTP_STORE} = 'git-tree';
+    $ENV{GOBANFTP_GIT_REPO} = $repo;
+    $ENV{GOBANFTP_GIT_TREEISH} = 'HEAD';
+    $ENV{GOBANFTP_GIT_BINARY} = $GIT;
+
+    my ($denied_exit, $denied_stdout, $denied_stderr) = _run_cli(
+        'publish-move',
+        '--nonce', 'authgate',
+        '--publish-auth-token', $token_path,
+        '--publish-auth-trusted-hmac-key-file', $key_path,
+        '--publish-auth-trusted-hmac-status', "$key->{key_id}=rotated",
+        $GAME,
+        'ff',
+    );
+    is $denied_exit, 2, 'denied publish token exits validation before git-tree publish';
+    like $denied_stdout, qr/^gobanftp[.]publish-move=failed$/m,
+        'denied token reports publish failure';
+    like $denied_stdout, qr/^publish_auth[.]status=denied$/m,
+        'denied token reports auth denial';
+    like $denied_stderr, qr/diagnostic .*code=untrusted_signature.*reason=key[.]rotated/,
+        'denied token reports lifecycle denial';
+    unlike $denied_stderr, qr/^storage: .*read-only/m,
+        'denied token does not reach the git-tree read-only publish boundary';
+
+    my ($authorized_exit, $authorized_stdout, $authorized_stderr) = _run_cli(
+        'publish-move',
+        '--nonce', 'authgate',
+        '--publish-auth-token', $token_path,
+        '--publish-auth-trusted-hmac-key-file', $key_path,
+        $GAME,
+        'ff',
+    );
+    is $authorized_exit, 4, 'authorized token still exits storage failure for git-tree';
+    unlike $authorized_stdout, qr/^gobanftp[.]publish-move=ok$/m,
+        'authorized token does not turn git-tree into a publish-capable store';
+    like $authorized_stderr, qr/^storage: git tree store is read-only/m,
+        'authorized token still reports the git-tree storage boundary';
+};
+
 done_testing;
 
 sub _repo_with_game {
@@ -179,6 +230,50 @@ sub _write {
     close $fh or die "close $path: $!";
 
     return 1;
+}
+
+sub _write_publish_key {
+    my ($dir) = @_;
+
+    my $key = generate_hmac_key_record(secret => ('g' x 32));
+    my $path = File::Spec->catfile($dir, 'player.hmac-key');
+    write_hmac_key_file($path, $key);
+
+    return ($path, $key);
+}
+
+sub _candidate_publish_move {
+    my ($nonce) = @_;
+
+    return build_move_name(
+        game_descriptor => $GAME,
+        ply             => 3,
+        color           => 'b',
+        action          => 'play-ff',
+        parent_id       => $ID_W,
+        player          => 'alice',
+        nonce           => $nonce,
+    );
+}
+
+sub _write_publish_token {
+    my ($dir, $name, $key, $event, $event_id) = @_;
+
+    my $token = sign_publish_token(
+        profile         => 'signed-hmac-goftp1',
+        game_descriptor => $GAME,
+        event_basename  => $event,
+        event_id        => $event_id,
+        key_id          => $key->{key_id},
+        key             => $key->{secret},
+    );
+
+    my $path = File::Spec->catfile($dir, $name);
+    open my $fh, '>:encoding(UTF-8)', $path or die "open $path: $!";
+    print {$fh} JSON::PP->new->canonical(1)->encode($token), "\n";
+    close $fh or die "close $path: $!";
+
+    return $path;
 }
 
 sub _git_commit {

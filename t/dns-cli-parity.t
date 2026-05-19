@@ -7,10 +7,13 @@ use File::Basename qw(dirname);
 use File::Path qw(make_path);
 use File::Spec;
 use File::Temp qw(tempdir);
+use JSON::PP;
 use Test::More;
 
 use lib "$FindBin::Bin/../lib";
 
+use GobanFTP::Auth::HMACKey qw(generate_hmac_key_record write_hmac_key_file);
+use GobanFTP::Auth::PublishToken qw(sign_publish_token);
 use GobanFTP::CLI;
 use GobanFTP::EventSetRoot qw(event_set_root_result);
 use GobanFTP::MovePublisher qw(build_move_name);
@@ -131,6 +134,54 @@ subtest 'DNS record publish-move is rejected as read-only storage' => sub {
     is _read_text($dns_file), $before, 'read-only publish does not mutate the DNS record file';
 };
 
+subtest 'DNS record publish auth preflight is separate from read-only publish support' => sub {
+    my $dns_file = _dns_record_file();
+    my $before = _read_text($dns_file);
+    my $auth_dir = tempdir(CLEANUP => 1);
+    my ($key_path, $key) = _write_publish_key($auth_dir);
+    my ($event, $event_id) = _candidate_publish_move('authgate');
+    my $token_path = _write_publish_token($auth_dir, 'publish-token.jsonl',
+        $key, $event, $event_id);
+
+    local %ENV = %ENV;
+    _dns_env($dns_file);
+
+    my ($denied_exit, $denied_stdout, $denied_stderr) = _run_cli(
+        'publish-move',
+        '--nonce', 'authgate',
+        '--publish-auth-token', $token_path,
+        '--publish-auth-trusted-hmac-key-file', $key_path,
+        '--publish-auth-trusted-hmac-status', "$key->{key_id}=rotated",
+        $GAME,
+        'ff',
+    );
+    is $denied_exit, 2, 'denied publish token exits validation before DNS publish';
+    like $denied_stdout, qr/^gobanftp[.]publish-move=failed$/m,
+        'denied token reports publish failure';
+    like $denied_stdout, qr/^publish_auth[.]status=denied$/m,
+        'denied token reports auth denial';
+    like $denied_stderr, qr/diagnostic .*code=untrusted_signature.*reason=key[.]rotated/,
+        'denied token reports lifecycle denial';
+    unlike $denied_stderr, qr/^storage: .*read-only/m,
+        'denied token does not reach the DNS read-only publish boundary';
+    is _read_text($dns_file), $before, 'denied token does not mutate the DNS record file';
+
+    my ($authorized_exit, $authorized_stdout, $authorized_stderr) = _run_cli(
+        'publish-move',
+        '--nonce', 'authgate',
+        '--publish-auth-token', $token_path,
+        '--publish-auth-trusted-hmac-key-file', $key_path,
+        $GAME,
+        'ff',
+    );
+    is $authorized_exit, 4, 'authorized token still exits storage failure for DNS records';
+    unlike $authorized_stdout, qr/^gobanftp[.]publish-move=ok$/m,
+        'authorized token does not turn DNS records into a publish-capable store';
+    like $authorized_stderr, qr/^storage: dns record store is read-only/m,
+        'authorized token still reports the DNS storage boundary';
+    is _read_text($dns_file), $before, 'authorized token does not mutate the DNS record file';
+};
+
 done_testing;
 
 sub _dns_rows {
@@ -153,6 +204,50 @@ sub _dns_record_file {
     my $dir = tempdir(CLEANUP => 1);
     my $path = File::Spec->catfile($dir, 'dns-records.txt');
     _write_text($path, join('', map { "$_\n" } _dns_rows()));
+    return $path;
+}
+
+sub _write_publish_key {
+    my ($dir) = @_;
+
+    my $key = generate_hmac_key_record(secret => ('d' x 32));
+    my $path = File::Spec->catfile($dir, 'player.hmac-key');
+    write_hmac_key_file($path, $key);
+
+    return ($path, $key);
+}
+
+sub _candidate_publish_move {
+    my ($nonce) = @_;
+
+    return build_move_name(
+        game_descriptor => $GAME,
+        ply             => 3,
+        color           => 'b',
+        action          => 'play-ff',
+        parent_id       => $ID_W,
+        player          => 'alice',
+        nonce           => $nonce,
+    );
+}
+
+sub _write_publish_token {
+    my ($dir, $name, $key, $event, $event_id) = @_;
+
+    my $token = sign_publish_token(
+        profile         => 'signed-hmac-goftp1',
+        game_descriptor => $GAME,
+        event_basename  => $event,
+        event_id        => $event_id,
+        key_id          => $key->{key_id},
+        key             => $key->{secret},
+    );
+
+    my $path = File::Spec->catfile($dir, $name);
+    open my $fh, '>:encoding(UTF-8)', $path or die "open $path: $!";
+    print {$fh} JSON::PP->new->canonical(1)->encode($token), "\n";
+    close $fh or die "close $path: $!";
+
     return $path;
 }
 
