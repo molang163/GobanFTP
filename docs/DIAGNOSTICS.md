@@ -21,6 +21,8 @@ gobanftp.sgf
 gobanftp.verify
 gobanftp.v1.compare-replay
 gobanftp.v1.compare-roots
+gobanftp.v1.attest
+gobanftp.v1.keygen
 gobanftp.v1.keyid
 gobanftp.v1.trust-report
 gobanftp.v1.witness
@@ -29,7 +31,10 @@ gobanftp.<command>
 fixture_id
 game
 game_descriptor
+algorithm
+attestations
 key_id
+key_path
 key_id_version
 public_key_version
 suite
@@ -219,6 +224,7 @@ parse_event|error=event_id.*|event-id|code,name,error|-
 parse_event|error=*|parse|code,name,error|-
 parse_game_descriptor|*|parse|code,error|-
 parse_public_key|*|parse|code,error|-
+parse_hmac_key|*|parse|code,error|-
 parse_trust|*|parse|code,error|-
 invalid_event_item|*|parse|code,index,stage|-
 event_id_collision|*|event-id|code,event_id,names|-
@@ -325,6 +331,7 @@ parent_not_legal
 parent_not_move
 parse_event
 parse_game_descriptor
+parse_hmac_key
 parse_public_key
 parse_trust
 rules

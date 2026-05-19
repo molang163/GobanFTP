@@ -241,11 +241,12 @@ the root is computed after acceptance. Root-level signatures are set
 attestations. They may be added by a later profile, but they cannot rescue,
 insert, or reject an individual event before the accepted set is known.
 
-`signed-hmac-goftp1` is implemented as the first production witness gate for
-signed/auth acceptance. It is deliberately limited to explicit in-memory
-verifier trust sets and deterministic HMAC-SHA256 fixture keys; it does not
-define production private-key storage, rotation, revocation, or publish
-authentication.
+`signed-hmac-goftp1` is implemented as the first witness gate for signed/auth
+acceptance. It supports explicit verifier trust sets and verifier-local
+`GOFTP-HMAC-KEY/1` key files for `v1 keygen`, `v1 attest`, and `v1 witness`.
+It does not define production account identity binding, public-key signing
+suites, revocation publication, key loss recovery, automatic sidecar discovery,
+or publish authentication.
 
 Its `key_id` is an explicit HMAC verifier selector, such as `fixture-key-1`,
 not a `GOFTP-KEY/1` public-key id. `k1.` is reserved for public key records and
@@ -286,9 +287,9 @@ The profile id in this payload is the stable profile id, not the
 `GOFTP-PROFILE/<profile_id>/1` contract-version label. The event id is the
 visible `.h-<event-id>` suffix from the event basename and must match that
 basename. Attestation records use the field name `algorithm`; the shorter
-`alg=` string is only the canonical preimage label. The HMAC bytes are public
-attestations; HMAC keys stay only in an explicit verifier trust set and must not
-appear in filenames, projections, or diagnostics.
+`alg=` string is only the canonical preimage label. HMAC signatures are public
+attestation values; HMAC keys stay only in an explicit verifier trust set and
+must not appear in filenames, projections, or diagnostics.
 
 If multiple attestation records claim the same event basename, their substrate
 or fixture order is not authoritative. Any valid trusted attestation accepts the
@@ -629,8 +630,8 @@ record order
 answer order
 resolver cache age
 authoritative server identity
-DNSSEC status
-DNSSEC trust chain or validation result
+ignored DNSSEC status
+ignored DNSSEC trust chain or validation result
 live DNS response metadata
 zone/provider API metadata
 record type outside the profile declaration

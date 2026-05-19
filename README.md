@@ -211,6 +211,8 @@ Implemented in the current final-candidate line:
 - `local-goftp1`, `ftp-goftp1`, `git-tree-goftp1`, `dns-record-goftp1`, and
   `webdav-goftp1` substrate profiles
 - `signed-hmac-goftp1` per-event HMAC witness acceptance gate
+- verifier-local `v1 keygen`, `v1 attest`, and `v1 witness --trusted-hmac-key-file`
+  support for signed-HMAC operation without leaking HMAC secrets
 - core, v1, and profile attack fixture galleries
 - executable source-art oracle smoke
 
@@ -219,10 +221,11 @@ read-only at runtime, and `dns-record-goftp1` is admitted only as read-only
 runtime normalization of a local or otherwise declared record file. DNS
 admission does not query live DNS, run AXFR, trust DNSSEC, call provider APIs,
 or publish records, and TTL, answer order, cache age, DNSSEC status, and
-provider metadata stay outside consensus. Production key lifecycle, publish
-authentication policy, final scoring/result events, P14 claim audit, and the
-full `v1.0/P14` freeze remain release-route work. FTP listing-shadow public
-poison-vector coverage is frozen for the current fixture/listing boundary only;
+provider metadata stay outside consensus. Production key lifecycle beyond the
+verifier-local signed-HMAC key file, publish authentication policy, final
+scoring/result events, final P14 release matrix, and the full `v1.0/P14` freeze
+remain release-route work. FTP listing-shadow public poison-vector coverage is
+frozen for the current fixture/listing boundary only.
 it does not claim live FTP, `RETR`, `SIZE`, `MDTM`, FTP auth, FTP integrity, or
 FTP publish behavior.
 

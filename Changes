@@ -7,6 +7,10 @@ Revision history for GobanFTP
   - Added local `gobanftp play --tui` terminal play as a non-consensus
     input/display surface over the existing play publish path, with keyboard,
     SGR mouse, one-publish lockout, and pty smoke coverage.
+  - Added verifier-local signed-HMAC operation support through `gobanftp v1
+    keygen`, `gobanftp v1 attest`, and
+    `gobanftp v1 witness --trusted-hmac-key-file`, keeping HMAC secrets out of
+    stdout, diagnostics, public attestations, filenames, and unsigned replay.
   - Began v1.0/P14 development after skipping the public v0.2 / package 0.002
     release candidate.
   - Recorded a fresh clean-checkout `1.000_001` development-freeze matrix for

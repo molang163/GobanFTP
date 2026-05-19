@@ -5,9 +5,9 @@ contain real private keys, signing seeds, passwords, tokens, HMAC secrets, or
 credential URLs.
 
 Fixtures exercise `gobanftp v1 keyid --fixture`,
-`gobanftp v1 trust-report --fixture`, plus future `attest` plumbing without
-creating a real private key system. All fixture key material is public and
-non-authoritative unless a future signed profile explicitly says otherwise.
+`gobanftp v1 trust-report --fixture`, and signed-HMAC attestation framing
+without storing real private operational keys here. All fixture key material is
+public and non-authoritative unless an explicit signed profile says otherwise.
 
 The `hmac/` vectors use public test keys to lock down deterministic
 HMAC-SHA256 framing. They are test vectors, not credentials, and must not be

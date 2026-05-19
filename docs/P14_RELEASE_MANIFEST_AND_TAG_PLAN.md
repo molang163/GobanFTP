@@ -217,6 +217,7 @@ prove -lr t/v1-profile-publish-fixtures.t
 prove -lr t/v1-golden-vectors.t
 prove -lr t/v1-signed-hmac.t
 prove -lr t/v1-signed-hmac-golden-vectors.t
+prove -lr t/auth-hmac-key.t t/cli-auth-hmac.t
 prove -lr t/profile-registry.t t/profile-adapter.t t/witness-api.t
 prove -lr t/diagnostics-contract.t
 prove -lr t/rules-flow.t t/rules-superko.t
@@ -305,6 +306,7 @@ Git-like and DNS-like fixture/read-normalizer proofs remain present
 FTP listing-shadow public poison-vector evidence is fixture/listing evidence
 only, not live FTP, RETR, SIZE, MDTM, auth, integrity, or publish behavior
 signed-hmac-goftp1 has an explicit per-event HMAC acceptance gate
+v1 keygen and v1 attest provide verifier-local signed-HMAC operation support without changing unsigned replay
 public key and trust fixture reports are advisory outside signed profiles
 text, static HTML, and static terminal witness surfaces are read-only displays
 local play --tui keyboard/mouse input is implemented as a non-consensus input/display layer over existing publish callbacks
@@ -326,6 +328,8 @@ live DNS / AXFR / DNSSEC trust / provider API support is implemented
 DNS dynamic update or DNS record publishing is implemented
 production key lifecycle is complete
 publish authentication policy is complete
+publish auth is complete
+production publish signing or authorization is implemented
 final scoring/result events are part of GOFTP/1
 source art, Web, TUI, C, or asm-like surfaces own replay truth
 the arch-gate motif claims Arch Linux affiliation, endorsement, package

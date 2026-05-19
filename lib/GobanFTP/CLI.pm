@@ -5,12 +5,20 @@ use strict;
 use warnings;
 
 use Carp qw(croak);
-use File::Basename qw(basename);
+use Cwd qw(abs_path);
+use File::Basename qw(basename dirname);
 use File::Spec;
+use Fcntl qw(O_CREAT O_EXCL O_WRONLY);
 use JSON::PP qw(decode_json);
 use Scalar::Util qw(reftype);
 
 use GobanFTP::AckPublisher qw(build_ack_for_target);
+use GobanFTP::Auth::HMAC qw(sign_event);
+use GobanFTP::Auth::HMACKey qw(
+    generate_hmac_key_record
+    read_hmac_key_file
+    write_hmac_key_file
+);
 use GobanFTP::Auth::KeyID qw(parse_public_key_record);
 use GobanFTP::Auth::TrustReport qw(trust_report_summary);
 use GobanFTP::EventSetRoot qw(event_set_root_result);
@@ -651,7 +659,9 @@ sub _command_v1 {
     die _v1_usage() if !@argv;
 
     my $subcommand = shift @argv;
+    return _command_v1_keygen(@argv) if $subcommand eq 'keygen';
     return _command_v1_keyid(@argv) if $subcommand eq 'keyid';
+    return _command_v1_attest(@argv) if $subcommand eq 'attest';
     return _command_v1_trust_report(@argv) if $subcommand eq 'trust-report';
     return _command_v1_witness(@argv) if $subcommand eq 'witness';
     return _command_v1_compare('compare-roots', @argv)
@@ -660,6 +670,45 @@ sub _command_v1 {
         if $subcommand eq 'compare-replay';
 
     die _v1_usage();
+}
+
+sub _command_v1_keygen {
+    my (@argv) = @_;
+
+    my $usage = 'usage: v1 keygen --profile signed-hmac-goftp1 --out hmac-key-file';
+    my %opts;
+
+    while (@argv) {
+        my ($name, $value) = _option_value($usage, @argv);
+        shift @argv;
+        $value = shift @argv if !defined $value;
+
+        if ($name eq 'profile') {
+            $opts{profile_id} = $value;
+            next;
+        }
+        if ($name eq 'out') {
+            $opts{out} = $value;
+            next;
+        }
+
+        die $usage;
+    }
+
+    die $usage if ($opts{profile_id} // '') ne 'signed-hmac-goftp1';
+    die $usage if !defined($opts{out}) || $opts{out} eq '' || $opts{out} eq '-';
+
+    my $record = eval { generate_hmac_key_record(profile => $opts{profile_id}) };
+    die 'storage: ' . $@ if !$record;
+    eval { write_hmac_key_file($opts{out}, $record); 1 } or die 'storage: ' . $@;
+
+    print STDOUT "gobanftp.v1.keygen=ok\n";
+    print STDOUT "profile_id=$record->{profile}\n";
+    print STDOUT "algorithm=$record->{algorithm}\n";
+    print STDOUT "key_id=$record->{key_id}\n";
+    print STDOUT "key_path=$opts{out}\n";
+
+    return EXIT_SUCCESS;
 }
 
 sub _command_v1_keyid {
@@ -767,12 +816,98 @@ sub _command_v1_trust_report {
     return $exit;
 }
 
+sub _command_v1_attest {
+    my (@argv) = @_;
+
+    my $usage = 'usage: v1 attest --profile signed-hmac-goftp1 --key hmac-key-file --out attestations.jsonl <game-root|game-descriptor>';
+    my %opts;
+
+    while (@argv && $argv[0] =~ /\A--/) {
+        my ($name, $value) = _option_value($usage, @argv);
+        shift @argv;
+        $value = shift @argv if !defined $value;
+
+        if ($name eq 'profile') {
+            $opts{profile_id} = $value;
+            next;
+        }
+        if ($name eq 'key') {
+            $opts{key} = $value;
+            next;
+        }
+        if ($name eq 'out') {
+            $opts{out} = $value;
+            next;
+        }
+
+        die $usage;
+    }
+
+    die $usage if @argv != 1;
+    die $usage if ($opts{profile_id} // '') ne 'signed-hmac-goftp1';
+    die $usage if !defined($opts{key}) || $opts{key} eq '';
+    die $usage if !defined($opts{out}) || $opts{out} eq '' || $opts{out} eq '-';
+
+    my $key = eval { _read_hmac_key_file_or_die($opts{key}) };
+    if (!$key) {
+        my $error = _clean_error($@ || 'hmac_key');
+        die $error if $error =~ /\Astorage:/;
+        $error =~ s/\Aparse_hmac_key://;
+        print STDOUT "gobanftp.v1.attest=failed\n";
+        print STDERR _diagnostic_line({
+            code  => 'parse_hmac_key',
+            error => $error,
+        }), "\n";
+        return EXIT_VALIDATION;
+    }
+    die $usage if $key->{profile} ne $opts{profile_id};
+
+    my $context = _load_context($argv[0]);
+    _assert_attest_output_outside_game_root($opts{out}, $context, $usage);
+    my @event_set_diagnostics = @{ $context->{event_set}{diagnostics} // [] };
+    my @replay_diagnostics = _diagnostics($context->{replay_result});
+    if (@event_set_diagnostics || @replay_diagnostics) {
+        my $exit = @event_set_diagnostics ? EXIT_VALIDATION : _result_exit($context->{replay_result});
+        print STDOUT "gobanftp.v1.attest=" . _status_for_exit($exit) . "\n";
+        print STDOUT "profile_id=$opts{profile_id}\n";
+        print STDOUT "game=$context->{game_descriptor}\n";
+        _print_event_set_summary($context);
+        _print_unique_diagnostics(@event_set_diagnostics, @replay_diagnostics);
+        return $exit;
+    }
+
+    my @events = @{ $context->{event_set}{accepted_events} // [] };
+    my @records = map {
+        sign_event(
+            profile         => $opts{profile_id},
+            game_descriptor => $context->{game_descriptor},
+            event_basename  => $_,
+            key_id          => $key->{key_id},
+            key             => $key->{secret},
+        )
+    } @events;
+
+    eval { _write_jsonl_exclusive($opts{out}, \@records); 1 } or die 'storage: ' . $@;
+
+    print STDOUT "gobanftp.v1.attest=ok\n";
+    print STDOUT "profile_id=$opts{profile_id}\n";
+    print STDOUT "game=$context->{game_descriptor}\n";
+    print STDOUT "event_set_count=$context->{event_set}{event_count}\n";
+    print STDOUT "event_set_root=$context->{event_set}{event_set_root}\n";
+    print STDOUT "attestation_count=" . scalar(@records) . "\n";
+    print STDOUT "key_id=$key->{key_id}\n";
+    print STDOUT "attestations=$opts{out}\n";
+
+    return EXIT_SUCCESS;
+}
+
 sub _command_v1_witness {
     my (@argv) = @_;
 
     my $usage = _v1_witness_usage_line();
     my %opts = (
         trusted_hmac_keys     => [],
+        trusted_hmac_key_files => [],
         trusted_hmac_statuses => [],
     );
 
@@ -808,6 +943,10 @@ sub _command_v1_witness {
             push @{ $opts{trusted_hmac_keys} }, $value;
             next;
         }
+        if ($name eq 'trusted-hmac-key-file') {
+            push @{ $opts{trusted_hmac_key_files} }, $value;
+            next;
+        }
         if ($name eq 'trusted-hmac-status') {
             push @{ $opts{trusted_hmac_statuses} }, $value;
             next;
@@ -825,7 +964,20 @@ sub _command_v1_witness {
     die $usage if !defined($opts{fixture}) || $opts{fixture} eq '';
 
     my ($witness, $attestation_count, $trusted_key_ids, $trusted_secrets)
-        = _v1_witness_from_fixture(%opts);
+        = eval { _v1_witness_from_fixture(%opts) };
+    if (!$witness) {
+        my $error = _clean_error($@ || 'v1_witness');
+        die $error if $error =~ /\Ausage:/;
+        if ($error =~ s/\A(parse_hmac_key)://) {
+            print STDOUT "gobanftp.v1.witness=failed\n";
+            print STDERR _diagnostic_line({
+                code  => $1,
+                error => $error,
+            }), "\n";
+            return EXIT_VALIDATION;
+        }
+        die $error;
+    }
     my $exit = _v1_witness_exit($witness);
     my $status = _status_for_exit($exit);
 
@@ -1086,6 +1238,11 @@ sub _v1_witness_from_fixture {
         ? _read_jsonl_file($opts{attestations})
         : ();
     my %trusted_hmac_keys = _trusted_hmac_key_map(@{ $opts{trusted_hmac_keys} // [] });
+    my %trusted_hmac_file_keys = _trusted_hmac_key_file_map(@{ $opts{trusted_hmac_key_files} // [] });
+    for my $key_id (keys %trusted_hmac_file_keys) {
+        die _v1_witness_usage_line() if exists $trusted_hmac_keys{$key_id};
+        $trusted_hmac_keys{$key_id} = $trusted_hmac_file_keys{$key_id};
+    }
     my %trusted_hmac_key_statuses = _trusted_hmac_key_status_map(
         \%trusted_hmac_keys,
         @{ $opts{trusted_hmac_statuses} // [] },
@@ -1107,6 +1264,27 @@ sub _v1_witness_from_fixture {
         [sort keys %trusted_hmac_keys],
         [values %trusted_hmac_keys],
     );
+}
+
+sub _option_value {
+    my ($usage, @argv) = @_;
+    die $usage if !@argv || $argv[0] !~ /\A--/;
+
+    my $option = $argv[0];
+    my ($name, $value);
+    if ($option =~ /\A--([^=]+)=(.*)\z/) {
+        ($name, $value) = ($1, $2);
+    }
+    elsif ($option =~ /\A--(.+)\z/) {
+        $name = $1;
+        die $usage if @argv < 2;
+    }
+    else {
+        die $usage;
+    }
+
+    die $usage if !defined($name) || $name eq '';
+    return ($name, $value);
 }
 
 sub _v1_trust_report_from_fixture {
@@ -1334,6 +1512,72 @@ sub _read_text_file {
     return $text;
 }
 
+sub _write_jsonl_exclusive {
+    my ($path, $rows) = @_;
+
+    my $fh;
+    sysopen $fh, $path, O_WRONLY | O_CREAT | O_EXCL, 0600
+        or die "create $path: $!";
+    binmode $fh, ':encoding(UTF-8)';
+
+    my $json = JSON::PP->new->canonical(1);
+    for my $row (@$rows) {
+        print {$fh} $json->encode($row), "\n";
+    }
+
+    close $fh or die "close $path: $!";
+    return 1;
+}
+
+sub _read_hmac_key_file_or_die {
+    my ($path) = @_;
+
+    my $record = eval { read_hmac_key_file($path) };
+    return $record if $record;
+
+    my $error = _clean_error($@ || 'hmac_key');
+    die "storage: $error" if $error =~ /\A(?:stat|open|close)\s/;
+    die "parse_hmac_key:$error";
+}
+
+sub _assert_attest_output_outside_game_root {
+    my ($path, $context, $usage) = @_;
+
+    return if ($context->{store_kind} // '') ne 'local';
+    die $usage if !defined($path) || $path eq '';
+
+    my $game_root = abs_path($context->{game_root});
+    die "storage: game root does not exist: $context->{game_root}" if !defined $game_root;
+
+    my $parent = dirname(File::Spec->rel2abs($path));
+    my $parent_abs = abs_path($parent);
+    die "storage: output parent does not exist: $parent" if !defined $parent_abs;
+
+    my $target_abs = File::Spec->catfile($parent_abs, basename($path));
+    die $usage if _path_is_inside_or_same($target_abs, $game_root);
+    return 1;
+}
+
+sub _path_is_inside_or_same {
+    my ($path, $root) = @_;
+
+    my ($volume_path, $dir_path, $file_path) = File::Spec->splitpath($path);
+    my ($volume_root, $dir_root) = File::Spec->splitpath($root, 1);
+    $volume_path //= '';
+    $volume_root //= '';
+    return 0 if $volume_path ne $volume_root;
+
+    my @path_parts = grep { $_ ne '' } File::Spec->splitdir(File::Spec->catdir($dir_path, $file_path));
+    my @root_parts = grep { $_ ne '' } File::Spec->splitdir($dir_root);
+    return 0 if @path_parts < @root_parts;
+
+    for my $i (0 .. $#root_parts) {
+        return 0 if $path_parts[$i] ne $root_parts[$i];
+    }
+
+    return 1;
+}
+
 sub _trusted_hmac_key_map {
     my (@records) = @_;
 
@@ -1355,6 +1599,21 @@ sub _trusted_hmac_key_map {
     for my $key_id (keys %keys) {
         die _v1_witness_usage_line()
             if grep { index($key_id, $_) >= 0 } @secret_values;
+    }
+
+    return %keys;
+}
+
+sub _trusted_hmac_key_file_map {
+    my (@paths) = @_;
+
+    my %keys;
+    for my $path (@paths) {
+        die _v1_witness_usage_line() if !defined($path) || $path eq '';
+        my $record = _read_hmac_key_file_or_die($path);
+        die _v1_witness_usage_line()
+            if exists $keys{ $record->{key_id} };
+        $keys{ $record->{key_id} } = $record->{secret};
     }
 
     return %keys;
@@ -1767,6 +2026,17 @@ sub _print_diagnostics {
     }
 }
 
+sub _print_unique_diagnostics {
+    my (@diagnostics) = @_;
+
+    my %seen;
+    for my $diagnostic (@diagnostics) {
+        my $line = redact_text(_diagnostic_line($diagnostic));
+        next if $seen{$line}++;
+        print STDERR "$line\n";
+    }
+}
+
 sub _print_terminal_snapshot {
     my ($command, $context, %opts) = @_;
 
@@ -1859,7 +2129,9 @@ sub _is_public_token {
 
 sub _v1_usage {
     return join "\n",
+        'usage: v1 keygen --profile signed-hmac-goftp1 --out hmac-key-file',
         'usage: v1 keyid --fixture public-key-file',
+        'usage: v1 attest --profile signed-hmac-goftp1 --key hmac-key-file --out attestations.jsonl <game-root|game-descriptor>',
         'usage: v1 trust-report --fixture fixture-dir',
         _v1_witness_usage_line(),
         'usage: v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]',
@@ -1867,7 +2139,7 @@ sub _v1_usage {
 }
 
 sub _v1_witness_usage_line {
-    return 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-status id=status] [--surface text|html|terminal]';
+    return 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-key-file hmac-key-file] [--trusted-hmac-status id=status] [--surface text|html|terminal]';
 }
 
 sub _result_exit {
@@ -1962,9 +2234,11 @@ commands:
   publish-ack [--nonce n] <game-root|game-descriptor> <event-id>
   play [--once|--tui] [--move move|--ack event-id] [--nonce n] <game-root|game-descriptor>
   watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>
+  v1 keygen --profile signed-hmac-goftp1 --out hmac-key-file
   v1 keyid --fixture public-key-file
+  v1 attest --profile signed-hmac-goftp1 --key hmac-key-file --out attestations.jsonl <game-root|game-descriptor>
   v1 trust-report --fixture fixture-dir
-  v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-status id=status] [--surface text|html|terminal]
+  v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-key-file hmac-key-file] [--trusted-hmac-status id=status] [--surface text|html|terminal]
   v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]
   v1 compare-replay --fixture fixture-dir [--profiles profile-id,...]
 USAGE

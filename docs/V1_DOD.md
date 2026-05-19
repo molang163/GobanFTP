@@ -139,6 +139,13 @@ root-level HMAC, if a later profile requires one, is a post-acceptance set
 attestation and must bind the game descriptor, root version, accepted count, and
 computed `event_set_root`.
 
+The current signed-HMAC operation layer may generate verifier-local
+`GOFTP-HMAC-KEY/1` key files, write public per-event attestation JSONL, and
+feed those key files back into `v1 witness`. That operation path must not change
+unsigned replay and must not be described as production key lifecycle
+completion, public-key signing support, automatic sidecar discovery, or publish
+authentication.
+
 A signed profile must reject:
 
 ```text
@@ -416,7 +423,8 @@ support is only fixture/read-normalizer evidence is not enough once runtime read
 paths are admitted, but runtime read admission still does not imply publish
 support, live FTP, FTP auth, FTP integrity, live DNS, AXFR, DNSSEC trust,
 provider API support, dynamic update, DNS record publishing, hosted Web UI,
-cross-terminal TUI compatibility completion, or v1.0 completion.
+cross-terminal TUI compatibility completion, production key lifecycle
+completion, publish auth completion, or v1.0 completion.
 
 The final release identity, artifact hash, and tag preconditions are planned in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`. A v1.0 tag is blocked until the
@@ -431,6 +439,7 @@ script/gobanftp v1 compare-roots --fixture t/fixtures/v1/cross-substrate/minimal
 script/gobanftp v1 compare-replay --fixture t/fixtures/v1/cross-substrate/minimal
 prove -lr t/v1-attack-fixtures.t
 prove -lr t/v1-signed-hmac.t t/v1-signed-hmac-golden-vectors.t
+prove -lr t/auth-hmac-key.t t/cli-auth-hmac.t
 prove -lr t/ruleset-seal.t
 prove -lr t/p14-claim-audit.t
 ```

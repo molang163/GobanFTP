@@ -95,9 +95,9 @@ bearer token and cannot be combined with WebDAV user/password fields.
 Credentials and tokens protect transport access only; they must never be printed
 in status lines or diagnostics.
 
-### Draft Auth And Key Lifecycle Boundary
+### Signed/Auth Operation And Key Lifecycle Boundary
 
-`keygen`, `keyid`, `attest`, and `trust-report` are reserved for explicit auth
+`keygen`, `keyid`, `attest`, and `trust-report` belong to explicit auth
 profiles. They must not change unsigned `GOFTP/1` replay. Until a signed profile
 declares otherwise, `verify`, `replay`, `sgf`, `project`, `play`, and `watch`
 continue to read only the game descriptor basename and accepted direct
@@ -109,22 +109,76 @@ they are ignored by unsigned profiles. Private keys, seeds, passwords, bearer
 tokens, HMAC secrets, and signing secrets must not appear in event basenames,
 game descriptors, projection files, diagnostics, or public fixture examples.
 
-Future `keygen` has two distinct modes:
+`v1 keygen` is implemented only for the verifier-local signed-HMAC operation
+path:
 
 ```text
-gobanftp keygen --out <private-key-file> --public-out <public-key-file>
-gobanftp keygen --fixture --label <public-label>
+gobanftp v1 keygen --profile signed-hmac-goftp1 --out <hmac-key-file>
 ```
 
-The production form must use an operating-system CSPRNG, must write the private
-key to an explicit file with private permissions, must fail if the private file
-already exists, and must not print private bytes to stdout or stderr. Its stdout
-may report only public fields such as `gobanftp.keygen=ok`, `key_id=...`, and
-the public key path.
+It uses an operating-system random source, writes an explicit private key file
+with mode `0600`, refuses to overwrite an existing file, and never prints the
+HMAC secret. Its stdout reports only public operation fields:
 
-The fixture form must not create a signing-capable private key. It may emit only
-deterministic public fixture key records for tests and documentation. A fixture
-record is not a private key and cannot authorize a signed profile.
+```text
+gobanftp.v1.keygen=ok
+profile_id=signed-hmac-goftp1
+algorithm=hmac-sha256
+key_id=<public-hmac-selector>
+key_path=<hmac-key-file>
+```
+
+Canonical verifier-local HMAC key file:
+
+```text
+GOFTP-HMAC-KEY/1
+profile=signed-hmac-goftp1
+algorithm=hmac-sha256
+key_id=<16-char-public-hmac-selector>
+secret_hex=<64-lowercase-hex-private-secret>
+```
+
+The key id is a verifier-local HMAC selector derived from the private secret. It
+is public enough to appear in witness output, but it is not a `GOFTP-KEY/1`
+`k1.` public-key id and does not create a public-key trust chain.
+
+This is not a complete production key lifecycle. It does not define account
+identity binding, public-key signing suites, revocation publication, key loss
+recovery, automatic sidecar discovery, or publish-time authorization.
+
+`v1 attest` signs the currently accepted event basenames of a game for the
+signed-HMAC profile:
+
+```text
+gobanftp v1 attest --profile signed-hmac-goftp1 --key <hmac-key-file> --out <attestations.jsonl> <game-root|game-descriptor>
+```
+
+It reads the game through the normal configured store, signs only a clean
+accepted event set for the selected game descriptor, writes public attestation
+JSONL to a new output file, and refuses to overwrite the output file. For local
+games, `--out` must be outside the game root so an attestation file cannot
+become a replay-visible `events/`, `sidecar/`, `tmp/`, or projection artifact.
+The command fails closed without writing attestations when the observed event
+set or replay has diagnostics, including forks. It does not publish events,
+alter replay, write sidecars, or make unsigned profiles read signatures.
+
+Successful output is:
+
+```text
+gobanftp.v1.attest=ok
+profile_id=signed-hmac-goftp1
+game=<game-descriptor>
+event_set_count=<n>
+event_set_root=<sha256-hex>
+attestation_count=<n>
+key_id=<public-hmac-selector>
+attestations=<attestations.jsonl>
+```
+
+Each public attestation row uses `GOFTP-HMAC-EVENT/1`, `hmac-sha256`,
+`signed-hmac-goftp1`, the game descriptor basename, the exact event basename,
+the visible event id, the public HMAC selector, and the HMAC signature. The
+private HMAC secret must not appear in the JSONL, stdout, or diagnostics.
 
 `v1 keyid --fixture` is implemented as a read-only fixture command. Production
 `keyid` remains reserved until a real public-key suite is selected:
@@ -193,37 +247,6 @@ suite=fixture-ed25519-v1
 public_key_bytes=32
 ```
 
-Future `attest` writes only advisory public attestation records unless the
-selected profile is an explicit signed profile:
-
-```text
-gobanftp attest --event-set-root <root> --key <private-key-file> <game-root|game-descriptor>
-gobanftp attest --fixture --event-set-root <root> --key-id <key-id> <game-root|game-descriptor>
-```
-
-The production form is not specified until a real signing suite is selected.
-The fixture form must write or print placeholder attestations that are visibly
-fixture-only and not cryptographic signatures.
-
-Event-set attestation preimage:
-
-```text
-"GOFTP-ATTEST-EVENT-SET/1\0" ||
-profile_id || "\0" ||
-game_descriptor_basename || "\0" ||
-event_set_root_version || "\0" ||
-event_set_root || "\0"
-```
-
-Event-name attestation preimage:
-
-```text
-"GOFTP-ATTEST-EVENT/1\0" ||
-profile_id || "\0" ||
-game_descriptor_basename || "\0" ||
-event_basename || "\0"
-```
-
 `v1 trust-report --fixture` is implemented as a read-only fixture command. It
 summarizes public trust files and public key records, but it first runs the
 normal profile replay boundary and reports the observed `event_set_root`.
@@ -245,7 +268,7 @@ the normal `verify` result. Missing trust material is reported as unsigned or
 untrusted advisory state, not as replay failure. Only an explicit signed profile
 may turn missing, bad, stale, or revoked signatures into validation failures.
 
-The fixture form reads:
+The fixture trust-report form reads:
 
 ```text
 <fixture-dir>/game.name
@@ -259,7 +282,7 @@ The fixture form reads:
 parse `attestations.tsv`, does not enforce signed-HMAC revocation, and does not
 use wall-clock time for expiry decisions.
 
-### `gobanftp v1 witness --profile <profile-id> --fixture <fixture-dir> [--attestations <jsonl>] [--trusted-hmac-key <id=key>] [--trusted-hmac-status <id=status>] [--surface text|html|terminal]`
+### `gobanftp v1 witness --profile <profile-id> --fixture <fixture-dir> [--attestations <jsonl>] [--trusted-hmac-key <id=key>] [--trusted-hmac-key-file <hmac-key-file>] [--trusted-hmac-status <id=status>] [--surface text|html|terminal]`
 
 Builds a read-only v1 witness from fixture files. The command reads:
 
@@ -277,20 +300,23 @@ before `event_set_root`.
 
 For `signed-hmac-goftp1`, pass public attestation records with
 `--attestations` and one or more explicit verifier keys with
-`--trusted-hmac-key <id=key>`. The key id is public, must be a single
-diagnostic-safe token, and may appear in stdout or diagnostics; the key bytes
-must not be printed. The HMAC key id is a verifier-local selector, not a
-`GOFTP-KEY/1` public key id. Selectors starting with `k1.` are rejected for
-`--trusted-hmac-key` so fixture public-key trust rows cannot silently authorize
-HMAC attestations.
+`--trusted-hmac-key <id=key>` or `--trusted-hmac-key-file <hmac-key-file>`. The
+key id is public, must be a single diagnostic-safe token, and may appear in
+stdout or diagnostics; the key bytes must not be printed. The HMAC key id is a
+verifier-local selector, not a `GOFTP-KEY/1` public key id. Selectors starting
+with `k1.` are rejected for `--trusted-hmac-key` so fixture public-key trust
+rows cannot silently authorize HMAC attestations. `--trusted-hmac-key-file`
+reads the private-mode `GOFTP-HMAC-KEY/1` file written by `v1 keygen`;
+duplicate selectors across inline and file keys are rejected.
 
 `--trusted-hmac-status <id=status>` is an explicit signed-HMAC lifecycle input.
 It is separate from `GOFTP-TRUST/1` public key rows and applies only to a
-selector already supplied by `--trusted-hmac-key`. If omitted, the selector is
-treated as `trusted`. For verification, `trusted` and `rotated` selectors may
-accept signed material; `revoked` and `expired` selectors reject it with
-`untrusted_signature` and a lifecycle reason. This command has no publish path,
-so rotated publish rejection is only a documented lifecycle rule.
+selector already supplied by `--trusted-hmac-key` or
+`--trusted-hmac-key-file`. If omitted, the selector is treated as `trusted`. For
+verification, `trusted` and `rotated` selectors may accept signed material;
+`revoked` and `expired` selectors reject it with `untrusted_signature` and a
+lifecycle reason. This command has no publish path, so rotated publish rejection
+is only a documented lifecycle rule.
 
 The command calls `GobanFTP::Witness` and does not recompute roots, signatures,
 or replay results inside CLI code. It does not write events or projections.

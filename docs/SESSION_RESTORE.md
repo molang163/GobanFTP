@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- feat: add signed hmac operation layer
 - release: enter v1.0 final candidate identity
 - docs: record P14 claim-audit matrix
 - test: add P14 claim audit gate
@@ -74,6 +75,16 @@ Current state after the v1.0 final-candidate identity switch:
   pty smoke coverage for `q`, keyboard publish, and mouse publish, and
   release-text updates separating local TUI input from hosted Web UI and
   cross-terminal compatibility completion claims.
+- P18 adds verifier-local signed-HMAC operation support:
+  `gobanftp v1 keygen --profile signed-hmac-goftp1 --out ...`,
+  `gobanftp v1 attest --profile signed-hmac-goftp1 --key ... --out ...`, and
+  `gobanftp v1 witness --trusted-hmac-key-file ...`. This creates private
+  `GOFTP-HMAC-KEY/1` key files, writes public attestation JSONL, and verifies
+  through the existing signed profile gate without changing unsigned replay.
+- P18 is not production key lifecycle completion and is not publish auth
+  completion. It does not define account identity binding, public-key signing
+  suites, revocation publication, key loss recovery, automatic sidecar
+  discovery, or publish-time authorization.
 - Previous HEAD `test: add bad signature vector and dist hygiene gate` added
   the `bad-signature` public poison vector and dist manifest hygiene gate.
 
@@ -81,6 +92,7 @@ Current state after the v1.0 final-candidate identity switch:
 
 ```text
 HEAD release: enter v1.0 final candidate identity
+HEAD feat: add signed hmac operation layer
 HEAD docs: record P14 claim-audit matrix
 HEAD test: add P14 claim audit gate
 HEAD docs: record current P14 development matrix
@@ -173,10 +185,10 @@ Key completed boundaries:
   has deterministic verify/publish meaning without wall-clock replay inputs.
 - P12c-1 explicit signed-HMAC lifecycle enforcement is implemented:
   `v1 witness` accepts `--trusted-hmac-status <id=status>` for selectors already
-  supplied by `--trusted-hmac-key`; omitted status remains `trusted`; `rotated`
-  verifies old material; `revoked` and `expired` reject inside the signed
-  profile gate with `untrusted_signature` lifecycle reasons. Unsigned profiles
-  ignore the lifecycle input.
+  supplied by `--trusted-hmac-key` or `--trusted-hmac-key-file`; omitted status
+  remains `trusted`; `rotated` verifies old material; `revoked` and `expired`
+  reject inside the signed profile gate with `untrusted_signature` lifecycle
+  reasons. Unsigned profiles ignore the lifecycle input.
 - P12d signed-HMAC lifecycle golden vectors are frozen:
   `t/fixtures/vectors/v1-signed-hmac-witness.jsonl` now records lifecycle
   statuses, accepted/rejected sets, and `rejected_diagnostics` for trusted,
@@ -575,6 +587,7 @@ MANIFEST
 MANIFEST.SKIP
 lib/GobanFTP.pm
 lib/GobanFTP/Auth/TrustReport.pm
+lib/GobanFTP/Auth/HMACKey.pm
 lib/GobanFTP/Profile/SignedHMAC.pm
 lib/GobanFTP/Witness.pm
 lib/GobanFTP/CLI.pm
@@ -588,6 +601,8 @@ t/fixtures/v1/signed-hmac/
 t/fixtures/vectors/v1-signed-hmac-witness.jsonl
 t/fixtures/vectors/v1-non-consensus-poison.jsonl
 t/v1-signed-hmac.t
+t/auth-hmac-key.t
+t/cli-auth-hmac.t
 t/v1-signed-hmac-golden-vectors.t
 t/v1-golden-vectors.t
 t/v1-cli-witness.t

@@ -133,8 +133,10 @@ publication event.
   fixture/read-normalizer proof surfaces. Current HEAD has since added
   read-only Git-tree and DNS-record runtime admission, so this dry run is
   historical evidence, not the current final clean gate.
-- Production key lifecycle policy remains outside the current signed-HMAC
-  fixture verifier.
+- Production key lifecycle policy beyond verifier-local signed-HMAC key files
+  remains outside the current signed-HMAC operation layer.
+- Publish authentication policy remains outside the current signed-HMAC
+  operation layer.
 
 ## Not Claimed
 
@@ -186,7 +188,9 @@ tarball source unless the matrix is rerun from this record commit.
 
 The earlier clean-checkout matrix at
 `e1c8b4036ce9bf2260455b0aa0834df544393845` remains historical development
-evidence; the record above is the current HEAD evidence.
+evidence. The record above is now historical development-freeze evidence too;
+it predates the later local TUI input and verifier-local signed-HMAC operation
+work, so it is not current HEAD evidence.
 
 ## Post-Matrix Claim-Audit Targeted Check
 
@@ -211,6 +215,8 @@ The current development-freeze matrix above now includes this gate.
 
 The `1.000_001` development freeze is recorded above. The source tree has now
 entered the `v1.0` / package `1.000` final-candidate identity without creating
-a tag or final artifact. The next release-route step is to refresh the final
-claim audit from this identity, run the final stable clean-checkout matrix, and
-attach the external artifact record before any `v1.0` tag.
+a tag or final artifact. Current HEAD has added local TUI input and
+verifier-local signed-HMAC keygen/attest operation work after that recorded
+development freeze. The next release-route step is to refresh the final claim
+audit from this identity, run the final stable clean-checkout matrix, and attach
+the external artifact record before any `v1.0` tag.

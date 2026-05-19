@@ -13,6 +13,8 @@ my @release_files = (
     ['Changes',                                        0],
     ['docs/ROADMAP.md',                                0],
     ['docs/V1_DOD.md',                                 0],
+    ['docs/PROFILES.md',                               0],
+    ['docs/DIAGNOSTICS.md',                            0],
     ['docs/P14_RELEASE_GATE.md',                       0],
     ['docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md',      0],
     ['docs/CLI.md',                                    0],
@@ -82,6 +84,7 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'local, FTP, Git-tree, DNS-record, and WebDAV runtime read paths are implemented',
         'FTP listing-shadow public poison-vector evidence is fixture/listing evidence',
         'signed-hmac-goftp1 has an explicit per-event HMAC acceptance gate',
+        'v1 keygen and v1 attest provide verifier-local signed-HMAC operation support without changing unsigned replay',
         'public key and trust fixture reports are advisory outside signed profiles',
         'text, static HTML, and static terminal witness surfaces are read-only displays',
         'local play --tui keyboard/mouse input is implemented as a non-consensus input/display layer over existing publish callbacks',
@@ -103,6 +106,8 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'DNS dynamic update or DNS record publishing is implemented',
         'production key lifecycle is complete',
         'publish authentication policy is complete',
+        'publish auth is complete',
+        'production publish signing or authorization is implemented',
         'final scoring/result events are part of GOFTP/1',
         'source art, Web, TUI, C, or asm-like surfaces own replay truth',
         'the arch-gate motif claims Arch Linux affiliation, endorsement, package',
@@ -141,10 +146,12 @@ subtest 'forbidden claims appear only in guarded contexts' => sub {
             'FTP integrity support'],
         [qr/\bFTP publish behavior\b.*\b(?:implemented|complete|ready|supported)\b/i,
             'FTP publish support'],
-        [qr/\bproduction key lifecycle\s+(?:is\s+)?(?:complete|implemented|ready)\b/i,
+        [qr/\bproduction key lifecycle\b.*\b(?:complete|implemented|ready|supported|shipped|landed|done)\b/i,
             'production key lifecycle completion'],
-        [qr/\bpublish authentication policy\s+(?:is\s+)?(?:complete|implemented|ready)\b/i,
+        [qr/\bpublish(?:ing)? auth(?:entication)?(?: policy)?\b.*\b(?:complete|implemented|ready|supported|shipped|landed|done)\b/i,
             'publish authentication policy completion'],
+        [qr/\bproduction publish signing or authorization\b.*\b(?:implemented|complete|ready|supported|shipped|landed|done)\b/i,
+            'production publish signing or authorization'],
         [qr/\b(?:source art|Web|TUI|Inline::C|asm-like)\b.*\bown(?:s)? (?:replay )?truth\b/i,
             'display or accelerator owns truth'],
     );
@@ -221,8 +228,8 @@ sub _guarded_context {
     $candidate = $window if !defined $candidate;
     return 1 if ($candidate =~ /
         \b(?:
-            not|no|none|without|outside|deferred|unless|forbidden|blocked|
-            must\s+not|do\s+not|does\s+not|cannot|only\s+when|until|
+            not|no|none|without|outside|deferred|unless|forbidden|blocked|ignored|
+            never|must\s+not|do\s+not|does\s+not|cannot|only\s+when|until|
             future|skipped|unreleased|avoid(?:ing)?|denied|not\s+yet
         )\b
     /ix);

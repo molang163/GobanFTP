@@ -17,9 +17,9 @@ read-only runtime store. DNS record admission is read-only over local or
 otherwise declared record files, with no live DNS, AXFR, DNSSEC trust, provider
 API, dynamic update, or publish path. `GOFTP/1` remains unchanged.
 
-The current route work is P17 TUI hardening, P14 claim audit, and final
-clean-gate preparation for the admitted read boundaries now present at HEAD,
-especially `git-tree-goftp1` and `dns-record-goftp1`. The witness vectors now
+The current route work is P18 signed-HMAC operation hardening, P14 claim audit,
+and final clean-gate preparation for the admitted read boundaries now present at
+HEAD, especially `git-tree-goftp1` and `dns-record-goftp1`. The witness vectors now
 carry self-contained input names, diagnostics, and rendered projection text,
 and replay-invariant vectors now cover ordinary rule, DAG, ACK, terminal,
 malformed, and ack-assisted fork behavior. Event-id collision is now covered as
@@ -33,8 +33,10 @@ plus the FTP listing-shadow cross-substrate fixture, including real fixture
 listing, and unchanged event-set preimage, root, replay, board, projection, and
 SGF truth. The signed-HMAC public-trust bridge is now represented in public
 signed/auth golden vectors as rejected `k1.` selector evidence and accepted
-explicit HMAC selector evidence. The FTP listing-shadow vector is
-fixture/listing evidence only. Local `play --tui` is a non-consensus
+explicit HMAC selector evidence. Verifier-local `v1 keygen`, `v1 attest`, and
+`v1 witness --trusted-hmac-key-file` now exercise the signed-HMAC operation path
+without leaking HMAC secrets or changing unsigned replay. The FTP listing-shadow
+vector is fixture/listing evidence only. Local `play --tui` is a non-consensus
 input/display surface over the existing play publish path.
 This is not Git publish, Git remote fetch, live FTP, FTP auth, FTP integrity,
 FTP publish behavior, live DNS, DNS publish, hosted Web UI, production key
@@ -416,11 +418,20 @@ fixture records and does not create trust, private keys, signatures, or replay
 inputs. Fixture-only trust reporting is available through
 `gobanftp v1 trust-report --fixture`; it reports public key and trust TSV state
 after the normal unsigned witness and does not enforce signed trust.
-`signed-hmac-goftp1` now has an explicit verifier lifecycle input for HMAC
-selectors: `trusted` and `rotated` verify old signed material, while `revoked`
-and `expired` reject inside the signed profile gate without changing unsigned
-replay. The signed-HMAC golden vectors now freeze lifecycle status,
-accepted/rejected sets, and `key.revoked` / `key.expired` rejected diagnostics.
+`signed-hmac-goftp1` now has verifier-local operation commands:
+`gobanftp v1 keygen --profile signed-hmac-goftp1 --out ...` writes a private
+`GOFTP-HMAC-KEY/1` key file without printing the secret, `gobanftp v1 attest`
+writes public per-event attestation JSONL for a current accepted event set, and
+`gobanftp v1 witness --trusted-hmac-key-file ...` verifies those attestations
+through the same signed profile gate. The operation layer still does not define
+production account identity binding, public-key signing suites, revocation
+publication, key loss recovery, automatic sidecar discovery, or publish-time
+authorization. `signed-hmac-goftp1` also has an explicit verifier lifecycle
+input for HMAC selectors: `trusted` and `rotated` verify old signed material,
+while `revoked` and `expired` reject inside the signed profile gate without
+changing unsigned replay. The signed-HMAC golden vectors now freeze lifecycle
+status, accepted/rejected sets, and `key.revoked` / `key.expired` rejected
+diagnostics.
 The `public-trust-bridge-poison` specimen proves public `GOFTP-TRUST/1` rows
 cannot authorize `k1.` HMAC selectors or revoke explicit HMAC selectors. It is
 also frozen in signed-HMAC public golden vectors that bind the public key and
@@ -495,10 +506,11 @@ It is a release-route checkpoint, not a v1.0 tag or P14 completion claim.
 The final artifact identity and tag preconditions are tracked in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
 The `t/p14-claim-audit.t` gate guards current release-facing text against
-accidental over-claims. The immediate follow-up is P17b TUI hardening and final
-clean-gate preparation, not Git publish, live DNS, AXFR, DNSSEC trust, provider
-APIs, dynamic update, DNS publish, hosted Web UI, production key lifecycle
-completion, publish auth completion, or a v1.0/P14 completion claim.
+accidental over-claims. The immediate follow-up is P18 signed-HMAC operation
+hardening and final clean-gate preparation. No Git publish, no live DNS, no
+AXFR, no DNSSEC trust, no provider APIs, no dynamic update, no DNS publish, no
+hosted Web UI, no production key lifecycle completion, no publish auth
+completion, and no v1.0/P14 completion claim.
 
 Acceptance:
 
