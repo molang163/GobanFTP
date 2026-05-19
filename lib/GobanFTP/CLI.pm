@@ -305,12 +305,12 @@ sub _command_sgf {
 sub _command_publish_move {
     my (@argv) = @_;
 
-    my %opts;
+    my $usage = _publish_move_usage_line();
+    my %opts = _publish_auth_default_opts();
     while (@argv && $argv[0] =~ /\A--/) {
         my $option = shift @argv;
         if ($option eq '--nonce') {
-            die "usage: publish-move [--nonce n] <game-root|game-descriptor> <aa|play-aa|pass|resign>"
-                if !@argv;
+            die $usage if !@argv;
             $opts{nonce} = shift @argv;
             next;
         }
@@ -318,18 +318,18 @@ sub _command_publish_move {
             $opts{nonce} = $1;
             next;
         }
-        die "usage: publish-move [--nonce n] <game-root|game-descriptor> <aa|play-aa|pass|resign>";
+        next if _consume_publish_auth_option($option, \@argv, \%opts, $usage);
+        die $usage;
     }
 
-    die "usage: publish-move [--nonce n] <game-root|game-descriptor> <aa|play-aa|pass|resign>"
-        if @argv != 2;
-    die "usage: publish-move [--nonce n] <game-root|game-descriptor> <aa|play-aa|pass|resign>"
+    die $usage if @argv != 2;
+    die $usage
         if defined($opts{nonce}) && $opts{nonce} !~ /\A[a-z0-9_-]{1,16}\z/;
+    my $publish_auth = _publish_auth_config_or_usage(\%opts, $usage);
 
     my ($game_arg, $move_input) = @argv;
     my ($action, $action_error) = normalize_action($move_input);
-    die "usage: publish-move [--nonce n] <game-root|game-descriptor> <aa|play-aa|pass|resign>"
-        if defined $action_error;
+    die $usage if defined $action_error;
 
     my $context = _load_context($game_arg);
     return _publish_action(
@@ -337,18 +337,19 @@ sub _command_publish_move {
         context => $context,
         action  => $action,
         defined($opts{nonce}) ? (nonce => $opts{nonce}) : (),
+        defined($publish_auth) ? (publish_auth => $publish_auth) : (),
     );
 }
 
 sub _command_publish_ack {
     my (@argv) = @_;
 
-    my %opts;
+    my $usage = _publish_ack_usage_line();
+    my %opts = _publish_auth_default_opts();
     while (@argv && $argv[0] =~ /\A--/) {
         my $option = shift @argv;
         if ($option eq '--nonce') {
-            die "usage: publish-ack [--nonce n] <game-root|game-descriptor> <event-id>"
-                if !@argv;
+            die $usage if !@argv;
             $opts{nonce} = shift @argv;
             next;
         }
@@ -356,17 +357,17 @@ sub _command_publish_ack {
             $opts{nonce} = $1;
             next;
         }
-        die "usage: publish-ack [--nonce n] <game-root|game-descriptor> <event-id>";
+        next if _consume_publish_auth_option($option, \@argv, \%opts, $usage);
+        die $usage;
     }
 
-    die "usage: publish-ack [--nonce n] <game-root|game-descriptor> <event-id>"
-        if @argv != 2;
-    die "usage: publish-ack [--nonce n] <game-root|game-descriptor> <event-id>"
+    die $usage if @argv != 2;
+    die $usage
         if defined($opts{nonce}) && $opts{nonce} !~ /\A[a-z0-9_-]{1,16}\z/;
+    my $publish_auth = _publish_auth_config_or_usage(\%opts, $usage);
 
     my ($game_arg, $target_id) = @argv;
-    die "usage: publish-ack [--nonce n] <game-root|game-descriptor> <event-id>"
-        if $target_id !~ /\A[0-9a-v]{16}\z/;
+    die $usage if $target_id !~ /\A[0-9a-v]{16}\z/;
 
     my $context = _load_context($game_arg);
     return _publish_ack(
@@ -374,14 +375,15 @@ sub _command_publish_ack {
         context   => $context,
         target_id => $target_id,
         defined($opts{nonce}) ? (nonce => $opts{nonce}) : (),
+        defined($publish_auth) ? (publish_auth => $publish_auth) : (),
     );
 }
 
 sub _command_play {
     my (@argv) = @_;
-    my $usage = "usage: play [--once|--tui] [--move move|--ack event-id] [--nonce n] <game-root|game-descriptor>";
+    my $usage = _play_usage_line();
 
-    my %opts;
+    my %opts = _publish_auth_default_opts();
     while (@argv && $argv[0] =~ /\A--/) {
         my $option = shift @argv;
         if ($option eq '--once') {
@@ -422,6 +424,7 @@ sub _command_play {
             $opts{nonce} = $1;
             next;
         }
+        next if _consume_publish_auth_option($option, \@argv, \%opts, $usage);
         die $usage;
     }
 
@@ -431,6 +434,11 @@ sub _command_play {
         if defined($opts{nonce}) && $opts{nonce} !~ /\A[a-z0-9_-]{1,16}\z/;
     die $usage
         if defined($opts{ack}) && $opts{ack} !~ /\A[0-9a-v]{16}\z/;
+    my $publish_auth = _publish_auth_config_or_usage(\%opts, $usage);
+    die $usage if defined($publish_auth)
+        && !defined($opts{move})
+        && !defined($opts{ack})
+        && !$opts{tui};
 
     my ($game_arg) = @argv;
 
@@ -438,6 +446,7 @@ sub _command_play {
         return _command_play_tui(
             $game_arg,
             defined($opts{nonce}) ? (nonce => $opts{nonce}) : (),
+            defined($publish_auth) ? (publish_auth => $publish_auth) : (),
         );
     }
 
@@ -451,10 +460,12 @@ sub _command_play {
             context => $context,
             action  => $action,
             defined($opts{nonce}) ? (nonce => $opts{nonce}) : (),
+            defined($publish_auth) ? (publish_auth => $publish_auth) : (),
         );
         if ($publish->{exit} != EXIT_SUCCESS) {
             if ($publish->{stage} eq 'published') {
                 _print_event_result($publish);
+                _print_publish_auth_result($publish);
                 my $exit = _print_terminal_snapshot('play', $publish->{context});
                 _print_diagnostics($publish->{context}{replay_result});
                 return $exit;
@@ -465,6 +476,7 @@ sub _command_play {
         }
 
         _print_event_result($publish);
+        _print_publish_auth_result($publish);
         return _print_terminal_snapshot('play', $publish->{context});
     }
 
@@ -476,6 +488,7 @@ sub _command_play {
             target_id     => $opts{ack},
             reload_policy => 'ack-assisted',
             defined($opts{nonce}) ? (nonce => $opts{nonce}) : (),
+            defined($publish_auth) ? (publish_auth => $publish_auth) : (),
         );
         if ($publish->{stage} ne 'published') {
             _print_publish_result('play', $publish);
@@ -483,6 +496,7 @@ sub _command_play {
         }
 
         _print_event_result($publish);
+        _print_publish_auth_result($publish);
         my $exit = _print_terminal_snapshot('play', $publish->{context});
         _print_diagnostics($publish->{context}{replay_result});
         return $exit;
@@ -571,6 +585,7 @@ sub _command_play_tui {
                 context => $context,
                 action  => $action,
                 defined($opts{nonce}) ? (nonce => $opts{nonce}) : (),
+                defined($opts{publish_auth}) ? (publish_auth => $opts{publish_auth}) : (),
             );
         },
     );
@@ -584,6 +599,7 @@ sub _command_play_tui {
     }
 
     _print_event_result($publish);
+    _print_publish_auth_result($publish);
     my $exit = _print_terminal_snapshot('play', $publish->{context});
     _print_diagnostics($publish->{context}{replay_result});
     return $exit;
@@ -1353,6 +1369,21 @@ sub _publish_action_result {
         };
     }
 
+    my $publish_auth = _publish_auth_preflight(
+        config     => $args{publish_auth},
+        context    => $context,
+        event_name => $event_name,
+        event_id   => $event_id,
+    );
+    if (ref($publish_auth) eq 'HASH' && !$publish_auth->{authorized}) {
+        return _publish_auth_denied_result(
+            context      => $context,
+            event_name   => $event_name,
+            event_id     => $event_id,
+            publish_auth => $publish_auth,
+        );
+    }
+
     eval {
         $context->{store}->publish_event_name($context->{store_game_root}, $event_name);
         1;
@@ -1367,6 +1398,7 @@ sub _publish_action_result {
         context    => $after_context,
         event_name => $event_name,
         event_id   => $event_id,
+        defined($publish_auth) ? (publish_auth => $publish_auth) : (),
     };
 }
 
@@ -1426,6 +1458,21 @@ sub _publish_ack_result {
         };
     }
 
+    my $publish_auth = _publish_auth_preflight(
+        config     => $args{publish_auth},
+        context    => $context,
+        event_name => $event_name,
+        event_id   => $event_id,
+    );
+    if (ref($publish_auth) eq 'HASH' && !$publish_auth->{authorized}) {
+        return _publish_auth_denied_result(
+            context      => $context,
+            event_name   => $event_name,
+            event_id     => $event_id,
+            publish_auth => $publish_auth,
+        );
+    }
+
     eval {
         $context->{store}->publish_event_name($context->{store_game_root}, $event_name);
         1;
@@ -1443,6 +1490,7 @@ sub _publish_ack_result {
         context    => $after_context,
         event_name => $event_name,
         event_id   => $event_id,
+        defined($publish_auth) ? (publish_auth => $publish_auth) : (),
     };
 }
 
@@ -1453,9 +1501,11 @@ sub _print_publish_result {
         $command,
         _status_for_exit($result->{exit}),
         $result->{context},
-        event_set => ($result->{stage} // '') ne 'candidate',
+        event_set => ($result->{stage} // '') ne 'candidate'
+            && ($result->{stage} // '') ne 'auth',
     );
     _print_event_result($result);
+    _print_publish_auth_result($result);
     _print_diagnostics($result->{context}{replay_result});
 }
 
@@ -1464,6 +1514,25 @@ sub _print_event_result {
 
     print STDOUT "event=$result->{event_name}\n" if defined $result->{event_name};
     print STDOUT "event_id=$result->{event_id}\n" if defined $result->{event_id};
+}
+
+sub _print_publish_auth_result {
+    my ($result) = @_;
+
+    my $auth = $result->{publish_auth};
+    return if ref($auth) ne 'HASH';
+
+    my $diagnostics = $auth->{diagnostics} // [];
+    print STDOUT "publish_auth.status=$auth->{status}\n";
+    print STDOUT "publish_auth.profile_id=$auth->{profile_id}\n"
+        if defined($auth->{profile_id});
+    print STDOUT "publish_auth.key_id=$auth->{key_id}\n"
+        if defined($auth->{key_id});
+    print STDOUT 'publish_auth.diagnostic_codes='
+        . _stdout_value([diagnostic_codes($diagnostics)]) . "\n";
+    print STDOUT 'publish_auth.diagnostic_classes='
+        . _stdout_value([diagnostic_classes($diagnostics)]) . "\n";
+    print STDOUT 'publish_auth.diagnostic_count=' . scalar(@$diagnostics) . "\n";
 }
 
 sub _load_context {
@@ -1540,6 +1609,254 @@ sub _option_value {
 
     die $usage if !defined($name) || $name eq '';
     return ($name, $value);
+}
+
+sub _publish_move_usage_line {
+    return 'usage: publish-move [--nonce n] ' . _publish_auth_usage_suffix()
+        . ' <game-root|game-descriptor> <aa|play-aa|pass|resign>';
+}
+
+sub _publish_ack_usage_line {
+    return 'usage: publish-ack [--nonce n] ' . _publish_auth_usage_suffix()
+        . ' <game-root|game-descriptor> <event-id>';
+}
+
+sub _play_usage_line {
+    return 'usage: play [--once|--tui] [--move move|--ack event-id] [--nonce n] '
+        . _publish_auth_usage_suffix()
+        . ' <game-root|game-descriptor>';
+}
+
+sub _publish_auth_usage_suffix {
+    return '[--publish-auth-token publish-token.jsonl] '
+        . '[--publish-auth-profile signed-hmac-goftp1] '
+        . '[--publish-auth-trusted-hmac-key id=key] '
+        . '[--publish-auth-trusted-hmac-key-file hmac-key-file] '
+        . '[--publish-auth-trusted-hmac-status id=status]';
+}
+
+sub _publish_auth_default_opts {
+    return (
+        publish_auth_trusted_hmac_keys      => [],
+        publish_auth_trusted_hmac_key_files => [],
+        publish_auth_trusted_hmac_statuses  => [],
+    );
+}
+
+sub _consume_publish_auth_option {
+    my ($option, $argv, $opts, $usage) = @_;
+
+    my ($name, $value);
+    if ($option =~ /\A--([^=]+)=(.*)\z/) {
+        ($name, $value) = ($1, $2);
+    }
+    elsif ($option =~ /\A--(.+)\z/) {
+        $name = $1;
+    }
+    else {
+        return 0;
+    }
+
+    return 0 if !_is_publish_auth_option($name);
+    if (!defined $value) {
+        die $usage if !@$argv;
+        $value = shift @$argv;
+    }
+    die $usage if !defined($value) || $value eq '';
+
+    if ($name eq 'publish-auth-profile') {
+        die $usage if defined $opts->{publish_auth_profile};
+        $opts->{publish_auth_profile} = $value;
+        return 1;
+    }
+    if ($name eq 'publish-auth-token') {
+        die $usage if defined $opts->{publish_auth_token};
+        $opts->{publish_auth_token} = $value;
+        return 1;
+    }
+    if ($name eq 'publish-auth-trusted-hmac-key') {
+        push @{ $opts->{publish_auth_trusted_hmac_keys} }, $value;
+        return 1;
+    }
+    if ($name eq 'publish-auth-trusted-hmac-key-file') {
+        push @{ $opts->{publish_auth_trusted_hmac_key_files} }, $value;
+        return 1;
+    }
+    if ($name eq 'publish-auth-trusted-hmac-status') {
+        push @{ $opts->{publish_auth_trusted_hmac_statuses} }, $value;
+        return 1;
+    }
+
+    return 0;
+}
+
+sub _is_publish_auth_option {
+    my ($name) = @_;
+    return defined($name) && (
+        $name eq 'publish-auth-profile'
+            || $name eq 'publish-auth-token'
+            || $name eq 'publish-auth-trusted-hmac-key'
+            || $name eq 'publish-auth-trusted-hmac-key-file'
+            || $name eq 'publish-auth-trusted-hmac-status'
+    );
+}
+
+sub _publish_auth_config_or_usage {
+    my ($opts, $usage) = @_;
+
+    my $enabled = defined($opts->{publish_auth_profile})
+        || defined($opts->{publish_auth_token})
+        || @{ $opts->{publish_auth_trusted_hmac_keys} // [] }
+        || @{ $opts->{publish_auth_trusted_hmac_key_files} // [] }
+        || @{ $opts->{publish_auth_trusted_hmac_statuses} // [] };
+    return undef if !$enabled;
+
+    my $profile_id = $opts->{publish_auth_profile} // 'signed-hmac-goftp1';
+    die $usage if $profile_id ne 'signed-hmac-goftp1';
+    die $usage if !defined($opts->{publish_auth_token})
+        || $opts->{publish_auth_token} eq '';
+    die $usage
+        if !@{ $opts->{publish_auth_trusted_hmac_keys} // [] }
+            && !@{ $opts->{publish_auth_trusted_hmac_key_files} // [] };
+
+    return {
+        usage                  => $usage,
+        profile_id             => $profile_id,
+        token_path             => $opts->{publish_auth_token},
+        trusted_hmac_keys      => [ @{ $opts->{publish_auth_trusted_hmac_keys} // [] } ],
+        trusted_hmac_key_files => [ @{ $opts->{publish_auth_trusted_hmac_key_files} // [] } ],
+        trusted_hmac_statuses  => [ @{ $opts->{publish_auth_trusted_hmac_statuses} // [] } ],
+    };
+}
+
+sub _publish_auth_preflight {
+    my (%args) = @_;
+
+    my $config = $args{config};
+    return undef if ref($config) ne 'HASH';
+
+    my $profile_id = $config->{profile_id};
+    my $context    = $args{context};
+    my $event_name = $args{event_name};
+    my $event_id   = $args{event_id};
+
+    my $token = eval { _read_publish_token_file($config->{token_path}) };
+    if (!$token) {
+        my $error = _clean_error($@ || 'publish_token');
+        die $error if $error =~ /\Astorage:/;
+        $error =~ s/\Aparse_publish_token://;
+        return _publish_auth_failure(
+            profile_id => $profile_id,
+            event_name => $event_name,
+            event_id   => $event_id,
+            diagnostic => {
+                code  => 'parse_publish_token',
+                error => $error,
+            },
+        );
+    }
+
+    my (%trusted_hmac_keys, %trusted_hmac_key_statuses);
+    my $loaded = eval {
+        %trusted_hmac_keys = _trusted_hmac_key_map(
+            $config->{usage},
+            @{ $config->{trusted_hmac_keys} // [] },
+        );
+        my %trusted_hmac_file_keys = _trusted_hmac_key_file_map(
+            $config->{usage},
+            @{ $config->{trusted_hmac_key_files} // [] },
+        );
+        for my $key_id (keys %trusted_hmac_file_keys) {
+            die $config->{usage} if exists $trusted_hmac_keys{$key_id};
+            $trusted_hmac_keys{$key_id} = $trusted_hmac_file_keys{$key_id};
+        }
+        %trusted_hmac_key_statuses = _trusted_hmac_key_status_map(
+            \%trusted_hmac_keys,
+            $config->{usage},
+            @{ $config->{trusted_hmac_statuses} // [] },
+        );
+        1;
+    };
+    if (!$loaded) {
+        my $error = _clean_error($@ || 'hmac_key');
+        die $error if $error =~ /\Ausage:/;
+        if ($error =~ s/\Aparse_hmac_key://) {
+            return _publish_auth_failure(
+                profile_id => $profile_id,
+                event_name => $event_name,
+                event_id   => $event_id,
+                diagnostic => {
+                    code  => 'parse_hmac_key',
+                    error => $error,
+                },
+            );
+        }
+        die $error;
+    }
+
+    my $auth = publish_authorization_result(
+        profile_id                => $profile_id,
+        game_descriptor           => $context->{game_descriptor},
+        event_basename            => $event_name,
+        token                     => $token,
+        trusted_hmac_keys         => \%trusted_hmac_keys,
+        trusted_hmac_key_statuses => \%trusted_hmac_key_statuses,
+    );
+
+    return _decorate_publish_auth_result(
+        $auth,
+        profile_id => $profile_id,
+        event_name => $event_name,
+        event_id   => $event_id,
+        secrets    => [values %trusted_hmac_keys],
+    );
+}
+
+sub _publish_auth_failure {
+    my (%args) = @_;
+
+    return _decorate_publish_auth_result(
+        {
+            authorized  => 0,
+            status      => 'denied',
+            diagnostics => [$args{diagnostic}],
+        },
+        %args,
+    );
+}
+
+sub _decorate_publish_auth_result {
+    my ($auth, %args) = @_;
+
+    $auth->{profile_id} = $args{profile_id};
+    $auth->{event_name} = $args{event_name};
+    $auth->{event_id} //= $args{event_id};
+    $auth->{secrets} = $args{secrets} // [];
+
+    return $auth;
+}
+
+sub _publish_auth_denied_result {
+    my (%args) = @_;
+
+    my $context = $args{context};
+    my $auth    = $args{publish_auth};
+    my $result  = _result_with_diagnostics(
+        $context->{replay_result},
+        @{ $auth->{diagnostics} // [] },
+    );
+
+    return {
+        exit         => EXIT_VALIDATION,
+        stage        => 'auth',
+        context      => {
+            %$context,
+            replay_result => $result,
+        },
+        event_name   => $args{event_name},
+        event_id     => $args{event_id},
+        publish_auth => $auth,
+    };
 }
 
 sub _v1_trust_report_from_fixture {
@@ -2003,6 +2320,17 @@ sub _result_with_diagnostic {
         ack_ids_by_target        => ref($result) && eval { $result->can('ack_ids_by_target') } ? $result->ack_ids_by_target : {},
         ack_assisted_choices     => ref($result) && eval { $result->can('ack_assisted_choices') } ? [ $result->ack_assisted_choices ] : [],
     };
+}
+
+sub _result_with_diagnostics {
+    my ($result, @diagnostics) = @_;
+
+    my $combined = $result;
+    for my $diagnostic (@diagnostics) {
+        $combined = _result_with_diagnostic($combined, $diagnostic);
+    }
+
+    return $combined;
 }
 
 sub _require_local_store_for_write {
@@ -2559,9 +2887,9 @@ commands:
   sgf [--write] <game-root|game-descriptor>
   sgf --variations <game-root|game-descriptor>
   project <game-root|game-descriptor>
-  publish-move [--nonce n] <game-root|game-descriptor> <aa|play-aa|pass|resign>
-  publish-ack [--nonce n] <game-root|game-descriptor> <event-id>
-  play [--once|--tui] [--move move|--ack event-id] [--nonce n] <game-root|game-descriptor>
+  publish-move [--nonce n] [--publish-auth-token publish-token.jsonl] [--publish-auth-trusted-hmac-key-file hmac-key-file] <game-root|game-descriptor> <aa|play-aa|pass|resign>
+  publish-ack [--nonce n] [--publish-auth-token publish-token.jsonl] [--publish-auth-trusted-hmac-key-file hmac-key-file] <game-root|game-descriptor> <event-id>
+  play [--once|--tui] [--move move|--ack event-id] [--nonce n] [--publish-auth-token publish-token.jsonl] [--publish-auth-trusted-hmac-key-file hmac-key-file] <game-root|game-descriptor>
   watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>
   v1 keygen --profile signed-hmac-goftp1 --out hmac-key-file
   v1 keyid --fixture public-key-file

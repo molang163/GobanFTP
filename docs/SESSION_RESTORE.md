@@ -102,12 +102,19 @@ Current state after the v1.0 final-candidate identity switch:
   closed. This is fixture publish-auth semantics, not real writer access,
   transport authentication, production key lifecycle completion, automatic
   sidecar discovery, or publish-auth completion.
+- P20b connects that token layer to actual publish commands as a default-off
+  preflight gate. `publish-move`, `publish-ack`, `play --move`, `play --ack`,
+  and `play --tui` can explicitly verify a `GOFTP-HMAC-PUBLISH/1` token after
+  candidate replay validation and before `publish_event_name`. Denial exits
+  validation and leaves no event behind; default unsigned publish paths do not
+  read auth material.
 - Previous HEAD `test: add bad signature vector and dist hygiene gate` added
   the `bad-signature` public poison vector and dist manifest hygiene gate.
 
 ## Recent Completed Work
 
 ```text
+HEAD feat: add publish auth preflight gate
 HEAD feat: add hmac publish token semantics
 HEAD feat: add signed hmac substrate overlay
 HEAD release: enter v1.0 final candidate identity
@@ -386,13 +393,13 @@ Key completed boundaries:
 
 ## Last Verified
 
-Latest local verification after P20a HMAC publish token semantics:
+Latest local verification after P20b default-off publish preflight:
 
 ```text
 perl -Ilib -c lib/GobanFTP/Auth/PublishToken.pm
 perl -Ilib -c lib/GobanFTP/CLI.pm
-prove -lr t/auth-publish-token.t t/cli-auth-publish-token.t
-prove -lr t/auth-publish-token.t t/cli-auth-publish-token.t t/diagnostics-contract.t t/p14-claim-audit.t
+prove -lr t/publish-auth-preflight.t t/ftp-cli-parity.t t/webdav-cli-parity.t
+prove -lr t/diagnostics-contract.t t/p14-claim-audit.t t/publish-auth-preflight.t t/ftp-cli-parity.t t/webdav-cli-parity.t
 prove -lr t/cli-auth-hmac.t t/v1-cli-witness.t t/v1-signed-hmac.t t/v1-signed-hmac-overlay.t t/profile-signed-hmac.t t/hmac-auth.t
 prove -lr t
 git diff --check
@@ -402,8 +409,8 @@ perl -MExtUtils::Manifest=fullcheck -e 'fullcheck()'
 Result:
 
 ```text
-P20a targeted checks: PASS.
-Full prove: Files=81, Tests=1086, all successful.
+P20b targeted checks: PASS.
+Full prove: Files=82, Tests=1094, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -596,15 +603,13 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-after P20a HMAC publish token semantics:
+after P20b default-off publish preflight:
 - keep `GOFTP-HMAC-PUBLISH/1` as verifier-local fixture publish-auth semantics;
   it is not real writer access, transport auth, or production key lifecycle
-- unsigned `GOFTP/1`, existing `publish-move`, `publish-ack`, and `play` default
+- unsigned `GOFTP/1` and default `publish-move`, `publish-ack`, and `play`
   paths still do not read auth material
-- likely next v1.0-completeness slice is P20b: decide whether to add an
-  explicit default-off publish preflight auth gate to `publish-move`,
-  `publish-ack`, and `play`, or proceed to the final stable clean-checkout
-  matrix if no more features are accepted before release
+- likely next v1.0-completeness slice is the final stable clean-checkout matrix
+  if no more feature work is accepted before release
 - do not tag v1.0 until the final claim audit passes, the final stable
   clean-checkout matrix passes, and the external artifact record is attached
 - do not let display, source art, Web assets, terminal formatting, or interactive
@@ -646,6 +651,9 @@ t/auth-hmac-key.t
 t/cli-auth-hmac.t
 t/auth-publish-token.t
 t/cli-auth-publish-token.t
+t/publish-auth-preflight.t
+t/ftp-cli-parity.t
+t/webdav-cli-parity.t
 t/v1-signed-hmac-golden-vectors.t
 t/v1-golden-vectors.t
 t/v1-cli-witness.t

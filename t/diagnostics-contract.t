@@ -41,7 +41,9 @@ my @stdout_fields = qw(
     trust.trusted_count trust.trusted_key_ids trust.rotated_count
     trust.rotated_key_ids trust.revoked_count trust.revoked_key_ids
     trust.expired_count trust.expired_key_ids
-    publish_auth.status publish_token
+    publish_auth.status publish_auth.profile_id publish_auth.key_id
+    publish_auth.diagnostic_codes publish_auth.diagnostic_classes
+    publish_auth.diagnostic_count publish_token
     gobanftp.create-game gobanftp.play gobanftp.project
     gobanftp.publish-ack gobanftp.publish-move gobanftp.replay
     gobanftp.sgf gobanftp.verify gobanftp.v1.attest

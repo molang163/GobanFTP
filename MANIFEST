@@ -563,6 +563,7 @@ t/profile-registry.t
 t/profile-signed-hmac.t
 t/projection-rebuild.t
 t/publish-ack.t
+t/publish-auth-preflight.t
 t/publish-move.t
 t/replay-ack-assisted.t
 t/replay-input-boundary.t

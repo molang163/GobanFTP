@@ -225,6 +225,25 @@ publish_auth.status=authorized
 diagnostic_count=0
 ```
 
+`publish-move`, `publish-ack`, `play --move`, `play --ack`, and `play --tui`
+can explicitly opt into this verifier-local publish preflight gate:
+
+```text
+--publish-auth-token <publish-token.jsonl>
+--publish-auth-profile signed-hmac-goftp1
+--publish-auth-trusted-hmac-key <id=key>
+--publish-auth-trusted-hmac-key-file <hmac-key-file>
+--publish-auth-trusted-hmac-status <id=trusted|rotated|revoked|expired>
+```
+
+The gate is default-off. Without these options, the existing publish commands
+do not read token files, key files, sidecars, or event bytes. When enabled, the
+candidate event is still built and replay-validated first. Only then is the
+publish token checked; denial exits `2`, prints signature-class diagnostics,
+and does not call the configured store's publish primitive. This is a
+verifier-local fixture gate for one candidate basename, not production writer
+authorization.
+
 `v1 keyid --fixture` is implemented as a read-only fixture command. Production
 `keyid` remains reserved until a real public-key suite is selected:
 
@@ -575,7 +594,7 @@ and reads that substrate's `events/` listing. `sgf --write` writes local
 projection files and is rejected in nonlocal store mode before constructing a
 nonlocal connection or replaying the nonlocal event listing.
 
-### `gobanftp publish-move [--nonce <n>] <game-root|game-descriptor> <aa|play-aa|pass|resign>`
+### `gobanftp publish-move [--nonce <n>] [--publish-auth-token <publish-token.jsonl>] [--publish-auth-trusted-hmac-key-file <hmac-key-file>] <game-root|game-descriptor> <aa|play-aa|pass|resign>`
 
 Creates and publishes one move event name through the configured store. A bare
 point such as `aa` is normalized to `play-aa`. The optional nonce must match
@@ -586,18 +605,28 @@ For FTP store, writes a zero-byte `tmp/` entry then `RNTO` to `events/`.
 For WebDAV store, writes a zero-byte `tmp/` resource then `MOVE`s it to
 `events/` and confirms visibility with `PROPFIND Depth: 1`.
 
-The command order is:
+The default command order is:
 
 ```text
 list events -> replay existing events -> validate candidate by replay
 -> publish_event_name -> list events -> replay again
 ```
 
+With explicit publish preflight auth enabled, the order is:
+
+```text
+list events -> replay existing events -> validate candidate by replay
+-> verify publish token for the candidate -> publish_event_name
+-> list events -> replay again
+```
+
 If the existing replay has a validation failure, the command exits `2` and does
 not publish. If the existing replay has a fork, the command exits `3` and does
-not publish. The command never reads event file bytes or sidecar files.
+not publish. The auth gate is reached only after candidate replay validation.
+An auth denial exits `2`, reports `publish_auth.status=denied`, and does not
+publish. The command never reads event file bytes or sidecar files.
 
-### `gobanftp publish-ack [--nonce <n>] <game-root|game-descriptor> <event-id>`
+### `gobanftp publish-ack [--nonce <n>] [--publish-auth-token <publish-token.jsonl>] [--publish-auth-trusted-hmac-key-file <hmac-key-file>] <game-root|game-descriptor> <event-id>`
 
 Creates and publishes one ack event for a known legal move event id. The acking
 player is derived from the target move's opponent using the game descriptor
@@ -612,7 +641,11 @@ fork.
 Unknown, non-move, or non-legal targets are rejected without publishing and
 reported as `diagnostic code=ack_target_invalid ...`.
 
-### `gobanftp play [--once|--tui] [--move <move>|--ack <event-id>] [--nonce <n>] <game-root|game-descriptor>`
+When publish preflight auth is enabled, the ack candidate must be authorized by
+a token bound to the exact `a1.*` basename and visible event id before the store
+write runs. A denied ack leaves no `a1.*` event behind.
+
+### `gobanftp play [--once|--tui] [--move <move>|--ack <event-id>] [--nonce <n>] [--publish-auth-token <publish-token.jsonl>] [--publish-auth-trusted-hmac-key-file <hmac-key-file>] <game-root|game-descriptor>`
 
 Renders a terminal snapshot of the current canonical board. The snapshot is
 derived from the configured store's `events/` listing and replay result only.
@@ -677,6 +710,10 @@ worldline.legal_ids=<comma-joined-event-ids>
 Candidate validation failures in interactive mode are printed and the loop
 continues without publishing the candidate. Existing validation failures and
 forks stop the loop with exit code `2` or `3`.
+
+If publish preflight auth is enabled and denied, `play --move`, `play --ack`,
+and `play --tui` print the failed publish summary and auth diagnostics without
+rendering a post-publish board snapshot.
 
 With `--ack`, `play` publishes one ack through the same target rules as
 `publish-ack`, then reloads and renders the snapshot with explicit

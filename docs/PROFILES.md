@@ -250,7 +250,7 @@ GOFTP event basenames, then the signed-HMAC gate accepts only events with valid
 attestations under the verifier-supplied HMAC trust input.
 It does not define production account identity binding, public-key signing
 suites, revocation publication, key loss recovery, automatic sidecar discovery,
-or publish authentication.
+or production publish authentication.
 
 Its `key_id` is an explicit HMAC verifier selector, such as `fixture-key-1`,
 not a `GOFTP-KEY/1` public-key id. `k1.` is reserved for public key records and
@@ -333,6 +333,11 @@ Preimage:
 
 Publish tokens are authorization evidence for one proposed event basename. They
 are not replay input, not event-set attestations, and not a transport credential.
+The regular publish commands can explicitly opt into a default-off preflight
+gate that verifies such a token after candidate replay validation and before
+the store write. A denied token leaves the candidate unpublished. This remains a
+verifier-local fixture gate; it is not production writer authorization and does
+not change unsigned replay.
 
 ## Baseline Profiles
 

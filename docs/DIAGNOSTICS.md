@@ -99,6 +99,11 @@ trust.revoked_key_ids
 trust.expired_count
 trust.expired_key_ids
 publish_auth.status
+publish_auth.profile_id
+publish_auth.key_id
+publish_auth.diagnostic_codes
+publish_auth.diagnostic_classes
+publish_auth.diagnostic_count
 publish_token
 snapshot
 store
@@ -151,11 +156,13 @@ validation replay status is not itself a command failure. The compare commands
 exit successfully when every compared profile agrees with the baseline witness,
 and exit `2` only when `mismatch_fields` is non-empty.
 
-For `gobanftp v1 publish-token` and `gobanftp v1 publish-auth`,
-`publish_auth.status` is `authorized` or `denied` for one proposed event
-basename under explicit verifier-local HMAC trust input. These commands emit
-fixture publish-purpose evidence only; they do not publish events or authorize a
-real writer account.
+For `gobanftp v1 publish-token`, `gobanftp v1 publish-auth`, and publish
+commands with explicit preflight auth enabled, `publish_auth.status` is
+`authorized` or `denied` for one proposed event basename under explicit
+verifier-local HMAC trust input. `publish_auth.profile_id`,
+`publish_auth.key_id`, and `publish_auth.diagnostic_*` fields describe that
+preflight decision. These fields are fixture publish-purpose evidence only;
+they do not claim production writer authorization.
 
 Stderr diagnostics use one line per issue:
 

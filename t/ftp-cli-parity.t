@@ -3,10 +3,15 @@ use strict;
 use warnings;
 
 use FindBin;
+use File::Spec;
+use File::Temp qw(tempdir);
+use JSON::PP;
 use Test::More;
 
 use lib "$FindBin::Bin/../lib";
 
+use GobanFTP::Auth::HMACKey qw(generate_hmac_key_record write_hmac_key_file);
+use GobanFTP::Auth::PublishToken qw(sign_publish_token);
 use GobanFTP::CLI;
 use GobanFTP::MovePublisher qw(build_move_name);
 
@@ -184,6 +189,58 @@ subtest 'FTP publish-ack fork exit and play --ack recovery match local CLI behav
     _assert_no_forbidden_ftp_reads('ack parity stays listing-first');
 };
 
+subtest 'FTP denied publish preflight does not upload or rename' => sub {
+    FtpCliParityFTP->reset;
+
+    local %ENV = %ENV;
+    _ftp_env();
+
+    my $dir = tempdir(CLEANUP => 1);
+    my ($key_path, $key) = _write_key($dir);
+    my ($event, $event_id) = build_move_name(
+        game_descriptor => $GAME,
+        ply             => 1,
+        color           => 'b',
+        action          => 'play-aa',
+        parent_id       => 'genesis',
+        player          => 'alice',
+        nonce           => 'authdeny',
+    );
+    my $token_path = _write_token($dir, $key, $event, $event_id);
+
+    my ($create_exit, undef, $create_stderr) = _run_cli('create-game', $GAME);
+    is $create_exit, 0, 'denied setup create-game succeeds';
+    is $create_stderr, '', 'denied setup has no diagnostics';
+
+    my @calls = _assert_command_uses_ftp_listing(
+        'publish-move denied preflight',
+        sub {
+            my ($exit, $stdout, $stderr) = _run_cli(
+                'publish-move',
+                '--nonce', 'authdeny',
+                '--publish-auth-token', $token_path,
+                '--publish-auth-trusted-hmac-key-file', $key_path,
+                '--publish-auth-trusted-hmac-status', "$key->{key_id}=rotated",
+                $GAME,
+                'aa',
+            );
+            is $exit, 2, 'denied preflight exits validation';
+            like $stdout, qr/^gobanftp[.]publish-move=failed$/m,
+                'denied preflight reports failed';
+            like $stdout, qr/^publish_auth[.]status=denied$/m,
+                'denied preflight reports auth denial';
+            like $stderr, qr/diagnostic .*code=untrusted_signature.*reason=key[.]rotated/,
+                'denied preflight reports lifecycle reason';
+            unlike $stdout . $stderr, qr/\Q$key->{secret_hex}\E|secret_hex|secret/,
+                'denied preflight does not leak HMAC secret';
+        },
+    );
+
+    _assert_no_ftp_writes('denied preflight does not upload or rename', \@calls);
+    ok !FtpCliParityFTP->has_event($FTP_ROOT, $GAME, $event),
+        'denied preflight creates no FTP event';
+};
+
 done_testing;
 
 sub _ftp_env {
@@ -249,6 +306,35 @@ sub _run_cli {
     }
 
     return ($exit, $stdout, $stderr);
+}
+
+sub _write_key {
+    my ($dir) = @_;
+
+    my $key = generate_hmac_key_record(secret => ('f' x 32));
+    my $path = File::Spec->catfile($dir, 'player.hmac-key');
+    write_hmac_key_file($path, $key);
+
+    return ($path, $key);
+}
+
+sub _write_token {
+    my ($dir, $key, $event, $event_id) = @_;
+
+    my $token = sign_publish_token(
+        profile         => 'signed-hmac-goftp1',
+        game_descriptor => $GAME,
+        event_basename  => $event,
+        event_id        => $event_id,
+        key_id          => $key->{key_id},
+        key             => $key->{secret},
+    );
+    my $path = File::Spec->catfile($dir, 'publish-token.jsonl');
+    open my $fh, '>:encoding(UTF-8)', $path or die "write $path: $!";
+    print {$fh} JSON::PP->new->canonical(1)->encode($token), "\n";
+    close $fh or die "close $path: $!";
+
+    return $path;
 }
 
 package FtpCliParityFTP;

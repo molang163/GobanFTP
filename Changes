@@ -19,6 +19,11 @@ Revision history for GobanFTP
     verification, freezing fixture publish-purpose lifecycle semantics where
     only trusted selectors may authorize new material while rotated, revoked,
     and expired selectors fail closed.
+  - Added a default-off verifier-local publish preflight gate for
+    `publish-move`, `publish-ack`, `play --move`, `play --ack`, and
+    `play --tui`, checking a `GOFTP-HMAC-PUBLISH/1` token after candidate
+    replay validation and before store publication without changing unsigned
+    replay.
   - Began v1.0/P14 development after skipping the public v0.2 / package 0.002
     release candidate.
   - Recorded a fresh clean-checkout `1.000_001` development-freeze matrix for

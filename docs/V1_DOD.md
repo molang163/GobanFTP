@@ -143,15 +143,18 @@ The current signed-HMAC operation layer may generate verifier-local
 `GOFTP-HMAC-KEY/1` key files, write public per-event attestation JSONL, and
 feed those key files back into `v1 witness`. That operation path must not change
 unsigned replay and must not be described as production key lifecycle
-completion, public-key signing support, automatic sidecar discovery, or publish
-authentication.
+completion, public-key signing support, automatic sidecar discovery, or
+production publish authentication.
 
 The current publish-purpose fixture layer may write and verify one
 `GOFTP-HMAC-PUBLISH/1` token for one proposed event basename. It must bind
 profile, purpose, algorithm, game descriptor, exact event basename, visible
 event id, and HMAC selector. Only `trusted` verifier-local HMAC selectors may
 authorize new publish material; `rotated`, `revoked`, and `expired` must fail
-closed before token acceptance or token minting. This fixture layer must not be
+closed before token acceptance, token minting, or an explicitly gated store
+write. `publish-move`, `publish-ack`, `play --move`, `play --ack`, and
+`play --tui` may opt into this default-off preflight after candidate replay
+validation and before `publish_event_name`. This fixture layer must not be
 described as production writer authorization, transport authentication, account
 identity binding, automatic sidecar discovery, or publish auth completion.
 
@@ -420,6 +423,7 @@ prove -lr t/v1-signed-hmac.t
 prove -lr t/v1-signed-hmac-overlay.t
 prove -lr t/v1-signed-hmac-golden-vectors.t
 prove -lr t/auth-publish-token.t t/cli-auth-publish-token.t
+prove -lr t/publish-auth-preflight.t t/ftp-cli-parity.t t/webdav-cli-parity.t
 prove -lr t/profile-registry.t t/profile-adapter.t t/witness-api.t
 prove -lr t/diagnostics-contract.t
 prove -lr t/rules-flow.t t/rules-superko.t
