@@ -38,9 +38,12 @@ explicit HMAC selector evidence. Verifier-local `v1 keygen`, `v1 attest`, and
 without leaking HMAC secrets or changing unsigned replay. `signed-hmac-goftp1`
 can also run as a read-only overlay over the admitted local, FTP, Git-tree,
 DNS-record, and WebDAV read normalizers, proving the same signed-accepted root
-and replay under explicit verifier-local HMAC trust input. The FTP
-listing-shadow vector is fixture/listing evidence only. Local `play --tui` is a
-non-consensus input/display surface over the existing play publish path.
+and replay under explicit verifier-local HMAC trust input. The publish-purpose
+fixture layer can mint and verify one `GOFTP-HMAC-PUBLISH/1` token for one
+proposed event, distinguishing verification lifecycle from new-material publish
+lifecycle without authorizing real writers. The FTP listing-shadow vector is
+fixture/listing evidence only. Local `play --tui` is a non-consensus
+input/display surface over the existing play publish path.
 This is not Git publish, Git remote fetch, live FTP, FTP auth, FTP integrity,
 FTP publish behavior, live DNS, DNS publish, hosted Web UI, production key
 lifecycle completion, publish auth completion, or a v1.0/P14 completion claim.

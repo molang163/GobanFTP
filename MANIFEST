@@ -238,6 +238,7 @@ lib/GobanFTP/AckPublisher.pm
 lib/GobanFTP/Auth/HMAC.pm
 lib/GobanFTP/Auth/HMACKey.pm
 lib/GobanFTP/Auth/KeyID.pm
+lib/GobanFTP/Auth/PublishToken.pm
 lib/GobanFTP/Auth/TrustReport.pm
 lib/GobanFTP/Board.pm
 lib/GobanFTP/CLI.pm
@@ -286,10 +287,12 @@ t/ack-publisher.t
 t/attack-fixtures.t
 t/auth-hmac-key.t
 t/auth-keyid.t
+t/auth-publish-token.t
 t/auth-trust-report.t
 t/board.t
 t/cli-auth-hmac.t
 t/cli-auth-keyid.t
+t/cli-auth-publish-token.t
 t/cli-auth-trust-report.t
 t/cli.t
 t/coord.t

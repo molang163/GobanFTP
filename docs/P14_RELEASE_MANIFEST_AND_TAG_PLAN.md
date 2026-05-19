@@ -219,6 +219,7 @@ prove -lr t/v1-signed-hmac.t
 prove -lr t/v1-signed-hmac-overlay.t
 prove -lr t/v1-signed-hmac-golden-vectors.t
 prove -lr t/auth-hmac-key.t t/cli-auth-hmac.t
+prove -lr t/auth-publish-token.t t/cli-auth-publish-token.t
 prove -lr t/profile-registry.t t/profile-adapter.t t/witness-api.t
 prove -lr t/diagnostics-contract.t
 prove -lr t/rules-flow.t t/rules-superko.t
@@ -310,6 +311,9 @@ signed-hmac-goftp1 has an explicit per-event HMAC acceptance gate
 v1 keygen and v1 attest provide verifier-local signed-HMAC operation support without changing unsigned replay
 signed-HMAC cross-substrate overlay proves signed acceptance invariance across admitted read profiles with explicit verifier-local HMAC trust input
 signed-HMAC overlay is read-only witness evidence and does not authorize publish
+fixture key lifecycle semantics cover trusted, rotated, revoked, and expired fixture status without changing unsigned replay
+publish auth fixture semantics distinguish verification from new-material publishing without authorizing real writers
+signed-HMAC verifier lifecycle status is explicit verifier input, not GOFTP-TRUST public-key authority
 public key and trust fixture reports are advisory outside signed profiles
 text, static HTML, and static terminal witness surfaces are read-only displays
 local play --tui keyboard/mouse input is implemented as a non-consensus input/display layer over existing publish callbacks
@@ -336,6 +340,11 @@ signed-HMAC overlay is production key lifecycle
 signed-HMAC overlay implements publish authentication
 HMAC attestations authorize publish or writer access
 public GOFTP-TRUST k1 rows authorize signed-HMAC selectors
+fixture key lifecycle is production key lifecycle
+publish auth fixture semantics authorize real publish or writer access
+rotated, revoked, or expired keys can publish new material
+v1 trust-report --fixture enforces signed-HMAC or production publish auth
+fixture-ed25519-v1 is a production signing suite
 production publish signing or authorization is implemented
 final scoring/result events are part of GOFTP/1
 source art, Web, TUI, C, or asm-like surfaces own replay truth

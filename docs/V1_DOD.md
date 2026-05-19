@@ -146,6 +146,15 @@ unsigned replay and must not be described as production key lifecycle
 completion, public-key signing support, automatic sidecar discovery, or publish
 authentication.
 
+The current publish-purpose fixture layer may write and verify one
+`GOFTP-HMAC-PUBLISH/1` token for one proposed event basename. It must bind
+profile, purpose, algorithm, game descriptor, exact event basename, visible
+event id, and HMAC selector. Only `trusted` verifier-local HMAC selectors may
+authorize new publish material; `rotated`, `revoked`, and `expired` must fail
+closed before token acceptance or token minting. This fixture layer must not be
+described as production writer authorization, transport authentication, account
+identity binding, automatic sidecar discovery, or publish auth completion.
+
 The signed-HMAC overlay must compose with every admitted read substrate. Given
 the same game descriptor, equivalent normalized event basenames, public
 attestations, and verifier-local HMAC trust input, local, FTP, Git-tree,
@@ -410,6 +419,7 @@ prove -lr t/v1-golden-vectors.t
 prove -lr t/v1-signed-hmac.t
 prove -lr t/v1-signed-hmac-overlay.t
 prove -lr t/v1-signed-hmac-golden-vectors.t
+prove -lr t/auth-publish-token.t t/cli-auth-publish-token.t
 prove -lr t/profile-registry.t t/profile-adapter.t t/witness-api.t
 prove -lr t/diagnostics-contract.t
 prove -lr t/rules-flow.t t/rules-superko.t
@@ -450,6 +460,7 @@ script/gobanftp v1 compare-replay --fixture t/fixtures/v1/cross-substrate/minima
 prove -lr t/v1-attack-fixtures.t
 prove -lr t/v1-signed-hmac.t t/v1-signed-hmac-overlay.t t/v1-signed-hmac-golden-vectors.t
 prove -lr t/auth-hmac-key.t t/cli-auth-hmac.t
+prove -lr t/auth-publish-token.t t/cli-auth-publish-token.t
 prove -lr t/ruleset-seal.t
 prove -lr t/p14-claim-audit.t
 ```

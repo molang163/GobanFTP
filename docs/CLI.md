@@ -97,11 +97,11 @@ in status lines or diagnostics.
 
 ### Signed/Auth Operation And Key Lifecycle Boundary
 
-`keygen`, `keyid`, `attest`, and `trust-report` belong to explicit auth
-profiles. They must not change unsigned `GOFTP/1` replay. Until a signed profile
-declares otherwise, `verify`, `replay`, `sgf`, `project`, `play`, and `watch`
-continue to read only the game descriptor basename and accepted direct
-`events/` basenames.
+`keygen`, `keyid`, `attest`, `publish-token`, `publish-auth`, and
+`trust-report` belong to explicit auth profiles. They must not change unsigned
+`GOFTP/1` replay. Until a signed profile declares otherwise, `verify`,
+`replay`, `sgf`, `project`, `play`, and `watch` continue to read only the game
+descriptor basename and accepted direct `events/` basenames.
 
 Auth material is public unless it is private key material. Public key records,
 trust files, and attestation records may appear in fixtures and sidecars, but
@@ -144,7 +144,8 @@ is public enough to appear in witness output, but it is not a `GOFTP-KEY/1`
 
 This is not a complete production key lifecycle. It does not define account
 identity binding, public-key signing suites, revocation publication, key loss
-recovery, automatic sidecar discovery, or publish-time authorization.
+recovery, automatic sidecar discovery, real writer authorization, or transport
+authentication.
 
 `v1 attest` signs the currently accepted event basenames of a game for the
 signed-HMAC profile:
@@ -179,6 +180,50 @@ Each public attestation row uses `GOFTP-HMAC-EVENT/1`, `hmac-sha256`,
 `signed-hmac-goftp1`, the game descriptor basename, the exact event basename,
 the visible event id, the public HMAC selector, and the HMAC signature. The
 private HMAC secret must not appear in the JSONL, stdout, or diagnostics.
+
+`v1 publish-token` signs one proposed event basename for new-material publish
+authorization under the signed-HMAC profile:
+
+```text
+gobanftp v1 publish-token --profile signed-hmac-goftp1 --key <hmac-key-file> --out <publish-token.jsonl> [--key-status trusted|rotated|revoked|expired] <game-root|game-descriptor> <event-basename>
+```
+
+The token payload uses `GOFTP-HMAC-PUBLISH/1` with `purpose=publish`. It binds
+the game descriptor basename, exact event basename, visible event id, public
+HMAC selector, profile, purpose, and algorithm. The command writes exactly one
+public JSONL token row to a new output file. For local games that already exist,
+`--out` must be outside the game root.
+
+Lifecycle status has publish-purpose semantics: only `trusted` may mint new
+publish material. `rotated`, `revoked`, and `expired` fail closed before any
+output file is written. This is a fixture/verifier-local publish authorization
+token; it does not publish the event, authorize a real writer account, change
+transport credentials, or make unsigned replay read signatures.
+
+`v1 publish-auth` verifies a public publish token for one proposed event:
+
+```text
+gobanftp v1 publish-auth --profile signed-hmac-goftp1 --token <publish-token.jsonl> [--trusted-hmac-key <id=key>] [--trusted-hmac-key-file <hmac-key-file>] [--trusted-hmac-status <id=status>] <game-root|game-descriptor> <event-basename>
+```
+
+The command returns `authorized` only when the token verifies under an explicit
+verifier-supplied HMAC trust input and the selector lifecycle status is
+`trusted` for publish. `rotated`, `revoked`, and `expired` are denied for new
+material. `GOFTP-TRUST/1` public `k1.` rows do not authorize signed-HMAC
+selectors, and HMAC selectors beginning with `k1.` remain rejected.
+
+Successful authorization output includes:
+
+```text
+gobanftp.v1.publish-auth=authorized
+profile_id=signed-hmac-goftp1
+game=<game-descriptor>
+event=<event-basename>
+event_id=<event-id>
+key_id=<public-hmac-selector>
+publish_auth.status=authorized
+diagnostic_count=0
+```
 
 `v1 keyid --fixture` is implemented as a read-only fixture command. Production
 `keyid` remains reserved until a real public-key suite is selected:

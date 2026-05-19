@@ -267,6 +267,15 @@ authorize, rotate, revoke, or expire HMAC selectors. During verification,
 `expired` selectors are rejected before MAC verification with a signature-class
 trust diagnostic.
 
+Publish-purpose fixture semantics are separate from event-attestation
+verification. `GOFTP-HMAC-PUBLISH/1` tokens bind one proposed event basename,
+its visible event id, the game descriptor, profile, purpose, algorithm, and
+public HMAC selector. For new material, only a `trusted` selector may authorize
+the token. `rotated`, `revoked`, and `expired` selectors fail before a token is
+accepted or minted. This proves verifier-local publish-purpose lifecycle
+semantics; it does not define real account identity, writer access, transport
+auth, automatic sidecar discovery, or production key lifecycle completion.
+
 `signed-hmac-goftp1` event attestation payload:
 
 ```text
@@ -299,6 +308,31 @@ If multiple attestation records claim the same event basename, their substrate
 or fixture order is not authoritative. Any valid trusted attestation accepts the
 event. If none verify, the profile reports a stable signature diagnostic chosen
 by diagnostic priority, not by listing order.
+
+`signed-hmac-goftp1` publish token payload:
+
+```text
+version = GOFTP-HMAC-PUBLISH/1
+purpose = publish
+algorithm = hmac-sha256
+profile = signed-hmac-goftp1
+```
+
+Preimage:
+
+```text
+"GOFTP-HMAC-PUBLISH/1\0" ||
+"profile=signed-hmac-goftp1\0" ||
+"purpose=publish\0" ||
+"alg=hmac-sha256\0" ||
+"key_id=<key_id>\0" ||
+"game=<game_descriptor_basename>\0" ||
+"event_id=<visible_event_id>\0" ||
+"event=<event_basename>\0"
+```
+
+Publish tokens are authorization evidence for one proposed event basename. They
+are not replay input, not event-set attestations, and not a transport credential.
 
 ## Baseline Profiles
 

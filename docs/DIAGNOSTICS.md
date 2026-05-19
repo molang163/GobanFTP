@@ -24,6 +24,8 @@ gobanftp.v1.compare-roots
 gobanftp.v1.attest
 gobanftp.v1.keygen
 gobanftp.v1.keyid
+gobanftp.v1.publish-auth
+gobanftp.v1.publish-token
 gobanftp.v1.trust-report
 gobanftp.v1.witness
 gobanftp.watch
@@ -96,6 +98,8 @@ trust.revoked_count
 trust.revoked_key_ids
 trust.expired_count
 trust.expired_key_ids
+publish_auth.status
+publish_token
 snapshot
 store
 root
@@ -146,6 +150,12 @@ For `gobanftp v1 compare-roots` and `gobanftp v1 compare-replay`, a fork or
 validation replay status is not itself a command failure. The compare commands
 exit successfully when every compared profile agrees with the baseline witness,
 and exit `2` only when `mismatch_fields` is non-empty.
+
+For `gobanftp v1 publish-token` and `gobanftp v1 publish-auth`,
+`publish_auth.status` is `authorized` or `denied` for one proposed event
+basename under explicit verifier-local HMAC trust input. These commands emit
+fixture publish-purpose evidence only; they do not publish events or authorize a
+real writer account.
 
 Stderr diagnostics use one line per issue:
 
@@ -232,6 +242,7 @@ parse_event|error=*|parse|code,name,error|-
 parse_game_descriptor|*|parse|code,error|-
 parse_public_key|*|parse|code,error|-
 parse_hmac_key|*|parse|code,error|-
+parse_publish_token|*|parse|code,error|-
 parse_trust|*|parse|code,error|-
 invalid_event_item|*|parse|code,index,stage|-
 event_id_collision|*|event-id|code,event_id,names|-

@@ -215,6 +215,8 @@ Implemented in the current final-candidate line:
   support for signed-HMAC operation without leaking HMAC secrets
 - signed-HMAC overlay witness proof across local, FTP, Git-tree, DNS-record,
   and WebDAV read normalizers using explicit verifier-local HMAC trust input
+- verifier-local `GOFTP-HMAC-PUBLISH/1` publish token generation and
+  verification for fixture new-material lifecycle semantics
 - core, v1, and profile attack fixture galleries
 - executable source-art oracle smoke
 
@@ -224,10 +226,10 @@ runtime normalization of a local or otherwise declared record file. DNS
 admission does not query live DNS, run AXFR, trust DNSSEC, call provider APIs,
 or publish records, and TTL, answer order, cache age, DNSSEC status, and
 provider metadata stay outside consensus. Production key lifecycle beyond
-verifier-local HMAC key files and explicit verifier-supplied lifecycle status,
-publish authentication policy, final scoring/result events, final P14 release
-matrix, and the full `v1.0/P14` freeze remain release-route work. FTP
-listing-shadow public poison-vector coverage is
+verifier-local HMAC key files, explicit verifier-supplied lifecycle status, and
+fixture publish-token semantics; real writer authorization; final
+scoring/result events; final P14 release matrix; and the full `v1.0/P14` freeze
+remain release-route work. FTP listing-shadow public poison-vector coverage is
 frozen for the current fixture/listing boundary only.
 it does not claim live FTP, `RETR`, `SIZE`, `MDTM`, FTP auth, FTP integrity, or
 FTP publish behavior.

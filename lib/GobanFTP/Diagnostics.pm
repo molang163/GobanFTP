@@ -31,6 +31,7 @@ my @DEFAULT_SCHEMA = map {
     ['parse_game_descriptor', '*',                'parse'],
     ['parse_public_key',      '*',                'parse'],
     ['parse_hmac_key',        '*',                'parse'],
+    ['parse_publish_token',   '*',                'parse'],
     ['parse_trust',           '*',                'parse'],
     ['invalid_event_item',    '*',                'parse'],
     ['event_id_collision',    '*',                'event-id'],

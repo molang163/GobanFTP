@@ -20,8 +20,14 @@ use GobanFTP::Auth::HMACKey qw(
     write_hmac_key_file
 );
 use GobanFTP::Auth::KeyID qw(parse_public_key_record);
-use GobanFTP::Auth::TrustReport qw(trust_report_summary);
+use GobanFTP::Auth::PublishToken qw(
+    publish_authorization_result
+    sign_publish_token
+);
+use GobanFTP::Auth::TrustReport qw(trust_lifecycle_decision trust_report_summary);
+use GobanFTP::Diagnostics qw(diagnostic_classes diagnostic_codes);
 use GobanFTP::EventSetRoot qw(event_set_root_result);
+use GobanFTP::Filename::Grammar qw(parse_event);
 use GobanFTP::Listing qw(normalize_listing sort_event_basenames);
 use GobanFTP::GameSpec qw(build_basename parse_basename);
 use GobanFTP::MovePublisher qw(build_next_move_name normalize_action);
@@ -662,6 +668,8 @@ sub _command_v1 {
     return _command_v1_keygen(@argv) if $subcommand eq 'keygen';
     return _command_v1_keyid(@argv) if $subcommand eq 'keyid';
     return _command_v1_attest(@argv) if $subcommand eq 'attest';
+    return _command_v1_publish_token(@argv) if $subcommand eq 'publish-token';
+    return _command_v1_publish_auth(@argv) if $subcommand eq 'publish-auth';
     return _command_v1_trust_report(@argv) if $subcommand eq 'trust-report';
     return _command_v1_witness(@argv) if $subcommand eq 'witness';
     return _command_v1_compare('compare-roots', @argv)
@@ -899,6 +907,238 @@ sub _command_v1_attest {
     print STDOUT "attestations=$opts{out}\n";
 
     return EXIT_SUCCESS;
+}
+
+sub _command_v1_publish_token {
+    my (@argv) = @_;
+
+    my $usage = 'usage: v1 publish-token --profile signed-hmac-goftp1 --key hmac-key-file --out publish-token.jsonl [--key-status trusted|rotated|revoked|expired] <game-root|game-descriptor> <event-basename>';
+    my %opts = (
+        key_status => 'trusted',
+    );
+
+    while (@argv && $argv[0] =~ /\A--/) {
+        my ($name, $value) = _option_value($usage, @argv);
+        shift @argv;
+        $value = shift @argv if !defined $value;
+
+        if ($name eq 'profile') {
+            $opts{profile_id} = $value;
+            next;
+        }
+        if ($name eq 'key') {
+            $opts{key} = $value;
+            next;
+        }
+        if ($name eq 'out') {
+            $opts{out} = $value;
+            next;
+        }
+        if ($name eq 'key-status') {
+            die $usage if !_is_hmac_lifecycle_status($value);
+            $opts{key_status} = $value;
+            next;
+        }
+
+        die $usage;
+    }
+
+    die $usage if @argv != 2;
+    die $usage if ($opts{profile_id} // '') ne 'signed-hmac-goftp1';
+    die $usage if !defined($opts{key}) || $opts{key} eq '';
+    die $usage if !defined($opts{out}) || $opts{out} eq '' || $opts{out} eq '-';
+
+    my $key = eval { _read_hmac_key_file_or_die($opts{key}) };
+    if (!$key) {
+        my $error = _clean_error($@ || 'hmac_key');
+        die $error if $error =~ /\Astorage:/;
+        $error =~ s/\Aparse_hmac_key://;
+        print STDOUT "gobanftp.v1.publish-token=failed\n";
+        print STDERR _diagnostic_line({
+            code  => 'parse_hmac_key',
+            error => $error,
+        }), "\n";
+        return EXIT_VALIDATION;
+    }
+    die $usage if $key->{profile} ne $opts{profile_id};
+
+    my ($game_arg, $event) = @argv;
+    my $context = eval { context_for_game_arg($game_arg, require_exists => 0) };
+    die $usage if !$context;
+    _assert_output_outside_existing_game_root($opts{out}, $context, $usage);
+
+    my ($parsed_event, $parse_error) = parse_event(
+        $event,
+        game_descriptor => $context->{game_descriptor},
+    );
+    if (defined $parse_error) {
+        print STDOUT "gobanftp.v1.publish-token=failed\n";
+        print STDOUT "profile_id=$opts{profile_id}\n";
+        print STDOUT "game=$context->{game_descriptor}\n";
+        print STDOUT "event=$event\n";
+        print STDOUT "publish_auth.status=denied\n";
+        print STDERR _diagnostic_line({
+            code  => 'parse_event',
+            name  => $event,
+            error => $parse_error,
+        }), "\n";
+        return EXIT_VALIDATION;
+    }
+
+    my $event_id = $parsed_event->{fields}{event_id};
+    my $decision = trust_lifecycle_decision(
+        status  => $opts{key_status},
+        purpose => 'publish',
+    );
+    if (!$decision->{accepted}) {
+        my $diagnostic = {
+            code       => 'untrusted_signature',
+            profile_id => $opts{profile_id},
+            name       => $event,
+            event_id   => $event_id,
+            key_id     => $key->{key_id},
+            reason     => $decision->{reason},
+        };
+        print STDOUT "gobanftp.v1.publish-token=failed\n";
+        _print_v1_publish_auth_fields(
+            profile_id => $opts{profile_id},
+            game       => $context->{game_descriptor},
+            event      => $event,
+            event_id   => $event_id,
+            key_id     => $key->{key_id},
+            status     => 'denied',
+            diagnostics => [$diagnostic],
+        );
+        print STDERR redact_text(_diagnostic_line($diagnostic), $key->{secret}), "\n";
+        return EXIT_VALIDATION;
+    }
+
+    my $token = sign_publish_token(
+        profile         => $opts{profile_id},
+        game_descriptor => $context->{game_descriptor},
+        event_basename  => $event,
+        event_id        => $event_id,
+        key_id          => $key->{key_id},
+        key             => $key->{secret},
+    );
+    eval { _write_jsonl_exclusive($opts{out}, [$token]); 1 } or die 'storage: ' . $@;
+
+    print STDOUT "gobanftp.v1.publish-token=ok\n";
+    _print_v1_publish_auth_fields(
+        profile_id => $opts{profile_id},
+        game       => $context->{game_descriptor},
+        event      => $event,
+        event_id   => $event_id,
+        key_id     => $key->{key_id},
+        status     => 'authorized',
+        diagnostics => [],
+    );
+    print STDOUT "publish_token=$opts{out}\n";
+
+    return EXIT_SUCCESS;
+}
+
+sub _command_v1_publish_auth {
+    my (@argv) = @_;
+
+    my $usage = 'usage: v1 publish-auth --profile signed-hmac-goftp1 --token publish-token.jsonl [--trusted-hmac-key id=key] [--trusted-hmac-key-file hmac-key-file] [--trusted-hmac-status id=status] <game-root|game-descriptor> <event-basename>';
+    my %opts = (
+        trusted_hmac_keys      => [],
+        trusted_hmac_key_files => [],
+        trusted_hmac_statuses  => [],
+    );
+
+    while (@argv && $argv[0] =~ /\A--/) {
+        my ($name, $value) = _option_value($usage, @argv);
+        shift @argv;
+        $value = shift @argv if !defined $value;
+
+        if ($name eq 'profile') {
+            $opts{profile_id} = $value;
+            next;
+        }
+        if ($name eq 'token') {
+            $opts{token} = $value;
+            next;
+        }
+        if ($name eq 'trusted-hmac-key') {
+            push @{ $opts{trusted_hmac_keys} }, $value;
+            next;
+        }
+        if ($name eq 'trusted-hmac-key-file') {
+            push @{ $opts{trusted_hmac_key_files} }, $value;
+            next;
+        }
+        if ($name eq 'trusted-hmac-status') {
+            push @{ $opts{trusted_hmac_statuses} }, $value;
+            next;
+        }
+
+        die $usage;
+    }
+
+    die $usage if @argv != 2;
+    die $usage if ($opts{profile_id} // '') ne 'signed-hmac-goftp1';
+    die $usage if !defined($opts{token}) || $opts{token} eq '';
+
+    my $token = eval { _read_publish_token_file($opts{token}) };
+    if (!$token) {
+        my $error = _clean_error($@ || 'publish_token');
+        die $error if $error =~ /\Astorage:/;
+        $error =~ s/\Aparse_publish_token://;
+        print STDOUT "gobanftp.v1.publish-auth=failed\n";
+        print STDERR _diagnostic_line({
+            code  => 'parse_publish_token',
+            error => $error,
+        }), "\n";
+        return EXIT_VALIDATION;
+    }
+
+    my %trusted_hmac_keys = _trusted_hmac_key_map(
+        $usage,
+        @{ $opts{trusted_hmac_keys} // [] },
+    );
+    my %trusted_hmac_file_keys = _trusted_hmac_key_file_map(
+        $usage,
+        @{ $opts{trusted_hmac_key_files} // [] },
+    );
+    for my $key_id (keys %trusted_hmac_file_keys) {
+        die $usage if exists $trusted_hmac_keys{$key_id};
+        $trusted_hmac_keys{$key_id} = $trusted_hmac_file_keys{$key_id};
+    }
+    my %trusted_hmac_key_statuses = _trusted_hmac_key_status_map(
+        \%trusted_hmac_keys,
+        $usage,
+        @{ $opts{trusted_hmac_statuses} // [] },
+    );
+
+    my ($game_arg, $event) = @argv;
+    my $context = eval { context_for_game_arg($game_arg, require_exists => 0) };
+    die $usage if !$context;
+
+    my $result = publish_authorization_result(
+        profile_id                => $opts{profile_id},
+        game_descriptor           => $context->{game_descriptor},
+        event_basename            => $event,
+        token                     => $token,
+        trusted_hmac_keys         => \%trusted_hmac_keys,
+        trusted_hmac_key_statuses => \%trusted_hmac_key_statuses,
+    );
+
+    my $authorized = $result->{authorized} ? 1 : 0;
+    print STDOUT 'gobanftp.v1.publish-auth=' . ($authorized ? 'authorized' : 'denied') . "\n";
+    _print_v1_publish_auth_fields(
+        profile_id => $opts{profile_id},
+        game       => $context->{game_descriptor},
+        event      => $event,
+        event_id   => $result->{event_id},
+        key_id     => $result->{key_id},
+        status     => $result->{status},
+        diagnostics => $result->{diagnostics},
+    );
+    _print_publish_auth_diagnostics($result, [values %trusted_hmac_keys]);
+
+    return $authorized ? EXIT_SUCCESS : EXIT_VALIDATION;
 }
 
 sub _command_v1_witness {
@@ -1555,6 +1795,21 @@ sub _read_hmac_key_file_or_die {
     die "parse_hmac_key:$error";
 }
 
+sub _read_publish_token_file {
+    my ($path) = @_;
+
+    my @rows = eval { _read_jsonl_file($path) };
+    if ($@) {
+        my $error = _clean_error($@);
+        die $error if $error =~ /\Astorage:/;
+        die "parse_publish_token:$error";
+    }
+
+    die 'parse_publish_token:record_count' if @rows != 1;
+    die 'parse_publish_token:record' if ref($rows[0]) ne 'HASH';
+    return $rows[0];
+}
+
 sub _assert_attest_output_outside_game_root {
     my ($path, $context, $usage) = @_;
 
@@ -1563,6 +1818,24 @@ sub _assert_attest_output_outside_game_root {
 
     my $game_root = abs_path($context->{game_root});
     die "storage: game root does not exist: $context->{game_root}" if !defined $game_root;
+
+    my $parent = dirname(File::Spec->rel2abs($path));
+    my $parent_abs = abs_path($parent);
+    die "storage: output parent does not exist: $parent" if !defined $parent_abs;
+
+    my $target_abs = File::Spec->catfile($parent_abs, basename($path));
+    die $usage if _path_is_inside_or_same($target_abs, $game_root);
+    return 1;
+}
+
+sub _assert_output_outside_existing_game_root {
+    my ($path, $context, $usage) = @_;
+
+    return if ($context->{store_kind} // '') ne 'local';
+    die $usage if !defined($path) || $path eq '';
+
+    my $game_root = abs_path($context->{game_root});
+    return 1 if !defined $game_root;
 
     my $parent = dirname(File::Spec->rel2abs($path));
     my $parent_abs = abs_path($parent);
@@ -1594,15 +1867,18 @@ sub _path_is_inside_or_same {
 }
 
 sub _trusted_hmac_key_map {
+    my $usage = @_ && defined($_[0]) && !ref($_[0]) && $_[0] =~ /\Ausage:/
+        ? shift
+        : _v1_witness_usage_line();
     my (@records) = @_;
 
     my %keys;
     my @secret_values;
     for my $record (@records) {
-        die _v1_witness_usage_line()
+        die $usage
             if !defined($record) || $record !~ /\A([^=]+)=(.+)\z/;
         my ($key_id, $key) = ($1, $2);
-        die _v1_witness_usage_line()
+        die $usage
             if !_is_public_token($key_id)
                 || $key_id =~ /\Ak1[.]/
                 || exists $keys{$key_id}
@@ -1612,7 +1888,7 @@ sub _trusted_hmac_key_map {
     }
 
     for my $key_id (keys %keys) {
-        die _v1_witness_usage_line()
+        die $usage
             if grep { index($key_id, $_) >= 0 } @secret_values;
     }
 
@@ -1620,13 +1896,16 @@ sub _trusted_hmac_key_map {
 }
 
 sub _trusted_hmac_key_file_map {
+    my $usage = @_ && defined($_[0]) && !ref($_[0]) && $_[0] =~ /\Ausage:/
+        ? shift
+        : _v1_witness_usage_line();
     my (@paths) = @_;
 
     my %keys;
     for my $path (@paths) {
-        die _v1_witness_usage_line() if !defined($path) || $path eq '';
+        die $usage if !defined($path) || $path eq '';
         my $record = _read_hmac_key_file_or_die($path);
-        die _v1_witness_usage_line()
+        die $usage
             if exists $keys{ $record->{key_id} };
         $keys{ $record->{key_id} } = $record->{secret};
     }
@@ -1636,13 +1915,16 @@ sub _trusted_hmac_key_file_map {
 
 sub _trusted_hmac_key_status_map {
     my ($keys, @records) = @_;
+    my $usage = @records && defined($records[0]) && !ref($records[0]) && $records[0] =~ /\Ausage:/
+        ? shift @records
+        : _v1_witness_usage_line();
 
     my %statuses;
     for my $record (@records) {
-        die _v1_witness_usage_line()
+        die $usage
             if !defined($record) || $record !~ /\A([^=]+)=(.+)\z/;
         my ($key_id, $status) = ($1, $2);
-        die _v1_witness_usage_line()
+        die $usage
             if !_is_public_token($key_id)
                 || $key_id =~ /\Ak1[.]/
                 || !exists $keys->{$key_id}
@@ -1936,6 +2218,34 @@ sub _print_v1_trust_report {
     print STDOUT "signature.status=unsigned\n";
 }
 
+sub _print_v1_publish_auth_fields {
+    my (%args) = @_;
+
+    print STDOUT "profile_id=$args{profile_id}\n";
+    print STDOUT "game=$args{game}\n";
+    print STDOUT "event=$args{event}\n";
+    print STDOUT "event_id=$args{event_id}\n" if defined $args{event_id};
+    print STDOUT "key_id=$args{key_id}\n" if defined $args{key_id};
+    print STDOUT "publish_auth.status=$args{status}\n";
+    print STDOUT 'diagnostic_codes='
+        . _stdout_value([diagnostic_codes($args{diagnostics} // [])]) . "\n";
+    print STDOUT 'diagnostic_classes='
+        . _stdout_value([diagnostic_classes($args{diagnostics} // [])]) . "\n";
+    print STDOUT 'diagnostic_count=' . scalar(@{ $args{diagnostics} // [] }) . "\n";
+}
+
+sub _print_publish_auth_diagnostics {
+    my ($result, $secrets) = @_;
+
+    my %seen;
+    for my $diagnostic (@{ $result->{diagnostics} // [] }) {
+        next if ref($diagnostic) ne 'HASH';
+        my $line = _diagnostic_line($diagnostic, $secrets);
+        next if $seen{$line}++;
+        print STDERR redact_text($line, @{ $secrets // [] }), "\n";
+    }
+}
+
 sub _stdout_value {
     my ($value) = @_;
     return join(',', @$value) if ref($value) eq 'ARRAY';
@@ -2149,6 +2459,8 @@ sub _v1_usage {
         'usage: v1 keygen --profile signed-hmac-goftp1 --out hmac-key-file',
         'usage: v1 keyid --fixture public-key-file',
         'usage: v1 attest --profile signed-hmac-goftp1 --key hmac-key-file --out attestations.jsonl <game-root|game-descriptor>',
+        'usage: v1 publish-token --profile signed-hmac-goftp1 --key hmac-key-file --out publish-token.jsonl [--key-status trusted|rotated|revoked|expired] <game-root|game-descriptor> <event-basename>',
+        'usage: v1 publish-auth --profile signed-hmac-goftp1 --token publish-token.jsonl [--trusted-hmac-key id=key] [--trusted-hmac-key-file hmac-key-file] [--trusted-hmac-status id=status] <game-root|game-descriptor> <event-basename>',
         'usage: v1 trust-report --fixture fixture-dir',
         _v1_witness_usage_line(),
         'usage: v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]',
@@ -2254,6 +2566,8 @@ commands:
   v1 keygen --profile signed-hmac-goftp1 --out hmac-key-file
   v1 keyid --fixture public-key-file
   v1 attest --profile signed-hmac-goftp1 --key hmac-key-file --out attestations.jsonl <game-root|game-descriptor>
+  v1 publish-token --profile signed-hmac-goftp1 --key hmac-key-file --out publish-token.jsonl [--key-status trusted|rotated|revoked|expired] <game-root|game-descriptor> <event-basename>
+  v1 publish-auth --profile signed-hmac-goftp1 --token publish-token.jsonl [--trusted-hmac-key id=key] [--trusted-hmac-key-file hmac-key-file] [--trusted-hmac-status id=status] <game-root|game-descriptor> <event-basename>
   v1 trust-report --fixture fixture-dir
   v1 witness --profile profile-id [--substrate-profile profile-id] --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-key-file hmac-key-file] [--trusted-hmac-status id=status] [--surface text|html|terminal]
   v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]
