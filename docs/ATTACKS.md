@@ -115,6 +115,15 @@ specimens and that each specimen declares the required files and verdict fields.
 It does not change replay semantics, and it does not make signatures consensus
 input for unsigned `GOFTP/1`.
 
+The core/local specimens `bad-mtime`, `bad-payload`, `bad-list-order`,
+`poisoned-sidecar`, `projection-poison`, and `tmp-poison` are also promoted
+into `t/fixtures/vectors/v1-non-consensus-poison.jsonl` as public
+baseline/poison golden vectors. The mtime, file-byte, sidecar, projection, and
+tmp cases bind ignored fixture files through self-contained
+`poisoned.evidence_artifacts`; the listing-order case records the hostile
+`poisoned_order`. In every case the event-set preimage, root, replay, board,
+projection text, and SGF truth remain the clean three-event chain.
+
 The v1 profile gallery gate is:
 
 ```text

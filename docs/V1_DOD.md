@@ -191,9 +191,11 @@ same diagnostics class
 ```
 
 Public poison vectors must bind baseline and hostile rows back to real fixture
-`input_names`, declare the ignored evidence per row, and optionally record the
-hostile listing order when order itself is the poison. A vector must not require
-metadata categories that do not exist for that substrate.
+`input_names`, declare the ignored evidence per row, embed exact
+`poisoned.evidence_artifacts` when ignored evidence lives outside
+`listing.names`, and optionally record the hostile listing order when order
+itself is the poison. A vector must not require metadata categories that do not
+exist for that substrate.
 
 The following mutations must not remain the same:
 
@@ -351,18 +353,20 @@ collision, which is not safely representable as an ordinary public replay
 basename without a real hash collision. Event-id collision is instead frozen by
 a synthetic DAG-boundary vector with no `event_set_root`, board, SGF, or replay
 status claim. The current non-consensus-poison vectors bind the WebDAV
-metadata-poison, WebDAV href-traversal, DNS owner-poison, and Git-tree
-path/metadata-poison fixtures to real baseline/poison `input_names`. They prove
+metadata-poison, WebDAV href-traversal, DNS owner-poison, Git-tree
+path/metadata-poison, and core/local bad-mtime, bad-payload, bad-list-order,
+poisoned-sidecar, projection-poison, and tmp-poison fixtures to real
+baseline/poison `input_names`. They prove mtime, file bytes, listing order,
 sidecar, projection, tmp, resource-body row fields, metadata, recursive hrefs,
 wrong-game hrefs, duplicate hrefs, percent-encoding hazards, raw and
 percent-encoded WebDAV dot segments, encoded slash/backslash href rows, wrong
 or missing DNS owners, DNS TTL/order rows, non-TXT DNS rows, and Git
 commit/ref/object/path metadata stay outside event-set and replay truth. DNS
 owner labels are a current-game record scoping filter, not replay truth. The
-next vector slice must expand any remaining public poison coverage while
-keeping `git-tree-goftp1` and `dns-record-goftp1` read-only and avoiding any
-claim of Git publish, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic
-update, or DNS record publishing.
+next proof slice should audit P14 release claims and fill remaining public FTP
+or signed/public-trust poison vector gaps while keeping `git-tree-goftp1` and
+`dns-record-goftp1` read-only and avoiding any claim of Git publish, live DNS,
+AXFR, DNSSEC trust, provider APIs, dynamic update, or DNS record publishing.
 
 ## Release Gates
 

@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- test: add core poison public vectors
 - chore: enter v1.0 development
 - release: prepare v0.2 identity
 - docs: clarify active P14 release plan
@@ -34,6 +35,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD test: add core poison public vectors
 HEAD chore: enter v1.0 development
 HEAD release: prepare v0.2 identity
 HEAD docs: clarify active P14 release plan
@@ -174,6 +176,12 @@ Key completed boundaries:
   binding the real fixture input names to unchanged event-set preimage, root,
   replay, board, projection text, and SGF truth without claiming Git publish,
   remote fetch, or provider APIs.
+- Core/local `bad-mtime`, `bad-payload`, `bad-list-order`,
+  `poisoned-sidecar`, `projection-poison`, and `tmp-poison` are now promoted
+  into `t/fixtures/vectors/v1-non-consensus-poison.jsonl` as public
+  baseline/poison vectors. Ignored files are bound with
+  `poisoned.evidence_artifacts`, including exact fixture text, and listing
+  order poison is bound with `poisoned_order`.
 - `git-tree-goftp1` now has read-only runtime store admission through
   `GOBANFTP_STORE=git-tree`: CLI verify/replay/SGF read direct
   `<treeish>:<game>/events` children from a real Git tree and prove the same
@@ -399,13 +407,15 @@ after entering v1.0/P14 development:
   pretend a normal basename collision exists unless a real GOFTP/1 hash
   collision passes filename verification
 - `t/fixtures/vectors/v1-non-consensus-poison.jsonl` now carries public
-  baseline/poison vectors for `webdav-metadata-poison`,
-  `webdav-href-traversal`, `dns-owner-poison`, and
-  `git-tree-path-metadata-poison`, binding them to real fixture listings and
-  proving ignored evidence leaves event-set preimage, root, replay, board,
-  projection text, and SGF truth unchanged
-- next proof slice should continue the P14 claim audit and expand any remaining
-  public non-consensus poison coverage across core and profile attack specimens
+  baseline/poison vectors for core/local `bad-mtime`, `bad-payload`,
+  `bad-list-order`, `poisoned-sidecar`, `projection-poison`, `tmp-poison`,
+  plus `webdav-metadata-poison`, `webdav-href-traversal`, `dns-owner-poison`,
+  and `git-tree-path-metadata-poison`, binding them to real fixture listings
+  and exact ignored-file evidence where needed, and proving ignored evidence
+  leaves event-set preimage, root, replay, board, projection text, and SGF
+  truth unchanged
+- next proof slice should continue the P14 claim audit and fill any remaining
+  FTP or signed/public-trust public non-consensus poison-vector gaps
 - continue the P14 claim audit for the admitted read boundaries now present at
   HEAD, especially `git-tree-goftp1` and `dns-record-goftp1`
 - that slice must not add or claim Git publish, live DNS, AXFR, DNSSEC trust,
@@ -441,8 +451,10 @@ lib/GobanFTP/Diagnostics.pm
 t/fixtures/auth/
 t/fixtures/v1/signed-hmac/
 t/fixtures/vectors/v1-signed-hmac-witness.jsonl
+t/fixtures/vectors/v1-non-consensus-poison.jsonl
 t/v1-signed-hmac.t
 t/v1-signed-hmac-golden-vectors.t
+t/v1-golden-vectors.t
 t/v1-cli-witness.t
 t/v1-cli-witness-surface-golden.t
 t/v1-cli-witness-surface.t
@@ -470,6 +482,6 @@ When resuming:
    maintainer guide supplied in the session context.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `test: add showcase surface smoke gate`.
+4. Confirm HEAD includes `test: add core poison public vectors`.
 5. If the user asks to continue, review the next step first, then choose one
    small executable step.

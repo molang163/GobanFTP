@@ -3,6 +3,7 @@ use strict;
 use warnings;
 
 use FindBin;
+use Cwd qw(abs_path);
 use File::Basename qw(dirname);
 use File::Spec;
 use JSON::PP qw(decode_json);
@@ -150,6 +151,8 @@ for my $vector (@poison_vectors) {
             'vector declares non-consensus poison vector version';
         is_deeply $vector->{consensus_inputs}, [qw(game_descriptor accepted_event_basenames)],
             'vector declares the only truth inputs';
+        ok !exists($vector->{auxiliary_evidence}),
+            'vector does not use legacy top-level auxiliary evidence';
 
         _assert_poison_evidence($vector);
 
@@ -167,7 +170,7 @@ for my $vector (@poison_vectors) {
                 "$side input_names match fixture";
         }
 
-        _assert_poison_markers($vector);
+        _assert_poison_markers($vector, $repo_root);
         _assert_poison_order($vector) if exists $vector->{poisoned_order};
 
         my %witness;
@@ -196,8 +199,10 @@ for my $vector (@poison_vectors) {
                 "$side raw count matches vector input";
         }
 
-        ok $witness{poisoned}{raw_count} > $witness{baseline}{raw_count},
-            'poisoned input carries extra non-consensus rows';
+        ok $witness{poisoned}{raw_count} > $witness{baseline}{raw_count}
+            || _has_evidence_artifacts($vector->{poisoned})
+            || exists($vector->{poisoned_order}),
+            'poisoned input carries extra non-consensus rows, evidence artifacts, or order evidence';
         ok $witness{poisoned}{normalized_count} >= $witness{poisoned}{accepted_count},
             'poisoned input may contain duplicate candidates before event-set admission';
 
@@ -237,6 +242,12 @@ for my $vector (@poison_vectors) {
 }
 
 for my $case (qw(
+    core-bad-mtime-public-vector
+    core-bad-payload-public-vector
+    core-bad-list-order-public-vector
+    core-poisoned-sidecar-public-vector
+    core-projection-poison-public-vector
+    core-tmp-poison-public-vector
     webdav-metadata-poison-public-vector
     webdav-href-traversal-public-vector
     dns-owner-poison-public-vector
@@ -461,6 +472,17 @@ sub _read_names {
     return @names;
 }
 
+sub _read_text {
+    my ($path) = @_;
+
+    open my $fh, '<:encoding(UTF-8)', $path or die "open $path: $!";
+    local $/;
+    my $text = <$fh>;
+    close $fh or die "close $path: $!";
+
+    return $text // '';
+}
+
 sub _assert_golden_value {
     my ($got, $want, $name) = @_;
 
@@ -473,7 +495,7 @@ sub _assert_golden_value {
 }
 
 sub _assert_poison_markers {
-    my ($vector) = @_;
+    my ($vector, $repo_root) = @_;
 
     ok ref($vector->{evidence_markers}) eq 'HASH',
         'evidence markers are an object';
@@ -481,11 +503,75 @@ sub _assert_poison_markers {
         'vector declares poison evidence markers';
 
     my $raw = join "\n", @{ $vector->{poisoned}{input_names} };
+    $raw .= _evidence_artifacts_text($vector, 'poisoned', $repo_root);
     for my $evidence (sort keys %{ $vector->{evidence_markers} }) {
         my $marker = $vector->{evidence_markers}{$evidence};
         ok defined($marker) && $marker ne '' && index($raw, $marker) >= 0,
             "poisoned input carries $evidence marker";
     }
+}
+
+sub _has_evidence_artifacts {
+    my ($input) = @_;
+
+    return ref($input) eq 'HASH'
+        && ref($input->{evidence_artifacts}) eq 'ARRAY'
+        && @{ $input->{evidence_artifacts} };
+}
+
+sub _evidence_artifacts_text {
+    my ($vector, $side, $repo_root) = @_;
+
+    return '' if !exists $vector->{$side}{evidence_artifacts};
+
+    my %ignored = map { $_ => 1 } @{ $vector->{ignored_inputs} // [] };
+    my $artifacts = $vector->{$side}{evidence_artifacts};
+    ok ref($artifacts) eq 'ARRAY', "$side evidence_artifacts are an array";
+    return '' if ref($artifacts) ne 'ARRAY';
+    ok @$artifacts, "$side evidence_artifacts has rows";
+
+    my $fixture_root = abs_path(File::Spec->rel2abs('t/fixtures/attacks', $repo_root));
+    ok defined($fixture_root) && -d $fixture_root, 'attack fixture root exists';
+
+    my $text = '';
+    for my $artifact (@$artifacts) {
+        ok ref($artifact) eq 'HASH', "$side evidence artifact is an object";
+        next if ref($artifact) ne 'HASH';
+
+        for my $field (qw(ignored_input input_fixture input_text)) {
+            ok exists($artifact->{$field}), "$side evidence artifact has $field";
+        }
+
+        my $ignored_input = $artifact->{ignored_input} // '';
+        ok $ignored{$ignored_input},
+            "$side evidence artifact ignored_input is declared ignored input: $ignored_input";
+
+        my $path = $artifact->{input_fixture} // '';
+        ok $path ne '', "$side evidence artifact fixture path is nonempty";
+        ok !File::Spec->file_name_is_absolute($path),
+            "$side evidence artifact fixture path is relative";
+        unlike $path, qr{(?:\A|/)\.\.(?:/|\z)},
+            "$side evidence artifact fixture path does not escape upward";
+        like $path, qr{\At/fixtures/attacks/},
+            "$side evidence artifact fixture path stays in attack fixtures";
+
+        my $abs = File::Spec->rel2abs($path, $repo_root);
+        my $real = -e $abs ? abs_path($abs) : undef;
+        ok defined($real) && -f $real,
+            "$side evidence artifact fixture exists: $path";
+        if (defined $real && defined $fixture_root) {
+            ok index($real, "$fixture_root/") == 0,
+                "$side evidence artifact fixture resolves under attack fixtures";
+        }
+        next if !defined($real) || !-f $real;
+
+        my $actual_text = _read_text($real);
+        is $artifact->{input_text}, $actual_text,
+            "$side evidence artifact embeds exact fixture text: $path";
+        $text .= "\n$ignored_input\n$path\n" . ($artifact->{input_text} // '');
+    }
+
+    return $text;
 }
 
 sub _assert_poison_evidence {
