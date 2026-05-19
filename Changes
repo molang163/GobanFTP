@@ -150,6 +150,11 @@ Revision history for GobanFTP
     poison vector, adding profile attack/publish gates and tarball checks for
     shipped public poison-vector evidence without tagging or declaring v1.0
     complete.
+  - Normalized `MANIFEST` ordering so a clean-checkout `make manifest` gate
+    leaves no tracked diff.
+  - Recorded a successful clean-checkout `1.000_001` development freeze matrix
+    as development evidence only, leaving v1.0 untagged and reserving the final
+    `v1.0` / package `1.000` artifact path for a separate stable matrix.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

@@ -243,6 +243,12 @@ For the final stable v1.0 identity, first switch to the reserved `v1.0` /
 `dist=GobanFTP-1.000.tar.gz`. Do not use `GobanFTP-*.tar.gz` as the artifact
 identity in the final release record.
 
+The latest `1.000_001` development freeze result is recorded in
+`docs/P14_RELEASE_GATE.md`. A passing development freeze matrix is not the final
+stable v1.0 release record; the final route still requires the reserved
+`v1.0` / `1.000` identity, a fresh final matrix, and an external artifact
+record.
+
 ## Artifact Manifest
 
 The external release record must include:

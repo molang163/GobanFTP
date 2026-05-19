@@ -14,6 +14,8 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- docs: record P14 development freeze matrix
+- chore: normalize manifest order
 - docs: refresh P14 claim audit gates
 - test: add FTP public poison vector
 - test: freeze signed public trust vectors
@@ -38,6 +40,8 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD docs: record P14 development freeze matrix
+HEAD chore: normalize manifest order
 HEAD docs: refresh P14 claim audit gates
 HEAD test: add FTP public poison vector
 HEAD test: freeze signed public trust vectors
@@ -282,29 +286,61 @@ Key completed boundaries:
   final claim-audit scanning to README, Changes, ROADMAP, V1_DOD, P14 gate and
   manifest-plan docs, this restore file, tag text, and the external artifact
   record.
+- `MANIFEST` ordering was normalized after the first clean-checkout matrix run
+  found that `make manifest` would otherwise leave a tracked diff.
+- The clean-checkout `1.000_001` development freeze matrix passed at
+  `a7631497ac990e9622102176e322d449f125aaed` and generated
+  `GobanFTP-1.000_001.tar.gz`
+  (`sha256=a39b5355722a787609d7a044a56699ea42a8f163d7a8a619a53d72954141cd17`,
+  `size=323082`, `tar_entries=776`). This is development-freeze evidence only:
+  no v1.0 tag, P14 completion, publication event, or final stable v1.0 artifact
+  is claimed. This restore-file record is post-run documentation, not the tested
+  tarball source unless the matrix is rerun from this record commit.
 - Ruleset seal, v1 witness CLI, and v1 compare CLI are already implemented.
 
 ## Last Verified
 
-Latest verification after refreshing the P14 claim-audit and clean-gate plan:
+Latest verification after the successful `1.000_001` clean-checkout development
+freeze:
 
 ```text
-git diff --check
-perl -MExtUtils::Manifest=fullcheck -e 'fullcheck()'
-prove -lr t/v1-golden-vectors.t t/v1-profile-attack-fixtures.t t/v1-profile-publish-fixtures.t t/webdav-cli-parity.t t/store-webdav-mock.t
-GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl prove -lr t
-prove -lr t
+clean worktree matrix from docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md
+candidate commit a7631497ac990e9622102176e322d449f125aaed
+worktree /tmp/gobanftp-p14-freeze.zvZuPv, removed after the run
 ```
 
 Result:
 
 ```text
-Changed files: Changes, README.md, docs/BUILD.md, docs/P14_RELEASE_GATE.md,
-docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md, docs/ROADMAP.md,
-docs/SESSION_RESTORE.md, docs/V1_DOD.md.
-Targeted: Files=5, Tests=160, all successful.
-No-C full: Files=73, Tests=1007, all successful.
-Full: Files=73, Tests=1011, all successful.
+Matrix: PASS.
+perl -c oracle/goban.pl: PASS.
+perl oracle/goban.pl --smoke: PASS, source-art inline_c=skip.
+GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make test:
+  Files=73, Tests=1007, all successful.
+GOBANFTP_RULES_ENGINE=shadow make test:
+  Files=73, Tests=1011, all successful.
+prove -lr t:
+  Files=73, Tests=1011, all successful.
+Targeted v1/profile/rules gates:
+  v1-cross-substrate 1/7, v1-attack-fixtures 1/28,
+  v1-profile-attack-fixtures 1/10, v1-profile-publish-fixtures 1/9,
+  v1-golden-vectors 1/128, v1-signed-hmac 1/14,
+  v1-signed-hmac-golden-vectors 1/29, profile/witness 3/67,
+  diagnostics 1/4, rules-flow+superko 2/7.
+v1 witness, compare-roots, and compare-replay fixture commands: PASS.
+make manifest plus MANIFEST/MANIFEST.SKIP diff gate: PASS.
+make dist: PASS, GobanFTP-1.000_001.tar.gz.
+tarball evidence checks: P14 docs, non-consensus poison vector, minimal FTP
+  listing fixture, tmp-poison pending.part, and
+  ftp-listing-shadow-poison-public-vector row present.
+disttest no-C: Files=73, Tests=1007, all successful.
+make distcheck: PASS.
+dist_sha256=a39b5355722a787609d7a044a56699ea42a8f163d7a8a619a53d72954141cd17
+dist_size_bytes=323082
+tar_entries=776
+MANIFEST_sha256=a05116c72bc0efc1349deb435e5c3e010f4af326d452789ac593005c63b473dd
+Live FTP: skipped; GOBANFTP_FTP_TEST was not set.
+This is not the final stable v1.0 matrix.
 ```
 
 Earlier verification after clarifying the active P14 release plan and separating
@@ -443,13 +479,16 @@ after entering v1.0/P14 development:
   to real fixture listings and exact ignored-file evidence where needed, and
   proving ignored evidence leaves event-set preimage, root, replay, board,
   projection text, and SGF truth unchanged
-- next proof slice should continue the P14 claim audit for the admitted read
-  boundaries now present at HEAD, especially `git-tree-goftp1`,
-  `dns-record-goftp1`, and the FTP listing boundary
+- the `1.000_001` development freeze matrix has passed; do not tag or publish
+  it as v1.0
+- next choose either continued `1.000_001` development or the separate final
+  stable v1.0 route
 - that slice must not add or claim Git publish, live DNS, AXFR, DNSSEC trust,
   provider API, dynamic update, DNS record publishing, hosted Web UI,
   interactive TUI, or v1.0/P14 completion
-- do not tag v1.0 until the final clean-checkout P14 matrix passes
+- do not tag v1.0 until the project first switches to the reserved `v1.0` /
+  package `1.000` identity, the final claim audit passes, the final stable
+  clean-checkout matrix passes, and the external artifact record is attached
 - do not let display, source art, Web assets, terminal formatting, or interactive
   input feed replay or event-set roots
 - keep unsigned `GOFTP/1` and `local-goftp1` replay unchanged
@@ -510,6 +549,6 @@ When resuming:
    maintainer guide supplied in the session context.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `docs: refresh P14 claim audit gates`.
+4. Confirm HEAD includes `docs: record P14 development freeze matrix`.
 5. If the user asks to continue, review the next step first, then choose one
    small executable step.

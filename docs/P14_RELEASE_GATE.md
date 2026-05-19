@@ -1,7 +1,7 @@
-# P14 Release Gate Dry Run
+# P14 Release Gate Evidence
 
-Status: dry run only. This is not a v1.0 tag, not P14 completion, and not a
-release-ready declaration.
+Status: dry-run and development-freeze evidence only. This is not a v1.0 tag,
+not P14 completion, and not a release-ready declaration.
 
 Dry-run date: 2026-05-18
 Base commit: `2788ffa52ac8145369b66665a8b089a51ce0ae03`
@@ -138,13 +138,40 @@ publication event.
 - Static HTML witness output is not hosted Web UI.
 - `--surface terminal` is not an interactive TUI.
 - `make dist` success in a dry run is not a publication event.
+- `make dist` success in the `1.000_001` development freeze is not a final
+  stable v1.0 publication event.
+
+## Current Development Freeze Clean-Checkout Check
+
+After the current claim audit, the development freeze matrix from
+`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` passed from a fresh clean checkout:
+
+```text
+Date: 2026-05-19
+Candidate commit: a7631497ac990e9622102176e322d449f125aaed
+Documentation record commit: post-run record, not tested tarball source
+Worktree: /tmp/gobanftp-p14-freeze.zvZuPv (removed)
+Perl: v5.42.2
+Matrix: PASS
+Dist: GobanFTP-1.000_001.tar.gz
+sha256=a39b5355722a787609d7a044a56699ea42a8f163d7a8a619a53d72954141cd17
+size=323082 bytes
+tar entries=776
+MANIFEST sha256=a05116c72bc0efc1349deb435e5c3e010f4af326d452789ac593005c63b473dd
+Live FTP: skipped; GOBANFTP_FTP_TEST was not set
+Inline::C: source-art optional path reported inline_c=skip
+```
+
+This was the `1.000_001` development freeze matrix, not the reserved stable
+`v1.0` / package `1.000` release matrix. Because this documentation record is
+written after the run, it is not inside the tested tarball and is not the tested
+tarball source unless the matrix is rerun from this record commit.
 
 ## Next Release-Route Step
 
-The post-correction clean-worktree rerun is recorded above. Since then, the
-release manifest/tag plan has landed and the current HEAD has gained read-only
-Git-tree and DNS-record runtime admission plus the FTP listing-shadow public
-poison vector. The next release-route step is to refresh the current-HEAD claim
-audit, then run the final clean-checkout matrix from
-`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`. Do not tag v1.0 until that final
-intended release matrix, not just this historical dry run, has passed.
+The `1.000_001` development freeze is recorded above. The next release-route
+step is either to continue development without a tag or, if the maintainer
+chooses the stable v1.0 path, first switch to the reserved `v1.0` / package
+`1.000` identity, refresh the final claim audit, run the final stable
+clean-checkout matrix, and attach the external artifact record. Do not tag
+v1.0 from the `1.000_001` development identity.
