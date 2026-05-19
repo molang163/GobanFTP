@@ -1,7 +1,8 @@
 # P14 Release Gate Evidence
 
-Status: dry-run and development-freeze evidence only. This is not a v1.0 tag,
-not P14 completion, and not a release-ready declaration.
+Status: dry-run, development-freeze, and final-candidate preparation evidence
+only. This is not a v1.0 tag, not P14 completion, and not a release-ready
+declaration.
 
 Dry-run date: 2026-05-18
 Base commit: `2788ffa52ac8145369b66665a8b089a51ce0ae03`
@@ -204,9 +205,8 @@ The current development-freeze matrix above now includes this gate.
 
 ## Next Release-Route Step
 
-The `1.000_001` development freeze is recorded above. The next release-route
-step is either to continue development without a tag or, if the maintainer
-chooses the stable v1.0 path, first switch to the reserved `v1.0` / package
-`1.000` identity, refresh the final claim audit, run the final stable
-clean-checkout matrix, and attach the external artifact record. Do not tag
-v1.0 from the `1.000_001` development identity.
+The `1.000_001` development freeze is recorded above. The source tree has now
+entered the `v1.0` / package `1.000` final-candidate identity without creating
+a tag or final artifact. The next release-route step is to refresh the final
+claim audit from this identity, run the final stable clean-checkout matrix, and
+attach the external artifact record before any `v1.0` tag.

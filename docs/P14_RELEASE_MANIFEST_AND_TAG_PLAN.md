@@ -1,15 +1,15 @@
 # P14 Release Manifest And Tag Plan
 
-Status: active v1.0/P14 development release plan. The old local `v0.2` /
+Status: active v1.0/P14 final-candidate release plan. The old local `v0.2` /
 package `0.002` candidate is superseded and was skipped as a public release.
 Do not publish, push, or reuse the old `v0.2` tag or
 `GobanFTP-0.002.tar.gz` artifact. This is not a v1.0 completion claim, a P14
-completion claim, or permission to tag during the `1.000_001` development
-cycle.
+completion claim, or permission to tag before the final stable matrix and
+external artifact record are complete.
 
-This document records the current development identity, the reserved final
-v1.0 identity, and the artifact checks that must be resolved after the P14
-release-gate dry run in `docs/P14_RELEASE_GATE.md`.
+This document records the current final-candidate identity, the reserved
+annotated tag identity, and the artifact checks that must be resolved after the
+P14 release-gate dry run in `docs/P14_RELEASE_GATE.md`.
 
 ## Current Identity State
 
@@ -34,13 +34,14 @@ project target:        v1.0/P14 proof machine
 That state was a local release-candidate identity only. It was not pushed or
 published, and it must not be treated as the public release record.
 
-The active development identity is now:
+The active final-candidate identity is now:
 
 ```text
 Git tag:          none
-Perl version:     1.000_001
-Changes heading:  1.000_001  Not yet released
-release claim:    v1.0/P14 development, not v1.0 complete
+Perl version:     1.000
+Changes heading:  1.000  2026-05-19
+expected tarball: GobanFTP-1.000.tar.gz
+release claim:    v1.0/P14 final candidate, not v1.0 complete or released
 ```
 
 ## Superseded v0.2 Candidate
@@ -66,21 +67,21 @@ docs/P14_RELEASE_GATE.md remains explicit that v1.0 was not ready or tagged.
 
 This route remains a historical local candidate only.
 
-## Reserved v1.0 Identity
+## Reserved v1.0 Tag Identity
 
-Use this identity only if a later final P14 claim audit decides the project is
-ready to claim v1.0:
+Use the annotated tag identity only after the final P14 claim audit, final
+stable clean-checkout matrix, and external artifact record agree:
 
 ```text
 Git tag:          v1.0
 Perl version:     1.000
 Changes heading:  1.000  YYYY-MM-DD
 tarball name:     GobanFTP-1.000.tar.gz
-release claim:    v1.0/P14 proof machine
+release claim:    v1.0/P14 proof machine release record
 ```
 
-The `v1.0` route must still satisfy `docs/V1_DOD.md`; the current P14 dry run is
-evidence, not the final release record.
+The `v1.0` route must still satisfy `docs/V1_DOD.md`; the current final
+candidate is not the final release record.
 
 Do not create a tag if `Changes`, `$VERSION`, the expected tarball name, and the
 chosen Git tag drift apart. Do not call an artifact final if its tarball name
@@ -122,16 +123,15 @@ make the relevant identity fields agree:
 lib/GobanFTP.pm $VERSION
 Changes top heading and date
 expected tarball name
-chosen Git tag or explicit no-tag development identity
+chosen Git tag or explicit no-tag final-candidate identity
 README current-line wording
 release record template below
 ```
 
-For active v1.0 development, `Changes` must say
-`1.000_001  Not yet released`, and `lib/GobanFTP.pm` must declare
-`1.000_001`; `Git tag` remains `none`. A final v1.0 release must later switch
-to the reserved stable identity above before tagging or naming a final
-`GobanFTP-1.000.tar.gz` artifact.
+For the active v1.0 final candidate, `Changes` must say
+`1.000  2026-05-19`, `lib/GobanFTP.pm` must declare `1.000`, the expected
+tarball is `GobanFTP-1.000.tar.gz`, and `Git tag` remains `none` until the
+final stable matrix and external artifact record are complete.
 
 ## MANIFEST Audit
 
@@ -196,9 +196,10 @@ must not appear in the archive.
 
 ## Development Freeze Matrix
 
-Run from a fresh clean checkout of the current `1.000_001` development
-candidate commit. This matrix produces a development tarball and must not be
-treated as the final stable v1.0 release matrix:
+This command set was run from fresh clean checkouts of `1.000_001` development
+candidate commits. It produced development tarballs and must not be treated as
+the final stable v1.0 release matrix. The final-candidate route uses the same
+gates with `dist=GobanFTP-1.000.tar.gz` from the `1.000` identity.
 
 ```sh
 perl -c oracle/goban.pl
@@ -252,17 +253,15 @@ GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make disttest
 make distcheck
 ```
 
-For the final stable v1.0 identity, first switch to the reserved `v1.0` /
-`1.000` identity, then run the same matrix with
-`dist=GobanFTP-1.000.tar.gz`. Do not use `GobanFTP-*.tar.gz` as the artifact
-identity in the final release record.
+For the final stable v1.0 route, run the same matrix from the current
+final-candidate identity with `dist=GobanFTP-1.000.tar.gz`. Do not use
+`GobanFTP-*.tar.gz` as the artifact identity in the final release record.
 
 The latest `1.000_001` development freeze result for candidate commit
 `1f5f646921f675c93e25819cb3cf3652f5d6bebe` is recorded in
 `docs/P14_RELEASE_GATE.md`. A passing development freeze matrix is not the
-final stable v1.0 release record; the final route still requires the reserved
-`v1.0` / `1.000` identity, a fresh final matrix, and an external artifact
-record.
+final stable v1.0 release record; the final route still requires a fresh final
+matrix and an external artifact record before any `v1.0` tag.
 
 ## Artifact Manifest
 
@@ -295,7 +294,7 @@ the local smoke path are the shipped proof.
 
 ## Claim Audit
 
-Allowed current v1.0 development claims before the final release-freeze:
+Allowed current v1.0 final-candidate claims before the final release-freeze:
 
 ```text
 GOFTP/1 descriptor and direct events/ basenames remain authoritative
@@ -310,7 +309,7 @@ public key and trust fixture reports are advisory outside signed profiles
 text, static HTML, and static terminal witness surfaces are read-only displays
 source art is runnable and non-consensus
 the arch-gate motif is comment-only source art, not witness output or protocol input
-P14/v1.0 development is active
+P14/v1.0 final candidate is active
 v1.0 remains unreleased until the final release-freeze matrix passes
 ```
 
@@ -362,7 +361,8 @@ git status --short
 git show --stat --oneline --decorate v1.0
 ```
 
-Do not tag during the `1.000_001` development cycle.
+Do not tag before the final stable matrix and external artifact record are
+complete.
 
 ## External Release Record Template
 

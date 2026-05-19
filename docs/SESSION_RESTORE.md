@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- release: enter v1.0 final candidate identity
 - docs: record P14 claim-audit matrix
 - test: add P14 claim audit gate
 - docs: record current P14 development matrix
@@ -42,16 +43,20 @@ at or after:
 
 Confirm the latest commit with `git log --oneline -5` when resuming.
 
-Current state after the latest P14 development-freeze matrix:
+Current state after the v1.0 final-candidate identity switch:
 
+- The source tree is now a `v1.0` / package `1.000` final candidate:
+  `lib/GobanFTP.pm` declares `1.000`, `Changes` starts with
+  `1.000  2026-05-19`, and no `v1.0` tag or final artifact is claimed yet.
 - A fresh clean-checkout matrix passed at commit
   `1f5f646921f675c93e25819cb3cf3652f5d6bebe`.
 - The development tarball was `GobanFTP-1.000_001.tar.gz` with
   `sha256=45347dff8f9ac649ec194ab729172df25fa675556fadcb83f0964dc8d18c7e00`,
   `size=328408`, `tar_entries=784`, and
   `MANIFEST_sha256=e8efd1d7c7e5ea51cd35575875606b5d4559a6e2f7c4884828ea4688da599ba5`.
-- This is still `1.000_001` development-freeze evidence only: no v1.0 tag, P14
-  completion, publication event, or final stable v1.0 artifact is claimed.
+- That matrix is still `1.000_001` development-freeze evidence only: no v1.0
+  tag, P14 completion, publication event, or final stable v1.0 artifact is
+  claimed.
 - `t/p14-claim-audit.t` now guards release-facing text against accidental
   final-release over-claims and is included in the latest full development
   matrix. Passing it is still not a P14/v1.0 completion claim.
@@ -68,6 +73,7 @@ Current state after the latest P14 development-freeze matrix:
 ## Recent Completed Work
 
 ```text
+HEAD release: enter v1.0 final candidate identity
 HEAD docs: record P14 claim-audit matrix
 HEAD test: add P14 claim audit gate
 HEAD docs: record current P14 development matrix
@@ -139,10 +145,10 @@ Key completed boundaries:
 - The v0.2 release identity was prepared locally and then skipped before public
   release. Do not reuse that identity as the current development state.
 - The public v0.2 release path was skipped. Do not push or publish a `v0.2` tag
-  or `GobanFTP-0.002.tar.gz`. The active development identity is now
-  `1.000_001  Not yet released`, and README names the current line as
-  `v1.0/P14` development. If a local `v0.2` tag exists after restore, delete it
-  before continuing.
+  or `GobanFTP-0.002.tar.gz`. The active final-candidate identity is now
+  `1.000  2026-05-19`, `lib/GobanFTP.pm` declares `1.000`, and README names
+  the current line as `v1.0/P14` final candidate. If a local `v0.2` tag exists
+  after restore, delete it before continuing.
 - P12a fixture public key identity is implemented through
   `gobanftp v1 keyid --fixture`. It parses public fixture key records, derives
   documented `GOFTP-KEY/1` `k1.` ids, rejects malformed/private-looking records
@@ -506,7 +512,7 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-after entering v1.0/P14 development:
+after entering the v1.0/P14 final-candidate identity:
 - do not push or publish v0.2 artifacts; v0.2 was skipped as a public release
 - `git-tree-goftp1` runtime read admission is implemented as a read-only store
 - `dns-record-goftp1` runtime admission is read-only over local/declared record
@@ -530,13 +536,12 @@ after entering v1.0/P14 development:
   v1.0
 - `t/p14-claim-audit.t` release-text boundary gate is included in the latest
   development matrix and must stay in the development and final release matrices
-- next choose either continued `1.000_001` development or the separate final
-  stable v1.0 route
+- next run the final stable clean-checkout matrix from the `1.000` final
+  candidate and generate `GobanFTP-1.000.tar.gz`
 - that slice must not add or claim Git publish, live DNS, AXFR, DNSSEC trust,
   provider API, dynamic update, DNS record publishing, hosted Web UI,
   interactive TUI, or v1.0/P14 completion
-- do not tag v1.0 until the project first switches to the reserved `v1.0` /
-  package `1.000` identity, the final claim audit passes, the final stable
+- do not tag v1.0 until the final claim audit passes, the final stable
   clean-checkout matrix passes, and the external artifact record is attached
 - do not let display, source art, Web assets, terminal formatting, or interactive
   input feed replay or event-set roots
@@ -599,6 +604,6 @@ When resuming:
    maintainer guide supplied in the session context.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `docs: record P14 claim-audit matrix`.
+4. Confirm HEAD includes `release: enter v1.0 final candidate identity`.
 5. If the user asks to continue, review the next step first, then choose one
    small executable step.

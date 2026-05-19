@@ -1,6 +1,9 @@
 Revision history for GobanFTP
 
-1.000_001  Not yet released
+1.000  2026-05-19
+  - Entered the v1.0 / package 1.000 final-candidate identity after the
+    refreshed `1.000_001` development-freeze matrix passed; this is not a tag,
+    publication event, P14 completion claim, or release-ready declaration.
   - Began v1.0/P14 development after skipping the public v0.2 / package 0.002
     release candidate.
   - Recorded a fresh clean-checkout `1.000_001` development-freeze matrix for
@@ -135,13 +138,13 @@ Revision history for GobanFTP
   - Tightened manifest skip rules so detached-worktree `.git` files and local
     scratch suffixes are excluded without dropping intentional attack fixtures
     under `t/fixtures/`.
-  - Added a P14 release manifest and tag plan, then clarified it as the active
-    v1.0/P14 development release plan after the local `v0.2` / package `0.002`
-    candidate was skipped in favor of continuing directly toward v1.0/P14,
-    while separating the `1.000_001` development freeze matrix from the final
-    reserved `v1.0` / package `1.000` release identity.
+  - Added a P14 release manifest and tag plan, then clarified it as the
+    then-active v1.0/P14 development release plan after the local `v0.2` /
+    package `0.002` candidate was skipped in favor of continuing directly
+    toward v1.0/P14, while separating the `1.000_001` development freeze
+    matrix from the final reserved `v1.0` / package `1.000` release identity.
   - Prepared and then skipped the local v0.2 / package 0.002 release candidate,
-    keeping v1.0/P14 as the active development line.
+    keeping v1.0/P14 as the active release route.
   - Clarified the next golden-vector and P14 claim-audit slice after Git-tree
     and DNS-record runtime read admission, without claiming Git publish, live
     DNS, DNS publish, hosted Web UI, interactive TUI, or v1.0/P14 completion.

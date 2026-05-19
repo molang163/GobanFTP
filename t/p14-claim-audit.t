@@ -16,6 +16,7 @@ my @release_files = (
     ['docs/P14_RELEASE_GATE.md',                       0],
     ['docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md',      0],
     ['docs/SESSION_RESTORE.md',                        1],
+    ['lib/GobanFTP.pm',                                0],
 );
 
 my %text;
@@ -31,10 +32,12 @@ for my $case (@release_files) {
 }
 
 subtest 'release-state guardrails are explicit' => sub {
-    _like('Changes', qr/^1[.]000_001  Not yet released$/m,
-        'Changes keeps the development version unreleased');
-    _like('README.md', qr/^Current line: `v1[.]0\/P14` development[.]$/m,
-        'README names the current line as development');
+    _like('Changes', qr/^1[.]000  2026-05-19$/m,
+        'Changes keeps the final-candidate package version and date');
+    _like('lib/GobanFTP.pm', qr/^our \$VERSION = '1[.]000';$/m,
+        'module declares the final-candidate package version');
+    _like('README.md', qr/^Current line: `v1[.]0\/P14` final candidate[.]$/m,
+        'README names the current line as final candidate');
     _like('README.md', qr/read-only inspection output, not hosted Web UI or interactive TUI[.]/,
         'README keeps static surfaces below hosted Web UI and interactive TUI');
     _like('README.md', qr/DNS\s+admission does not query live DNS, run AXFR, trust DNSSEC, call provider APIs,\s+or publish records,/,
@@ -42,11 +45,11 @@ subtest 'release-state guardrails are explicit' => sub {
     _like('README.md', qr/it does not claim live FTP, `RETR`, `SIZE`, `MDTM`, FTP auth, FTP integrity, or\nFTP publish behavior[.]/,
         'README keeps FTP listing-shadow evidence fixture-bound');
     _like('docs/P14_RELEASE_GATE.md',
-        qr/Status: dry-run and development-freeze evidence only[.] This is not a v1[.]0 tag,\nnot P14 completion, and not a release-ready declaration[.]/,
-        'P14 gate report is evidence, not a release declaration');
+        qr/Status: dry-run, development-freeze, and final-candidate preparation evidence\nonly[.] This is not a v1[.]0 tag, not P14 completion, and not a release-ready\ndeclaration[.]/,
+        'P14 gate report is preparation evidence, not a release declaration');
     _like('docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md',
-        qr/Do not tag during the `1[.]000_001` development cycle[.]/,
-        'tag plan blocks tagging from the development identity');
+        qr/Do not tag before the final stable matrix and external artifact record are\ncomplete[.]/,
+        'tag plan blocks tagging before the final matrix and artifact record');
     _like('docs/V1_DOD.md',
         qr/v1[.]0 may not be tagged until these gates pass from a clean checkout:/,
         'V1 DoD keeps tagging behind the clean checkout gate');
@@ -61,7 +64,7 @@ subtest 'release-state guardrails are explicit' => sub {
 subtest 'claim-audit gate is part of the release matrix' => sub {
     _like('docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md',
         qr/^prove -lr t\/p14-claim-audit[.]t$/m,
-        'development freeze matrix runs the claim audit gate');
+        'release matrix runs the claim audit gate');
     _like('docs/V1_DOD.md',
         qr/^prove -lr t\/p14-claim-audit[.]t$/m,
         'normative v1.0 release gate runs the claim audit gate');
@@ -81,6 +84,7 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'text, static HTML, and static terminal witness surfaces are read-only displays',
         'source art is runnable and non-consensus',
         'the arch-gate motif is comment-only source art, not witness output or protocol input',
+        'P14/v1.0 final candidate is active',
         'v1.0 remains unreleased until the final release-freeze matrix passes',
     ) {
         like $plan, qr/^\Q$allowed\E/m, "allowed claim recorded: $allowed";

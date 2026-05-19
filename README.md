@@ -7,7 +7,7 @@ replay is proof, and projections are shadows. A server may lie about time, size,
 order, type, locks, bodies, and presentation. The game still emerges from the
 names it is allowed to trust.
 
-Current line: `v1.0/P14` development.
+Current line: `v1.0/P14` final candidate.
 
 The local `v0.2` / package `0.002` release candidate was skipped as a public
 release. The `v1.0/P14` target is the release-freeze proof machine: the same
@@ -186,7 +186,7 @@ SGF is a witness, not the source of truth.
 
 ## What Runs Now
 
-Implemented in the current development line:
+Implemented in the current final-candidate line:
 
 - strict game descriptor and event filename parsing
 - filename-derived event ids
@@ -442,9 +442,10 @@ Attack galleries:
 prove -lr t/attack-fixtures.t t/v1-attack-fixtures.t t/v1-profile-attack-fixtures.t
 ```
 
-The current P14 release-gate dry run is recorded in
-`docs/P14_RELEASE_GATE.md`. It is a command matrix and artifact check, not a
-v1.0 tag or release-ready declaration.
+The current P14 release-gate evidence is recorded in
+`docs/P14_RELEASE_GATE.md`. It includes development-freeze matrix evidence and
+the final-candidate route checkpoint, but it is not a v1.0 tag or release-ready
+declaration.
 
 The final artifact identity, version decision, and tag preconditions are tracked
 in `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
