@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- docs: refresh P14 claim audit gates
 - test: add FTP public poison vector
 - test: freeze signed public trust vectors
 - test: add core poison public vectors
@@ -37,6 +38,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD docs: refresh P14 claim audit gates
 HEAD test: add FTP public poison vector
 HEAD test: freeze signed public trust vectors
 HEAD test: add core poison public vectors
@@ -273,29 +275,35 @@ Key completed boundaries:
   release matrix for the current HEAD. The next release-route proof slice must
   refresh the claim audit for the admitted read boundaries before any final P14
   artifact or tag decision.
+- The P14 clean-gate plan now explicitly names `t/v1-profile-attack-fixtures.t`
+  and `t/v1-profile-publish-fixtures.t`, tarball checks for
+  `t/fixtures/vectors/v1-non-consensus-poison.jsonl`, the minimal FTP listing
+  fixture, and the `ftp-listing-shadow-poison-public-vector` row, and expands
+  final claim-audit scanning to README, Changes, ROADMAP, V1_DOD, P14 gate and
+  manifest-plan docs, this restore file, tag text, and the external artifact
+  record.
 - Ruleset seal, v1 witness CLI, and v1 compare CLI are already implemented.
 
 ## Last Verified
 
-Latest verification after adding the FTP listing-shadow public poison vector and
-narrowing the next P14 gap to claim audit:
+Latest verification after refreshing the P14 claim-audit and clean-gate plan:
 
 ```text
-prove -lr t/v1-golden-vectors.t
-prove -lr t/v1-profile-attack-fixtures.t t/v1-golden-vectors.t t/v1-cross-substrate.t t/ftp-cli-parity.t t/store-ftp-mock.t
 git diff --check
 perl -MExtUtils::Manifest=fullcheck -e 'fullcheck()'
-prove -lr t/v1-golden-vectors.t t/dependency-sync.t
+prove -lr t/v1-golden-vectors.t t/v1-profile-attack-fixtures.t t/v1-profile-publish-fixtures.t t/webdav-cli-parity.t t/store-webdav-mock.t
+GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl prove -lr t
 prove -lr t
 ```
 
 Result:
 
 ```text
-Changed files: Changes, README.md, docs/ATTACKS.md, docs/ROADMAP.md,
-docs/SESSION_RESTORE.md, docs/V1_DOD.md, t/fixtures/vectors/README.md,
-t/fixtures/vectors/v1-non-consensus-poison.jsonl, t/v1-golden-vectors.t.
-Targeted: Files=5, Tests=158, and Files=2, Tests=139, all successful.
+Changed files: Changes, README.md, docs/BUILD.md, docs/P14_RELEASE_GATE.md,
+docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md, docs/ROADMAP.md,
+docs/SESSION_RESTORE.md, docs/V1_DOD.md.
+Targeted: Files=5, Tests=160, all successful.
+No-C full: Files=73, Tests=1007, all successful.
 Full: Files=73, Tests=1011, all successful.
 ```
 
@@ -502,6 +510,6 @@ When resuming:
    maintainer guide supplied in the session context.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `test: add core poison public vectors`.
+4. Confirm HEAD includes `docs: refresh P14 claim audit gates`.
 5. If the user asks to continue, review the next step first, then choose one
    small executable step.

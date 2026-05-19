@@ -124,8 +124,10 @@ publication event.
 - No release artifacts were published.
 - Full hosted Web UI remains deferred.
 - Interactive mouse/keyboard TUI remains deferred.
-- Git-like and DNS-like profiles remain fixture/read-normalizer proof surfaces
-  unless runtime support is explicitly implemented later.
+- At the dry-run commits, Git-like and DNS-like profiles were
+  fixture/read-normalizer proof surfaces. Current HEAD has since added
+  read-only Git-tree and DNS-record runtime admission, so this dry run is
+  historical evidence, not the current final clean gate.
 - Production key lifecycle policy remains outside the current signed-HMAC
   fixture verifier.
 
@@ -139,9 +141,10 @@ publication event.
 
 ## Next Release-Route Step
 
-The post-correction clean-worktree rerun is recorded above. The next
-release-route step is to decide whether to create a final release artifact
-manifest and tag plan, while keeping every deferred runtime surface or profile
-claim explicit. Do not tag v1.0 until the final intended release matrix, not just
-this dry run, has passed. The artifact and tag plan lives in
-`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
+The post-correction clean-worktree rerun is recorded above. Since then, the
+release manifest/tag plan has landed and the current HEAD has gained read-only
+Git-tree and DNS-record runtime admission plus the FTP listing-shadow public
+poison vector. The next release-route step is to refresh the current-HEAD claim
+audit, then run the final clean-checkout matrix from
+`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`. Do not tag v1.0 until that final
+intended release matrix, not just this historical dry run, has passed.

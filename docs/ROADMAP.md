@@ -34,9 +34,11 @@ replay, board, projection, and SGF truth. The signed-HMAC public-trust bridge
 is now represented in public signed/auth golden vectors as rejected `k1.`
 selector evidence and accepted explicit HMAC selector evidence. The next proof
 slice should continue the P14 claim audit for admitted read boundaries and
-final clean-gate preparation.
-This is not Git publish, Git remote fetch, live DNS, DNS publish, hosted Web UI,
-interactive TUI, or a v1.0/P14 completion claim.
+final clean-gate preparation. The FTP listing-shadow vector is fixture/listing
+evidence only.
+This is not Git publish, Git remote fetch, live FTP, FTP auth, FTP integrity,
+FTP publish behavior, live DNS, DNS publish, hosted Web UI, interactive TUI, or
+a v1.0/P14 completion claim.
 
 ## Cross-Cutting Acceptance: Elegance Without Obscurity
 

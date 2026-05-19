@@ -205,6 +205,8 @@ GOBANFTP_RULES_ENGINE=shadow make test
 prove -lr t
 prove -lr t/v1-cross-substrate.t
 prove -lr t/v1-attack-fixtures.t
+prove -lr t/v1-profile-attack-fixtures.t
+prove -lr t/v1-profile-publish-fixtures.t
 prove -lr t/v1-golden-vectors.t
 prove -lr t/v1-signed-hmac.t
 prove -lr t/v1-signed-hmac-golden-vectors.t
@@ -227,7 +229,10 @@ sha256sum "$dist"
 ls -lh "$dist"
 tar -tzf "$dist" | rg 'docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN\.md'
 tar -tzf "$dist" | rg 'docs/P14_RELEASE_GATE\.md'
+tar -tzf "$dist" | rg 't/fixtures/vectors/v1-non-consensus-poison\.jsonl'
+tar -tzf "$dist" | rg 't/fixtures/v1/cross-substrate/minimal/ftp-goftp1/listing\.names'
 tar -tzf "$dist" | rg 't/fixtures/attacks/tmp-poison/tmp/pending\.part'
+tar -xOzf "$dist" --wildcards '*/t/fixtures/vectors/v1-non-consensus-poison.jsonl' | rg 'ftp-listing-shadow-poison-public-vector'
 
 GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make disttest
 make distcheck
@@ -277,6 +282,8 @@ event ids remain filename-context derived
 event_set_root is stable across accepted event basenames
 local, FTP, Git-tree, DNS-record, and WebDAV runtime read paths are implemented
 Git-like and DNS-like fixture/read-normalizer proofs remain present
+FTP listing-shadow public poison-vector evidence is fixture/listing evidence
+only, not live FTP, RETR, SIZE, MDTM, auth, integrity, or publish behavior
 signed-hmac-goftp1 has an explicit per-event HMAC acceptance gate
 public key and trust fixture reports are advisory outside signed profiles
 text, static HTML, and static terminal witness surfaces are read-only displays
@@ -301,9 +308,10 @@ final scoring/result events are part of GOFTP/1
 source art, Web, TUI, C, or asm-like surfaces own replay truth
 ```
 
-Before tagging, scan README, Changes, tag text, and the external artifact record
-for these forbidden claims. A forbidden claim is a release blocker even if the
-tests pass.
+Before tagging, scan README, Changes, docs/ROADMAP.md, docs/V1_DOD.md,
+docs/P14_RELEASE_GATE.md, docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md,
+docs/SESSION_RESTORE.md, tag text, and the external artifact record for these
+forbidden claims. A forbidden claim is a release blocker even if the tests pass.
 
 ## Tag Procedure
 

@@ -368,8 +368,9 @@ not replay truth. The signed-HMAC public-trust bridge vectors separately prove
 public advisory `k1.` key/trust rows cannot authorize `signed-hmac-goftp1` HMAC
 selectors or revoke an explicit HMAC selector. The next proof slice should
 audit P14 release claims while keeping `git-tree-goftp1` and
-`dns-record-goftp1` read-only and avoiding any claim of Git publish, live DNS,
-AXFR, DNSSEC trust, provider APIs, dynamic update, or DNS record publishing.
+`dns-record-goftp1` read-only and avoiding any claim of Git publish, live FTP,
+FTP auth, FTP integrity, FTP publish behavior, live DNS, AXFR, DNSSEC trust,
+provider APIs, dynamic update, or DNS record publishing.
 
 ## Release Gates
 
@@ -386,6 +387,8 @@ GOBANFTP_RULES_ENGINE=shadow make test
 prove -lr t
 prove -lr t/v1-cross-substrate.t
 prove -lr t/v1-attack-fixtures.t
+prove -lr t/v1-profile-attack-fixtures.t
+prove -lr t/v1-profile-publish-fixtures.t
 prove -lr t/v1-golden-vectors.t
 prove -lr t/v1-signed-hmac.t
 prove -lr t/v1-signed-hmac-golden-vectors.t
@@ -404,13 +407,14 @@ Dry-run executions of this matrix are recorded separately in
 the dry-run report is evidence for a point in time, not a replacement for the
 final clean-checkout gate.
 
-Any final P14 run after Git-tree or DNS-record runtime admission must audit the
-release text against the current HEAD. A stale dry-run claim that Git-like or
-DNS-like support is only fixture/read-normalizer evidence is not enough once
-runtime read paths are admitted, but runtime read admission still does not imply
-publish support, live DNS, AXFR, DNSSEC trust, provider API support, dynamic
-update, DNS record publishing, hosted Web UI, interactive TUI, or v1.0
-completion.
+Any final P14 run after Git-tree or DNS-record runtime admission, or after a
+public poison-vector refresh such as FTP listing-shadow, must audit the release
+text against the current HEAD. A stale dry-run claim that Git-like or DNS-like
+support is only fixture/read-normalizer evidence is not enough once runtime read
+paths are admitted, but runtime read admission still does not imply publish
+support, live FTP, FTP auth, FTP integrity, live DNS, AXFR, DNSSEC trust,
+provider API support, dynamic update, DNS record publishing, hosted Web UI,
+interactive TUI, or v1.0 completion.
 
 The final release identity, artifact hash, and tag preconditions are planned in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`. A v1.0 tag is blocked until the

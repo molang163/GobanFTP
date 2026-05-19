@@ -144,8 +144,12 @@ Revision history for GobanFTP
   - Added an FTP listing-shadow public non-consensus-poison golden vector,
     binding FTP-shaped sidecar, tmp, projection, recursive descendant, and
     list-order rows to unchanged event-set preimage, root, replay, board,
-    projection text, and SGF truth without claiming live FTP or publish
-    behavior.
+    projection text, and SGF truth without claiming live FTP, `RETR`, `SIZE`,
+    `MDTM`, FTP auth, FTP integrity, or publish behavior.
+  - Refreshed the P14 claim-audit and clean-gate plan after the FTP public
+    poison vector, adding profile attack/publish gates and tarball checks for
+    shipped public poison-vector evidence without tagging or declaring v1.0
+    complete.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

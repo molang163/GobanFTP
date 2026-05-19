@@ -219,7 +219,9 @@ or publish records, and TTL, answer order, cache age, DNSSEC status, and
 provider metadata stay outside consensus. Production key lifecycle, publish
 authentication policy, final scoring/result events, P14 claim audit, and the
 full `v1.0/P14` freeze remain release-route work. FTP listing-shadow public
-poison-vector coverage is frozen for the current fixture boundary.
+poison-vector coverage is frozen for the current fixture/listing boundary only;
+it does not claim live FTP, `RETR`, `SIZE`, `MDTM`, FTP auth, FTP integrity, or
+FTP publish behavior.
 
 Unsigned `GOFTP/1` remains valid and unchanged. A signed/auth profile can reject
 events only when that explicit profile is selected; sidecar signatures do not
@@ -405,7 +407,7 @@ script/live-ftp-smoke
 WebDAV store and CLI parity, mock-backed:
 
 ```sh
-prove -lr t/store-webdav-mock.t t/webdav-cli-parity.t
+prove -lr t/store-webdav-mock.t t/webdav-cli-parity.t t/v1-profile-publish-fixtures.t
 ```
 
 Git tree store and CLI parity, real temporary repository:

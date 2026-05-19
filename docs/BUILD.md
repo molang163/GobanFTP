@@ -81,7 +81,7 @@ runtime dependencies. The WebDAV test path is mock-backed and does not require
 live credentials:
 
 ```sh
-prove -l t/store-webdav-mock.t t/webdav-cli-parity.t
+prove -l t/store-webdav-mock.t t/webdav-cli-parity.t t/v1-profile-publish-fixtures.t
 ```
 
 ## Inline::C Notes
