@@ -34,6 +34,9 @@ Revision history for GobanFTP
     gates so the source tree states the implemented v1.0 boundary while still
     rejecting over-claims for hosted Web UI, Git publish, live DNS, production
     auth, complete JSON output, and complete future attack coverage.
+  - Switch repository licensing from the previous `perl_5` distribution terms
+    to Apache-2.0 for the code, protocol documentation, examples, fixtures,
+    vectors, projections, and static specimens.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

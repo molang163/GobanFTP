@@ -10,7 +10,7 @@ GobanFTP 是一个把围棋落子编码进目录列表的 `GOFTP/1` 实验。它
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
 ![Version 1.000](https://img.shields.io/badge/version-1.000-333333)
-![License perl_5](https://img.shields.io/badge/license-perl__5-blue)
+![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Showcase check](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
 Current line: `v1.0/package 1.000` release source.
@@ -461,6 +461,16 @@ prove -lr t
 ```sh
 script/live-ftp-smoke
 ```
+
+## License
+
+除非另有说明，本仓库中的代码、协议文档、示例、fixtures、test vectors、
+projections 和静态标本页都按 Apache License, Version 2.0 授权。
+
+Copyright 2026 GobanFTP contributors.
+
+这项许可只覆盖仓库内容。它不授权你访问、测试或发布到第三方 FTP、WebDAV、
+DNS、Git 或其他系统，也不是生产安全认证。
 
 P14 release 记录在 `docs/P14_RELEASE_GATE.md`。
 

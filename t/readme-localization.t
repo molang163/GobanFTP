@@ -38,6 +38,18 @@ for my $rel (@readmes) {
 
     like $text{$rel}, qr/Current line: `v1[.]0\/package 1[.]000` release source[.]/,
         "$rel keeps the v1.0/package release line";
+    like $text{$rel}, qr/license-Apache--2[.]0-blue/,
+        "$rel keeps the Apache-2.0 license badge";
+    like $text{$rel}, qr/Apache License,\s+Version 2[.]0/,
+        "$rel names Apache License 2.0 in the license section";
+    like $text{$rel}, qr/Copyright 2026 GobanFTP contributors[.]/,
+        "$rel carries the repository copyright notice";
+    like $text{$rel}, qr/third-party|第三方|第三者/,
+        "$rel says the license does not authorize third-party systems";
+    like $text{$rel}, qr/security certification|生产安全认证|security\s+certification/,
+        "$rel says the license is not a production security certification";
+    unlike $text{$rel}, qr/perl_5|perl__5/,
+        "$rel does not keep the old perl_5 license badge";
     like $text{$rel}, qr/\[.*?\]\(#three-minute-proof\).*?\[.*?\]\(#terminal-play\).*?\[.*?\]\(#static-witness-specimen\).*?\[.*?\]\(#the-contract\)/s,
         "$rel uses stable local README anchors";
     like $text{$rel}, qr/static HTML .*hosted Web UI|Static HTML .*hosted Web UI|static HTML .*hosted Web UI/s,

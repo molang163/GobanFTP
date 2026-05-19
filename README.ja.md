@@ -13,7 +13,7 @@ GobanFTP は、囲碁の一局を「信頼できない listing（名前一覧）
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
 ![Version 1.000](https://img.shields.io/badge/version-1.000-333333)
-![License perl_5](https://img.shields.io/badge/license-perl__5-blue)
+![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Showcase check](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
 ファイルの中身を変えても、mtime を変えても、listing order を変えても、
@@ -548,6 +548,18 @@ optional disposable live FTP smoke:
 ```sh
 script/live-ftp-smoke
 ```
+
+## License
+
+別途明記されていない限り、この repository の code、protocol documentation、
+examples、fixtures、test vectors、projections、static specimens は Apache License,
+Version 2.0 の下で提供されます。
+
+Copyright 2026 GobanFTP contributors.
+
+この license が対象にするのは repository の内容です。第三者の FTP、WebDAV、DNS、
+Git、その他の system へアクセス、テスト、publish する許可ではなく、production
+security certification でもありません。
 
 ## v1.0/P14 の形
 

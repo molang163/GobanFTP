@@ -8,7 +8,7 @@ WriteMakefile(
     VERSION_FROM  => 'lib/GobanFTP.pm',
     ABSTRACT      => 'A listing-first Go game protocol over enumerable stores',
     AUTHOR        => 'GobanFTP contributors',
-    LICENSE       => 'perl_5',
+    LICENSE       => 'apache_2_0',
     MIN_PERL_VERSION => '5.034',
     PREREQ_PM     => {
         'Digest::SHA'    => 0,

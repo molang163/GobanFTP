@@ -6,7 +6,7 @@ A Go game reconstructed from enumerable names.
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
 ![Version 1.000](https://img.shields.io/badge/version-1.000-333333)
-![License perl_5](https://img.shields.io/badge/license-perl__5-blue)
+![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Showcase test](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
 GobanFTP stores a Go game as a directory-shaped protocol object. The game
@@ -482,6 +482,18 @@ Optional disposable live FTP smoke:
 ```sh
 script/live-ftp-smoke
 ```
+
+## License
+
+Unless otherwise noted, the code, protocol documentation, examples, fixtures,
+test vectors, projections, and static specimens in this repository are licensed
+under the Apache License, Version 2.0.
+
+Copyright 2026 GobanFTP contributors.
+
+This license covers the repository contents. It does not grant permission to
+access, test, or publish to third-party FTP, WebDAV, DNS, Git, or other systems
+without authorization, and it is not a production security certification.
 
 ## v1.0/P14 Scope
 
