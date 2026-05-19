@@ -17,9 +17,10 @@ unchanged.
 
 Implemented v1.0 profiles and runtime paths cover local, FTP, read-only Git
 tree, read-only DNS record-file admission, WebDAV, and `signed-hmac-goftp1`.
-WebDAV is the admitted non-FTP write-capable runtime store; Git tree and DNS
-record admission are read-only. DNS record admission is limited to local or
-otherwise declared record files.
+`ftp-goftp1` includes the declared tmp+rename publish path with mock coverage
+and optional disposable live smoke coverage. WebDAV is the admitted non-FTP
+write-capable runtime store; Git tree and DNS record admission are read-only.
+DNS record admission is limited to local or otherwise declared record files.
 
 The witness vectors carry self-contained input names, diagnostics, rendered
 projection text, accepted/rejected sets, and stable roots. Replay-invariant
@@ -52,17 +53,18 @@ truth.
 
 Result/scoring events remain outside `GOFTP/1`.
 
-Git publish, Git remote fetch, live FTP auth, live FTP integrity, FTP publish
-behavior, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic update, DNS
-record publishing, hosted Web UI, production key lifecycle completion, publish
-auth completion, complete JSON output for every command, and complete future
-attack coverage remain outside the v1.0/package 1.000 claim.
+Git publish, Git remote fetch, live FTP auth, live FTP integrity, production
+FTP deployment safety, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic
+update, DNS record publishing, hosted Web UI, production key lifecycle
+completion, publish auth completion, complete JSON output for every command,
+and complete future attack coverage remain outside the v1.0/package 1.000
+claim.
 
 ### Next
 
-Future phases may add deferred publish, DNS, hosted Web UI, production auth, or
-result-event behavior only through explicit profile, protocol, decision, and
-gate updates.
+Future phases may add deferred Git/DNS publish, DNS live-provider behavior,
+hosted Web UI, production auth, or result-event behavior only through explicit
+profile, protocol, decision, and gate updates.
 
 The final tarball hash is recorded only in an external tag or release record,
 not in source files that become part of the tarball.
@@ -281,8 +283,8 @@ v1.0 is complete only when these gates are all true:
   "choose later" language for v1.0 profile, adapter, witness, or auth behavior
 
 Detailed gates live in `docs/V1_DOD.md`. Substrate profile contracts live in
-`docs/PROFILES.md`. Filename grammar vectors are planned in `docs/GRAMMAR.md`;
-attack fixture admission and verdicts are planned in `docs/ATTACKS.md`.
+`docs/PROFILES.md`. Filename grammar vectors live in `docs/GRAMMAR.md`;
+attack fixture admission and verdicts are recorded in `docs/ATTACKS.md`.
 
 ## v1.0 Proof Machine
 
@@ -324,7 +326,7 @@ Tasks:
 - define the v1.0 profile template: profile id, version, system type,
   authoritative inputs, ignored metadata, publish semantics, read normalization,
   diagnostics, auth stance, fixtures, and smoke command
-- record the baseline and planned v1.0 profiles in `docs/PROFILES.md`
+- record the baseline and admitted v1.0 profiles in `docs/PROFILES.md`
 - define the adapter contract around listing-like reads, event-name publishing,
   metadata normalization, capability reporting, and stable diagnostics
 - keep the existing FTP path as the `GOFTP/1` baseline profile without changing

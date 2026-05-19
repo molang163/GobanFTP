@@ -199,11 +199,11 @@ k1.example	fixture-ed25519-v1	player:alice	player	trusted	2026-01-01	-	-	fixture
 ```
 
 Trust lifecycle status is deterministic and does not consult wall-clock time.
-For verification, `trusted` keys are accepted, `rotated` keys are accepted for
-old material, and `revoked` or `expired` keys fail. For publishing new material,
-only `trusted` keys are accepted; `rotated`, `revoked`, and `expired` keys fail.
-The date fields are public evidence attached to an explicit row, not replay
-clocks.
+Within fixture lifecycle checks, `trusted` keys are accepted for verification,
+`rotated` keys are accepted for old material, and `revoked` or `expired` keys
+fail. For fixture publish-purpose token checks, only `trusted` keys pass;
+`rotated`, `revoked`, and `expired` keys fail. The date fields are public
+evidence attached to an explicit row, not replay clocks.
 
 Attestation fixtures are also public data. Public-key fixture signatures must
 be visibly non-cryptographic placeholders, for example `fixture:<hex>`, until a
@@ -241,9 +241,10 @@ the root is computed after acceptance. Root-level signatures are set
 attestations. They may be added by a later profile, but they cannot rescue,
 insert, or reject an individual event before the accepted set is known.
 
-`signed-hmac-goftp1` is implemented as the first witness gate for signed/auth
-acceptance. It supports explicit verifier trust sets and verifier-local
-`GOFTP-HMAC-KEY/1` key files for `v1 keygen`, `v1 attest`, and `v1 witness`.
+`signed-hmac-goftp1` is implemented as the first verifier-local witness gate
+for signed/auth acceptance. It supports explicit verifier trust sets and
+verifier-local `GOFTP-HMAC-KEY/1` key files for `v1 keygen`, `v1 attest`, and
+`v1 witness`.
 It can be run as a read-only overlay over a declared base substrate normalizer:
 local, FTP, Git-tree, DNS-record, or WebDAV listing rows first become candidate
 GOFTP event basenames, then the signed-HMAC gate accepts only events with valid
@@ -270,11 +271,12 @@ trust diagnostic.
 Publish-purpose fixture semantics are separate from event-attestation
 verification. `GOFTP-HMAC-PUBLISH/1` tokens bind one proposed event basename,
 its visible event id, the game descriptor, profile, purpose, algorithm, and
-public HMAC selector. For new material, only a `trusted` selector may authorize
-the token. `rotated`, `revoked`, and `expired` selectors fail before a token is
-accepted or minted. This proves verifier-local publish-purpose lifecycle
-semantics; it does not define real account identity, writer access, transport
-auth, automatic sidecar discovery, or production key lifecycle completion.
+public HMAC selector. For new material, only a `trusted` verifier-local
+selector may pass or mint the token. `rotated`, `revoked`, and `expired`
+selectors fail before a token is accepted or minted. This proves verifier-local
+publish-purpose lifecycle semantics; it does not define real account identity,
+writer access, transport auth, automatic sidecar discovery, or production key
+lifecycle completion.
 
 `signed-hmac-goftp1` event attestation payload:
 
@@ -331,13 +333,13 @@ Preimage:
 "event=<event_basename>\0"
 ```
 
-Publish tokens are authorization evidence for one proposed event basename. They
-are not replay input, not event-set attestations, and not a transport credential.
-The regular publish commands can explicitly opt into a default-off preflight
-gate that verifies such a token after candidate replay validation and before
-the store write. A denied token leaves the candidate unpublished. This remains a
-verifier-local fixture gate; it is not production writer authorization and does
-not change unsigned replay.
+Publish tokens are verifier-local preflight evidence for one proposed event
+basename. They are not replay input, not event-set attestations, and not a
+transport credential. The regular publish commands can explicitly opt into a
+default-off preflight gate that verifies such a token after candidate replay
+validation and before the store write. A denied token leaves the candidate
+unpublished. This remains a verifier-local fixture gate; it is not production
+writer authorization and does not change unsigned replay.
 
 ## Baseline Profiles
 

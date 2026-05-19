@@ -9,10 +9,10 @@ names it is allowed to trust.
 
 Current line: `v1.0/package 1.000` release source.
 
-The local `v0.2` / package `0.002` release candidate was skipped as a public
-release. The `v1.0/P14` source is the release proof machine: the same logical
-event basenames must produce the same `event_set_root`, DAG, canonical prefix,
-board projection, SGF, and diagnostics class across declared substrates.
+The `v1.0/P14` source is the release proof machine: the same logical event
+basenames must produce the same `event_set_root`, DAG, canonical prefix, board
+projection, SGF, and diagnostic class for the same logical failure where
+observable across declared substrates.
 
 ```text
 Names are packets.
@@ -199,7 +199,9 @@ Implemented in v1.0/package 1.000:
 - SGF rendering
 - rebuildable board, graveyard, SGF, and oracle projections
 - local filesystem store
-- FTP store with mock coverage and gated live tests
+- FTP store, including the declared `ftp-goftp1` zero-byte `tmp/` upload plus
+  `RNTO` publish path, with mock coverage and optional disposable live smoke
+  coverage
 - read-only Git tree store with runtime CLI parity coverage
 - read-only DNS record admission over local or declared record-file inputs
 - WebDAV store with mock and CLI parity coverage
@@ -214,8 +216,8 @@ Implemented in v1.0/package 1.000:
   support for signed-HMAC operation without leaking HMAC secrets
 - signed-HMAC overlay witness proof across local, FTP, Git-tree, DNS-record,
   and WebDAV read normalizers using explicit verifier-local HMAC trust input
-- verifier-local `GOFTP-HMAC-PUBLISH/1` publish token generation and
-  verification for fixture new-material lifecycle semantics
+- verifier-local `GOFTP-HMAC-PUBLISH/1` publish-purpose token generation and
+  fixture verification for new-material preflight/lifecycle evidence
 - public signed/auth mismatch fixture and golden-vector evidence for
   signature-class witness-gate rejections and publish-auth token denial
 - default-off verifier-local publish preflight gate for `publish-move`,
@@ -239,10 +241,11 @@ Boundary lines in v1.0/package 1.000:
   lifecycle, production auth, or real writer authorization.
 - Final scoring/result events remain outside `GOFTP/1`.
 
-FTP listing-shadow public poison-vector coverage is frozen for the current
-fixture/listing boundary only.
-The FTP listing-shadow vector does not claim live FTP, `RETR`, `SIZE`, `MDTM`,
-FTP auth, FTP integrity, or FTP publish behavior.
+FTP listing-shadow public poison-vector coverage is fixture/listing evidence
+only. It does not claim `RETR`, `SIZE`, `MDTM`, live FTP auth, live FTP
+integrity, or production FTP deployment safety. The `ftp-goftp1` tmp+rename
+publish path is declared separately and covered by mock FTP tests plus optional
+`script/live-ftp-smoke`.
 Signed/auth mismatch rows are fixture and vector evidence only; they do not
 claim complete production key lifecycle, complete publish auth, or real writer
 authorization.
@@ -398,6 +401,11 @@ WebDAV replay reads `events/` with `PROPFIND Depth: 1` and uses only direct href
 basenames. Publishing writes a zero-byte temporary resource under `tmp/`, moves
 it to `events/<event-name>`, then confirms visibility with a fresh `PROPFIND`.
 
+For `ftp-goftp1`, default publishing uploads a zero-byte temporary entry under
+`tmp/`, renames it to `events/<event-name>` with `RNTO`, and confirms
+visibility by listing. `GOBANFTP_FTP_PUBLISH_MODE=mkdir` remains the
+directory-shaped alternative.
+
 Projection writes are local-only for now. Nonlocal `project` and `sgf --write`
 are rejected; plain `sgf`, `verify`, `replay`, `play`, and `watch` can read
 nonlocal listings.
@@ -489,7 +497,7 @@ same DAG
 same canonical prefix
 same board projection
 same SGF
-same diagnostic class
+same diagnostic class for the same logical failure where observable
 ```
 
 Required invariants:

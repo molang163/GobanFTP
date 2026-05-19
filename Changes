@@ -11,14 +11,18 @@ Revision history for GobanFTP
     read-only DNS record-file admission, and WebDAV, while keeping Git publish,
     live DNS, AXFR, DNSSEC trust, provider APIs, and DNS publishing outside the
     release claim.
+  - Declare and cover the `ftp-goftp1` tmp+rename publish path with mock FTP
+    tests and optional disposable live smoke, while keeping live FTP auth, live
+    FTP integrity, and production FTP deployment safety outside the release
+    claim.
   - Add cross-substrate witness and golden-vector coverage for root equality,
     replay equality, rule failures, DAG edge cases, ACK recovery, terminal play,
     and public non-consensus poison vectors.
   - Add signed-HMAC witness acceptance, verifier-local `v1 keygen` / `v1 attest`
     operation, explicit trusted-key input, and read-only signed-HMAC overlays
     across the admitted read profiles without changing unsigned `GOFTP/1`.
-  - Add fixture publish-token semantics and default-off verifier-local publish
-    preflight for local, FTP, and WebDAV publish flows, without claiming
+  - Add fixture publish-purpose token semantics and default-off verifier-local
+    publish preflight for local, FTP, and WebDAV publish flows, without claiming
     production key lifecycle, production auth, or real writer authorization.
   - Add local `gobanftp play --tui` terminal play and read-only text, static
     HTML, and static terminal witness surfaces as non-consensus display/input

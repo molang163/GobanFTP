@@ -147,14 +147,14 @@ identity binding, public-key signing suites, revocation publication, key loss
 recovery, automatic sidecar discovery, real writer authorization, or transport
 authentication.
 
-`v1 attest` signs the currently accepted event basenames of a game for the
-signed-HMAC profile:
+`v1 attest` writes HMAC attestations for the currently accepted event basenames
+of a game for the signed-HMAC profile:
 
 ```text
 gobanftp v1 attest --profile signed-hmac-goftp1 --key <hmac-key-file> --out <attestations.jsonl> <game-root|game-descriptor>
 ```
 
-It reads the game through the normal configured store, signs only a clean
+It reads the game through the normal configured store, attests only a clean
 accepted event set for the selected game descriptor, writes public attestation
 JSONL to a new output file, and refuses to overwrite the output file. For local
 games, `--out` must be outside the game root so an attestation file cannot
@@ -181,8 +181,8 @@ Each public attestation row uses `GOFTP-HMAC-EVENT/1`, `hmac-sha256`,
 the visible event id, the public HMAC selector, and the HMAC signature. The
 private HMAC secret must not appear in the JSONL, stdout, or diagnostics.
 
-`v1 publish-token` signs one proposed event basename for new-material publish
-authorization under the signed-HMAC profile:
+`v1 publish-token` writes one verifier-local publish-purpose HMAC token for one
+proposed event basename under the signed-HMAC profile:
 
 ```text
 gobanftp v1 publish-token --profile signed-hmac-goftp1 --key <hmac-key-file> --out <publish-token.jsonl> [--key-status trusted|rotated|revoked|expired] <game-root|game-descriptor> <event-basename>
@@ -194,11 +194,11 @@ HMAC selector, profile, purpose, and algorithm. The command writes exactly one
 public JSONL token row to a new output file. For local games that already exist,
 `--out` must be outside the game root.
 
-Lifecycle status has publish-purpose semantics: only `trusted` may mint new
-publish material. `rotated`, `revoked`, and `expired` fail closed before any
-output file is written. This is a fixture/verifier-local publish authorization
-token; it does not publish the event, authorize a real writer account, change
-transport credentials, or make unsigned replay read signatures.
+Lifecycle status has publish-purpose semantics: only `trusted` may mint fixture
+publish-purpose material. `rotated`, `revoked`, and `expired` fail closed
+before any output file is written. This is a fixture/verifier-local
+publish-purpose token; it does not publish the event, authorize a real writer
+account, change transport credentials, or make unsigned replay read signatures.
 
 `v1 publish-auth` verifies a public publish token for one proposed event:
 
@@ -206,13 +206,14 @@ transport credentials, or make unsigned replay read signatures.
 gobanftp v1 publish-auth --profile signed-hmac-goftp1 --token <publish-token.jsonl> [--trusted-hmac-key <id=key>] [--trusted-hmac-key-file <hmac-key-file>] [--trusted-hmac-status <id=status>] <game-root|game-descriptor> <event-basename>
 ```
 
-The command returns `authorized` only when the token verifies under an explicit
-verifier-supplied HMAC trust input and the selector lifecycle status is
-`trusted` for publish. `rotated`, `revoked`, and `expired` are denied for new
-material. `GOFTP-TRUST/1` public `k1.` rows do not authorize signed-HMAC
-selectors, and HMAC selectors beginning with `k1.` remain rejected.
+The command returns the fixture-preflight status literal `authorized` only when
+the token verifies under an explicit verifier-supplied HMAC trust input and the
+selector lifecycle status is `trusted` for publish. `rotated`, `revoked`, and
+`expired` are denied for new material. `GOFTP-TRUST/1` public `k1.` rows do not
+authorize signed-HMAC selectors, and HMAC selectors beginning with `k1.` remain
+rejected.
 
-Successful authorization output includes:
+Successful fixture-preflight output includes:
 
 ```text
 gobanftp.v1.publish-auth=authorized
@@ -641,9 +642,10 @@ fork.
 Unknown, non-move, or non-legal targets are rejected without publishing and
 reported as `diagnostic code=ack_target_invalid ...`.
 
-When publish preflight auth is enabled, the ack candidate must be authorized by
-a token bound to the exact `a1.*` basename and visible event id before the store
-write runs. A denied ack leaves no `a1.*` event behind.
+When publish preflight auth is enabled, the ack candidate must pass this
+verifier-local token preflight with a token bound to the exact `a1.*` basename
+and visible event id before the store write runs. A denied ack leaves no `a1.*`
+event behind.
 
 ### `gobanftp play [--once|--tui] [--move <move>|--ack <event-id>] [--nonce <n>] [--publish-auth-token <publish-token.jsonl>] [--publish-auth-trusted-hmac-key-file <hmac-key-file>] <game-root|game-descriptor>`
 
@@ -680,13 +682,12 @@ TUI session. The TUI does not write projections and does not own replay truth;
 it reloads the `events/` listing and uses the same publish validation path as
 `publish-move`.
 
-Terminal compatibility is intentionally conservative: SGR mouse is enabled for
-terminals that support it, while arrow keys and `hjkl` remain the fallback in
-xterm-like terminals, iTerm2, GNOME Terminal, Kitty, Alacritty, Windows
-Terminal, `tmux`, and `ssh` sessions. When stdin or stdout is not a terminal,
-`play --tui` refuses to start instead of silently falling back to a line parser.
-This is a supported fallback design, not a cross-terminal compatibility matrix
-or terminal certification claim.
+Terminal compatibility is intentionally conservative: SGR mouse is enabled on a
+best-effort basis where available, while arrow keys and `hjkl` remain the
+fallback for xterm-compatible PTY, multiplexer, and SSH environments. When
+stdin or stdout is not a terminal, `play --tui` refuses to start instead of
+silently falling back to a line parser. This is a supported fallback design,
+not a cross-terminal compatibility matrix or terminal certification claim.
 
 With `--move`, `play` publishes exactly one move through the same pipeline as
 `publish-move`, then renders the updated board. If a concurrent publish creates

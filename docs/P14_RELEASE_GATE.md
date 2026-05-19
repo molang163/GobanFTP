@@ -16,8 +16,8 @@ tarball.
 
 The v1.0/package 1.000 source proves the listing-first boundary across local,
 FTP, read-only Git tree, read-only DNS record-file admission, WebDAV, and
-explicit signed-HMAC witness profiles. `GOFTP/1` remains descriptor-basename
-plus direct `events/` basename consensus.
+explicit verifier-local signed-HMAC witness profiles. `GOFTP/1` remains
+descriptor-basename plus direct `events/` basename consensus.
 
 ## Final Source Gates
 
@@ -87,20 +87,21 @@ make distcheck
 - `MANIFEST` is expected to include release docs, fixtures, test gates, and
   public vectors while excluding local resume notes, build residue, nested
   distributions, and VCS internals.
-- Live FTP tests are optional unless the external release record claims live FTP
-  coverage; the shipped proof is mock FTP plus the local smoke path when live
-  FTP is skipped.
+- FTP publish coverage for v1.0 is mock/CLI coverage of the declared
+  `ftp-goftp1` tmp+rename path; `script/live-ftp-smoke` is optional disposable
+  live smoke coverage.
 - Optional `Inline::C` acceleration may be present or skipped; the Perl rules
   engine remains the release proof path.
 
 ## Deferred Claims
 
 v1.0/package 1.000 does not claim Git publish, Git remote fetch, live FTP auth,
-live FTP integrity, FTP publish behavior, live DNS, AXFR, DNSSEC trust, provider
-API support, dynamic update, DNS record publishing, hosted Web UI, production
-key lifecycle completion, publish auth completion, real writer authorization,
-complete JSON output for every command, complete signed/auth diagnostics
-coverage, complete public attack coverage, or final scoring/result events.
+live FTP integrity, production FTP deployment safety, live DNS, AXFR, DNSSEC
+trust, provider API support, dynamic update, DNS record publishing, hosted Web
+UI, production key lifecycle completion, publish auth completion, real writer
+authorization, complete JSON output for every command, complete signed/auth
+diagnostics coverage, complete public attack coverage, or final scoring/result
+events.
 
 Read-only Git tree and DNS record-file admission are implemented runtime read
 boundaries. Static HTML and static terminal witness output are read-only

@@ -520,8 +520,9 @@ ids, recompute `event_set_root`, run replay or rules, hash projection text, or
 decide signed profile acceptance.
 
 `GobanFTP::Surface::WitnessView` is the first module on this boundary. It can
-render plain text and static HTML for inspection, and tests force the consensus
-entry points to fail while the renderer still works from supplied data.
+render plain text, static HTML, and static terminal observatory output for
+inspection, and tests force the consensus entry points to fail while the
+renderer still works from supplied data.
 
 Reason:
 

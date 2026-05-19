@@ -171,14 +171,14 @@ output digests as reader-facing proof artifacts. It is not a hosted Web UI and
 is separate from the local `play --tui` input surface; neither surface adds any
 input to replay truth.
 
-## v1.0 Surface Gate
+## v1.0 Surface Evidence
 
-Before v1.0 release, source-art work should demonstrate:
+The v1.0 release-source boundary demonstrates:
 
 ```text
 one strong altar/goban source wrapper
 one witness/root motif in generated projection or static viewer
-one terminal or Web observatory surface
+one terminal and Web observatory surface
 one hidden arch-gate easter egg, currently placed in `oracle/goban.pl`
 tests proving source-art changes cannot alter protocol truth
 ```

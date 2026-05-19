@@ -46,7 +46,7 @@ subtest 'release-state guardrails are explicit' => sub {
         'README separates static witness surfaces from hosted Web UI and local TUI input');
     _like('README.md', qr/DNS\s+admission does not query live DNS, run AXFR, trust\s+DNSSEC, call provider APIs,\s+or publish records[.]/,
         'README keeps DNS admission read-only and non-live');
-    _like('README.md', qr/The FTP listing-shadow vector does not claim live FTP, `RETR`, `SIZE`, `MDTM`,\nFTP auth, FTP integrity, or FTP publish behavior[.]/,
+    _like('README.md', qr/FTP listing-shadow public poison-vector coverage is fixture\/listing evidence\nonly[.] It does not claim `RETR`, `SIZE`, `MDTM`, live FTP auth, live FTP\nintegrity, or production FTP deployment safety[.]/,
         'README keeps FTP listing-shadow evidence fixture-bound');
     _like('docs/P14_RELEASE_GATE.md',
         qr/^Status: final v1[.]0\/package 1[.]000 release-source evidence[.]$/m,
@@ -64,7 +64,7 @@ subtest 'release-state guardrails are explicit' => sub {
         qr/^### Completed\n.*^### Deferred\n.*^### Next$/ms,
         'roadmap current status is split into Completed, Deferred, and Next');
     _like('docs/ROADMAP.md',
-        qr/Git publish, Git remote fetch, live FTP auth, live FTP integrity,\s+FTP publish\s+behavior, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic\s+update, DNS\s+record publishing, hosted Web UI, production key lifecycle\s+completion, publish\s+auth completion,/,
+        qr/Git publish, Git remote fetch, live FTP auth, live FTP integrity,\s+production\s+FTP deployment safety, live DNS, AXFR, DNSSEC trust, provider APIs,\s+dynamic\s+update, DNS\s+record publishing, hosted Web UI, production key lifecycle\s+completion, publish\s+auth completion,/,
         'roadmap keeps deferred capabilities outside the final v1.0 claim');
 };
 
@@ -104,7 +104,8 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'local, FTP, Git-tree, DNS-record, and WebDAV runtime read paths are implemented',
         'Git-tree and DNS-record runtime paths are read-only',
         'WebDAV publish uses zero-byte tmp resource, MOVE, and fresh PROPFIND confirmation',
-        'FTP listing-shadow public poison-vector evidence is fixture/listing evidence only, not live FTP, RETR, SIZE, MDTM, auth, integrity, or publish behavior',
+        'ftp-goftp1 tmp+rename publish path is implemented and declared with mock coverage plus optional disposable live FTP smoke coverage',
+        'FTP listing-shadow public poison-vector evidence is fixture/listing evidence only, not live FTP, RETR, SIZE, MDTM, auth, integrity, or production FTP deployment safety',
         'diagnostics registry is the v1 source for diagnostic code/class/required/optional/human meaning',
         'storage diagnostic class is active for storage-boundary failures even when current CLI storage failures use exit 4 and storage: stderr',
         'minimal JSON/JSONL evidence covers witness/schema/diagnostic records only, not complete JSON output for every command',
@@ -202,7 +203,9 @@ subtest 'forbidden claims appear only in guarded contexts' => sub {
         [qr/\bFTP integrity\b.*\b(?:implemented|complete|ready|supported)\b/i,
             'FTP integrity support'],
         [qr/\bFTP publish behavior\b.*\b(?:implemented|complete|ready|supported)\b/i,
-            'FTP publish support'],
+            'broad FTP publish support'],
+        [qr/\bproduction FTP deployment safety\b.*\b(?:complete|implemented|ready|supported|shipped|landed|done)\b/i,
+            'production FTP deployment safety'],
         [qr/\bproduction key lifecycle\b.*\b(?:complete|implemented|ready|supported|shipped|landed|done)\b/i,
             'production key lifecycle completion'],
         [qr/\bproduction auth\b.*\b(?:complete|implemented|ready|supported|shipped|landed|done)\b/i,

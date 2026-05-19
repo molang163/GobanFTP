@@ -53,7 +53,8 @@ rows, or transport metadata replay inputs. DNS owner labels are used only for
 current-game record scoping, not as replay truth. These vectors do not claim
 Git publish or remote fetch support,
 live DNS, AXFR, DNSSEC trust, provider APIs, dynamic update, DNS record
-publishing, live FTP, or FTP publish behavior.
+publishing, live FTP auth, live FTP integrity, or production FTP deployment
+safety.
 
 `v1-dag-invariants.jsonl` freezes DAG-boundary outcomes that cannot accurately be
 expressed as ordinary public replay basenames. Its event-id collision row uses

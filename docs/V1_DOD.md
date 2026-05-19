@@ -150,13 +150,14 @@ The current publish-purpose fixture layer may write and verify one
 `GOFTP-HMAC-PUBLISH/1` token for one proposed event basename. It must bind
 profile, purpose, algorithm, game descriptor, exact event basename, visible
 event id, and HMAC selector. Only `trusted` verifier-local HMAC selectors may
-authorize new publish material; `rotated`, `revoked`, and `expired` must fail
-closed before token acceptance, token minting, or an explicitly gated store
-write. `publish-move`, `publish-ack`, `play --move`, `play --ack`, and
-`play --tui` may opt into this default-off preflight after candidate replay
-validation and before `publish_event_name`. This fixture layer must not be
-described as production writer authorization, transport authentication, account
-identity binding, automatic sidecar discovery, or publish auth completion.
+pass the fixture publish-purpose check for new material; `rotated`, `revoked`,
+and `expired` must fail closed before token acceptance, token minting, or an
+explicitly gated store write. `publish-move`, `publish-ack`, `play --move`,
+`play --ack`, and `play --tui` may opt into this default-off preflight after
+candidate replay validation and before `publish_event_name`. This fixture layer
+must not be described as production writer authorization, transport
+authentication, account identity binding, automatic sidecar discovery, or
+publish auth completion.
 
 The signed-HMAC overlay must compose with every admitted read substrate. Given
 the same game descriptor, equivalent normalized event basenames, public
@@ -417,10 +418,12 @@ freezes a mismatched `GOFTP-HMAC-PUBLISH/1` token denial with
 unsigned truth. These signed/auth rows are fixture and golden-vector evidence
 only: they are not production writer authorization, complete production key
 lifecycle, or publish-auth completion. The final v1.0 claim audit keeps
-`git-tree-goftp1` and `dns-record-goftp1` read-only. No Git publish, no live
-FTP auth, no live FTP integrity, no FTP publish behavior, no live DNS, no AXFR,
-no DNSSEC trust, no provider APIs, no dynamic update, and no DNS record
-publishing are claimed there.
+`git-tree-goftp1` and `dns-record-goftp1` read-only. The `ftp-goftp1`
+tmp+rename publish path is declared and implemented with mock coverage plus
+optional disposable live smoke. No Git publish, no live FTP auth, no live FTP
+integrity, no production FTP deployment safety, no live DNS, no AXFR, no DNSSEC
+trust, no provider APIs, no dynamic update, and no DNS record publishing are
+claimed there.
 
 ## Release Gates
 
@@ -464,13 +467,14 @@ the gate report is evidence for the package 1.000 source identity.
 Any P14 source refresh after Git-tree or DNS-record runtime admission, or after
 a public poison-vector refresh such as FTP listing-shadow, must audit the
 release text against the current HEAD. Runtime read admission still does not
-imply publish support, live FTP auth, live FTP integrity, FTP publish behavior,
-live DNS, AXFR, DNSSEC trust, provider API support, dynamic update, DNS record
-publishing, hosted Web UI, cross-terminal TUI compatibility completion,
-production key lifecycle completion, or publish auth completion.
+imply additional publish support beyond the declared local, `ftp-goftp1`, and
+WebDAV paths. It does not imply live FTP auth, live FTP integrity, production
+FTP deployment safety, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic
+update, DNS record publishing, hosted Web UI, cross-terminal TUI compatibility
+completion, production key lifecycle completion, or publish auth completion.
 
 The release identity, external artifact hash record, and tag procedure are
-planned in `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`. The final tarball hash
+recorded in `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`. The final tarball hash
 must be recorded outside source files that are included in the distribution
 archive.
 

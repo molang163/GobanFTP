@@ -141,10 +141,10 @@ GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make disttest
 make distcheck
 ```
 
-If live FTP is included in an external release claim, also run
-`script/live-ftp-smoke` against its disposable localhost server. If it is
-skipped, the release record must say that mock FTP plus the local smoke path are
-the shipped proof.
+The release claim for FTP publish is mock/CLI coverage of the declared
+`ftp-goftp1` tmp+rename path. Optionally run `script/live-ftp-smoke` against
+its disposable localhost server and record run/skipped; do not turn that into a
+live FTP auth, live FTP integrity, or production deployment-safety claim.
 
 ## External Artifact Record
 
@@ -180,7 +180,8 @@ event_set_root is frozen across accepted event basenames
 local, FTP, Git-tree, DNS-record, and WebDAV runtime read paths are implemented
 Git-tree and DNS-record runtime paths are read-only
 WebDAV publish uses zero-byte tmp resource, MOVE, and fresh PROPFIND confirmation
-FTP listing-shadow public poison-vector evidence is fixture/listing evidence only, not live FTP, RETR, SIZE, MDTM, auth, integrity, or publish behavior
+ftp-goftp1 tmp+rename publish path is implemented and declared with mock coverage plus optional disposable live FTP smoke coverage
+FTP listing-shadow public poison-vector evidence is fixture/listing evidence only, not live FTP, RETR, SIZE, MDTM, auth, integrity, or production FTP deployment safety
 diagnostics registry is the v1 source for diagnostic code/class/required/optional/human meaning
 storage diagnostic class is active for storage-boundary failures even when current CLI storage failures use exit 4 and storage: stderr
 minimal JSON/JSONL evidence covers witness/schema/diagnostic records only, not complete JSON output for every command

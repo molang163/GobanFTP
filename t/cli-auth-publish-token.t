@@ -92,7 +92,7 @@ subtest 'v1 publish-auth verifies a publish token and lifecycle status' => sub {
         $event,
     );
 
-    is $exit, 2, 'rotated key cannot authorize new publish material';
+    is $exit, 2, 'rotated key cannot pass new-material publish preflight';
     like $stdout, qr/^gobanftp[.]v1[.]publish-auth=denied$/m, 'rotated token is denied';
     like $stdout, qr/^diagnostic_codes=untrusted_signature$/m,
         'rotated token reports trust diagnostic code';
