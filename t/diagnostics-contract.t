@@ -6,12 +6,19 @@ use FindBin;
 use File::Path qw(make_path);
 use File::Spec;
 use File::Temp qw(tempdir);
+use JSON::PP ();
 use Test::More;
 
 use lib "$FindBin::Bin/../lib";
 
 use GobanFTP::CLI;
-use GobanFTP::Diagnostics qw(default_diagnostics_schema);
+use GobanFTP::Diagnostics qw(
+    default_diagnostics_schema
+    diagnostic_class
+    diagnostic_registry
+    diagnostic_schema_json
+    explain_diagnostic
+);
 
 my $docs_path = "$FindBin::Bin/../docs/DIAGNOSTICS.md";
 my $fixture_dir = "$FindBin::Bin/fixtures/e2e";
@@ -22,7 +29,7 @@ my @allowed_fields = qw(
     profile_id reason signature_id stage target_id target_kind trust_set_id
 );
 
-my @allowed_classes = qw(parse event-id dag rules fork signature);
+my @allowed_classes = qw(parse event-id dag rules fork signature storage);
 
 my @stdout_fields = qw(
     algorithm attestations board canonical_ids canonical_moves event event_id
@@ -100,10 +107,68 @@ subtest 'diagnostics document defines emitted fields and secret policy' => sub {
 
     my @default_schema = @{ default_diagnostics_schema() };
     is_deeply(
-        [map { +{ code => $_->{code}, selector => $_->{selector}, class => $_->{class} } } @default_schema],
-        [map { +{ code => $_->{code}, selector => $_->{selector}, class => $_->{class} } } @schema],
-        'built-in diagnostics schema matches docs',
+        [
+            map {
+                +{
+                    code     => $_->{code},
+                    selector => $_->{selector},
+                    class    => $_->{class},
+                    required => $_->{required},
+                    optional => $_->{optional},
+                }
+            } @default_schema
+        ],
+        [
+            map {
+                +{
+                    code     => $_->{code},
+                    selector => $_->{selector},
+                    class    => $_->{class},
+                    required => $_->{required},
+                    optional => $_->{optional},
+                }
+            } @schema
+        ],
+        'built-in diagnostics registry matches docs schema fields',
     );
+
+    for my $row (@default_schema) {
+        ok defined($row->{explanation}) && $row->{explanation} ne '',
+            "registry row has human explanation: $row->{code}/$row->{selector}";
+        ok defined($row->{hint}) && $row->{hint} ne '',
+            "registry row has operator hint: $row->{code}/$row->{selector}";
+    }
+};
+
+subtest 'diagnostics registry exposes JSON, explanations, and storage class' => sub {
+    my $registry = diagnostic_registry();
+    ok grep({ $_->{code} eq 'storage' && $_->{class} eq 'storage' } @$registry),
+        'storage diagnostic code is in the active registry';
+    ok grep({ $_->{code} eq 'transport_stale' && $_->{class} eq 'storage' } @$registry),
+        'transport_stale diagnostic code is in the active registry';
+    ok grep({ $_->{code} eq 'publish_pending' && $_->{class} eq 'storage' } @$registry),
+        'publish_pending diagnostic code is in the active registry';
+    ok grep({ $_->{code} eq 'shadow_poisoned' && $_->{class} eq 'storage' } @$registry),
+        'shadow_poisoned diagnostic code is in the active registry';
+
+    is diagnostic_class({ code => 'storage', error => 'read_only' }), 'storage',
+        'storage diagnostics classify without an explicit schema';
+    like explain_diagnostic({ code => 'fork', parent_id => 'root', child_ids => ['a', 'b'] }),
+        qr/\Afork: Multiple legal child moves compete/,
+        'fork diagnostics have a human explanation';
+    like explain_diagnostic({ code => 'parse_event', name => 'm1.bad', error => 'event_id.mismatch' }),
+        qr/\Aparse_event: The event basename failed event-id validation[.]\z/,
+        'selector-specific explanations are available';
+
+    my $json = diagnostic_schema_json($registry);
+    my $decoded = JSON::PP->new->decode($json);
+    is ref($decoded), 'ARRAY', 'registry JSON encodes an array';
+    ok grep({ $_->{code} eq 'storage' && $_->{class} eq 'storage' } @$decoded),
+        'registry JSON preserves storage code';
+
+    $registry->[0]{class} = 'mutated';
+    is diagnostic_registry()->[0]{class}, 'event-id',
+        'diagnostic_registry returns a deep clone';
 };
 
 subtest 'CLI diagnostics use documented fields and do not echo ignored secrets' => sub {
@@ -290,7 +355,7 @@ sub _schema_fields {
 sub _known_codes {
     my ($docs) = @_;
 
-    my ($block) = $docs =~ /Known `code` values include:\n\n```text\n(.*?)\n```/s;
+    my ($block) = $docs =~ /The v1 diagnostic code registry includes:\n\n```text\n(.*?)\n```/s;
     die 'known code block not found' if !defined $block;
     return grep { /\S/ } split /\n/, $block;
 }

@@ -238,9 +238,15 @@ trust_set_id     public trust-set label when one is configured
 
 ## Diagnostic Schema
 
-The schema below is machine-readable by tests. `selector` refines a code when a
-single code can report different logical classes. `required` and `optional` are
-comma-joined stderr fields. A dash means no fields.
+The registry below is the v1 source for diagnostic codes, selectors, classes,
+required fields, optional fields, and the human meaning recorded in this
+document. Tests and witness code may parse the fenced `diagnostic-schema`
+block, but Web, TUI, source-art, C, and asm-like surfaces do not own or revise
+diagnostic meaning.
+
+`selector` refines a code when a single code can report different logical
+classes. `required` and `optional` are comma-joined stderr fields. A dash means
+no fields.
 
 ```diagnostic-schema
 code|selector|class|required|optional
@@ -271,6 +277,10 @@ missing_signature|*|signature|code,profile_id,name,event_id|-
 wrong_signature|*|signature|code,profile_id,name,event_id,key_id,reason|-
 untrusted_signature|*|signature|code,profile_id,name,event_id,key_id,reason|trust_set_id
 malformed_signature|*|signature|code,profile_id,signature_id,reason|-
+storage|*|storage|code,error|stage
+transport_stale|*|storage|code,error|stage
+publish_pending|*|storage|code,error|stage,name,event_id
+shadow_poisoned|*|storage|code,error|stage,name
 ```
 
 Current classes are:
@@ -282,11 +292,73 @@ dag
 rules
 fork
 signature
+storage
 ```
 
-`storage` is a reserved v1 diagnostic class. Signed/auth witness gates use the
-`signature` class. Unsigned replay commands do not emit signature diagnostics,
-because unsigned profiles ignore sidecar auth material.
+Class meanings:
+
+```text
+parse      malformed public input before event-id, DAG, or rules semantics
+event-id   filename-context event-id mismatch or collision
+dag        parent, target, or graph-shape failure
+rules      legal-play or ruleset failure after DAG construction
+fork       valid competing child line discovered during replay
+signature  signed/auth profile acceptance failure
+storage    storage, environment, or write-boundary failure outside replay truth
+```
+
+`storage` is an active v1 diagnostic class for storage-boundary failures, even
+when the current CLI reports those failures as exit code `4` with `storage: ...`
+stderr rather than as keyed `diagnostic ...` lines. A future keyed storage
+diagnostic must add its code, required fields, optional fields, and meaning to
+this registry before it is used as release evidence. Signed/auth witness gates
+use the `signature` class. Unsigned replay commands do not emit signature
+diagnostics, because unsigned profiles ignore sidecar auth material.
+
+Diagnostic code meanings:
+
+```text
+parse_event             event basename could not be parsed or verified
+parse_game_descriptor   game descriptor basename could not be parsed
+parse_public_key        public key fixture row could not be parsed
+parse_hmac_key          verifier-local HMAC key file could not be parsed
+parse_publish_token     publish token row could not be parsed
+parse_trust             public trust fixture row could not be parsed
+invalid_event_item      in-memory replay item is not a valid event object
+event_id_collision      two parsed events share the same visible event id
+missing_parent          a move names a parent id absent from the event set
+parent_not_move         a move names an ACK or other non-move as parent
+cycle                   event parent links form a cycle
+dangling_ack_target     an ACK names a target id absent from the event set
+ack_target_not_move     an ACK target is not a move event
+ack_target_invalid      an ACK target failed validation before recovery
+wrong_color             move color disagrees with the expected turn color
+wrong_player            move or ACK player disagrees with the rules contract
+wrong_ply               move ply disagrees with the expected ply
+illegal_move            move point, pass, resign, ko, or terminal rule failed
+parent_not_legal        a move extends a parent outside the legal line
+ack_wrong_player        ACK was made by a player not allowed to acknowledge
+rules                   ruleset-level parser or engine failure
+fork                    multiple valid child moves exist under one parent
+missing_signature       signed profile required a usable attestation but none matched
+wrong_signature         trusted attestation did not verify the canonical payload
+untrusted_signature     attestation key id was outside the verifier trust set or lifecycle
+malformed_signature     signature record was not in the declared profile format
+storage                 storage operation failed outside replay truth
+transport_stale         read-back did not show the expected transport state
+publish_pending         publish final visibility is not confirmed
+shadow_poisoned         ignored shadow material attempted to influence replay
+```
+
+## Minimal JSON Envelope
+
+The v1 JSON/JSONL evidence claim is deliberately narrow. JSON rows used by
+witness and vector fixtures may carry witness fields, schema-derived diagnostic
+codes/classes, and diagnostic objects whose fields are governed by this
+registry. This does not declare a complete JSON mode or complete JSON schema for
+every CLI command. The stable command surface remains the documented key/value
+stdout, `diagnostic ...` stderr, `storage: ...` stderr, exit codes, and the
+explicit fixture JSONL files named by tests.
 
 Signature diagnostic codes:
 
@@ -337,7 +409,7 @@ diagnostic code=parse_event name=<event-basename> error=event.version
 The unknown event name stays public and visible in diagnostics, but it is not
 included in DAG or rule replay.
 
-Known `code` values include:
+The v1 diagnostic code registry includes:
 
 ```text
 ack_target_invalid
@@ -357,9 +429,14 @@ parent_not_move
 parse_event
 parse_game_descriptor
 parse_hmac_key
+parse_publish_token
 parse_public_key
 parse_trust
+publish_pending
 rules
+shadow_poisoned
+storage
+transport_stale
 untrusted_signature
 wrong_signature
 wrong_color

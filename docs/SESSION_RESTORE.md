@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- feat: close diagnostics registry contract
 - feat: add hmac publish token semantics
 - feat: add signed hmac substrate overlay
 - feat: add signed hmac operation layer
@@ -113,12 +114,21 @@ Current state after the v1.0 final-candidate identity switch:
   restores the terminal and writes no event, and Git-tree/DNS-record publish
   attempts keep verifier-local auth denial separate from read-only store
   rejection.
+- P21a documentation clarifies the diagnostics registry claim: the
+  `diagnostic-schema` block plus nearby prose in `docs/DIAGNOSTICS.md` is the
+  v1 source for code, class, required fields, optional fields, and human
+  meaning. `storage` is an active class for storage-boundary failures, not only
+  a reserved future class. JSON/JSONL evidence is limited to witness, schema,
+  and diagnostic fixture rows; there is no all-command JSON-complete claim.
+  Web, TUI, source-art, C, and asm-like surfaces still cannot own replay or
+  diagnostic truth.
 - Previous HEAD `test: add bad signature vector and dist hygiene gate` added
   the `bad-signature` public poison vector and dist manifest hygiene gate.
 
 ## Recent Completed Work
 
 ```text
+HEAD feat: close diagnostics registry contract
 HEAD test: harden publish auth preflight coverage
 HEAD feat: add publish auth preflight gate
 HEAD feat: add hmac publish token semantics
@@ -399,15 +409,18 @@ Key completed boundaries:
 
 ## Last Verified
 
-Latest local verification after P20c publish preflight behavior coverage:
+Latest local verification after P21a diagnostics registry closure:
 
 ```text
-perl -Ilib -c t/publish-auth-preflight.t
+perl -Ilib -c lib/GobanFTP/Diagnostics.pm
+perl -Ilib -c lib/GobanFTP/TUI/Play.pm
+perl -Ilib -c t/diagnostics-contract.t
 perl -Ilib -c t/tui-play.t
-perl -Ilib -c t/store-git-tree.t
-perl -Ilib -c t/dns-cli-parity.t
+perl -Ilib -c t/p14-claim-audit.t
 prove -lr t/publish-auth-preflight.t t/tui-play.t t/store-git-tree.t t/dns-cli-parity.t t/ftp-cli-parity.t t/webdav-cli-parity.t t/diagnostics-contract.t t/p14-claim-audit.t
 prove -lr t/cli-auth-hmac.t t/v1-cli-witness.t t/v1-signed-hmac.t t/v1-signed-hmac-overlay.t t/profile-signed-hmac.t t/hmac-auth.t
+prove -lr t/diagnostics-contract.t t/tui-play.t t/p14-claim-audit.t t/witness-api.t t/v1-cross-substrate.t t/cli-auth-publish-token.t t/auth-publish-token.t t/publish-auth-preflight.t
+prove -lr t/v1-golden-vectors.t t/v1-signed-hmac-golden-vectors.t t/v1-cli-witness-surface.t t/v1-cli-witness-surface-golden.t t/showcase-demo.t t/source-art.t
 prove -lr t
 git diff --check
 perl -MExtUtils::Manifest=fullcheck -e 'fullcheck()'
@@ -416,8 +429,9 @@ perl -MExtUtils::Manifest=fullcheck -e 'fullcheck()'
 Result:
 
 ```text
-P20c targeted checks: PASS.
-Full prove: Files=82, Tests=1097, all successful.
+P21a targeted checks: PASS.
+P21a witness/surface golden checks: PASS.
+Full prove: Files=82, Tests=1099, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -603,21 +617,26 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 - `event_set_root` is a witness commitment over accepted direct event basenames.
 - Signed/auth behavior is explicit profile behavior and must not change unsigned
   `GOFTP/1`.
-- Source art, TUI, Web, Inline::C, and asm-like surfaces cannot own truth.
+- `docs/DIAGNOSTICS.md` is the diagnostics registry for v1 code/class/fields
+  and human meaning; storage-boundary failures are storage-class failures.
+- JSON/JSONL fixture evidence is minimal witness/schema/diagnostic evidence,
+  not a complete JSON surface for every command.
+- Source art, TUI, Web, Inline::C, and asm-like surfaces cannot own truth or
+  diagnostic meaning.
 
 ## Next Step
 
 Immediate next implementation:
 
 ```text
-after P20c publish preflight behavior coverage:
+after P21a diagnostics registry closure:
 - keep `GOFTP-HMAC-PUBLISH/1` as verifier-local fixture publish-auth semantics;
   it is not real writer access, transport auth, or production key lifecycle
 - unsigned `GOFTP/1` and default `publish-move`, `publish-ack`, and `play`
   paths still do not read auth material
-- likely next v1.0-completeness slice is the final stable clean-checkout matrix
-  or a narrowly scoped diagnostics/doc polish if a release claim audit finds a
-  wording gap
+- likely next v1.0-completeness slice is P21b: tighten signed/auth mismatch
+  diagnostics and public attack/vector coverage without changing unsigned
+  `GOFTP/1`
 - do not tag v1.0 until the final claim audit passes, the final stable
   clean-checkout matrix passes, and the external artifact record is attached
 - do not let display, source art, Web assets, terminal formatting, or interactive

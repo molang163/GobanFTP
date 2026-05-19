@@ -241,7 +241,8 @@ diagnostics class.
 ## Implementation Boundaries
 
 Source art is a ritual surface. C is a mechanics implementation. Assembly, Web
-views, and TUI views are skins or accelerators. None of them owns truth.
+views, and TUI views are skins or accelerators. None of them owns truth or the
+diagnostics registry.
 
 The following must not change `event_set_root`, replay, rule legality, SGF, or
 diagnostics class:
@@ -300,7 +301,8 @@ message text.
 Minimum diagnostics requirements:
 
 ```text
-machine-readable diagnostics schema
+diagnostics registry as the v1 source for code/class/required/optional/human meaning
+machine-readable diagnostic-schema block
 per-code required fields
 per-code optional fields
 stable class for parse failures
@@ -309,12 +311,25 @@ stable class for DAG failures
 stable class for rules failures
 stable class for substrate failures
 stable class for signature failures
+active storage class for storage-boundary failures
 stable redaction requirements
 golden stdout/stderr fixtures for CLI paths
+minimal witness/schema/diagnostic JSONL evidence only
 ```
 
 Two substrates may emit different low-level detail, but they must agree on the
 diagnostics class for the same logical failure.
+
+The registry in `docs/DIAGNOSTICS.md` is the normative diagnostics source for
+v1.0. `storage` is not merely a reserved word: storage, environment, read-only
+store, and write-boundary failures are storage-class failures even where the
+current CLI exposes them as exit code `4` plus `storage: ...` stderr instead of
+keyed `diagnostic ...` lines.
+
+JSON/JSONL evidence is limited to witness rows, schema-derived diagnostic
+codes/classes, and diagnostic objects used by the v1 fixture/vector proof. It
+does not claim a complete JSON output mode or full JSON schema for every
+command.
 
 ## Golden Vectors
 

@@ -143,6 +143,34 @@ subtest 'renderer exposes board state without deriving truth' => sub {
     is $layout->{first_cell_row} > 1, 1, 'renderer returns a terminal hit-test layout';
 };
 
+subtest 'renderer uses diagnostics registry text for validation state' => sub {
+    my $board = GobanFTP::Board->new(9);
+    my $context = _fake_context($board);
+    $context->{replay_result}{diagnostics} = [
+        {
+            code      => 'illegal_move',
+            event_id  => 'deadbeefdeadbeef',
+            parent_id => 'genesis',
+            reason    => 'occupied',
+        },
+    ];
+
+    my ($frame) = render_play_frame(
+        context => $context,
+        cursor  => [0, 0],
+        ansi    => 0,
+    );
+
+    like $frame, qr/^status=validation events=1 accepted=1 canonical=1$/m,
+        'validation state comes from the shared diagnostics replay status';
+    like $frame,
+        qr/^verdict=Validation blocked: illegal_move: The rules engine rejected the move[.]$/m,
+        'validation verdict uses registry explanation text';
+    like $frame,
+        qr/^diagnostics=illegal_move: The rules engine rejected the move[.]$/m,
+        'diagnostics line uses registry explanation text';
+};
+
 subtest 'scripted TUI run locks after one publish' => sub {
     my $board = GobanFTP::Board->new(9);
     my $context = _fake_context($board);

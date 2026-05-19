@@ -244,7 +244,7 @@ sub render_play_frame {
         'turn=' . $turn . ' cursor=' . $cursor_point,
     );
     push @lines, 'message=' . _single_line($args{message}) if defined($args{message}) && $args{message} ne '';
-    push @lines, 'diagnostics=' . join(',', map { $_->{code} // 'unknown' } @diagnostics) if @diagnostics;
+    push @lines, 'diagnostics=' . join(',', map { _diagnostic_text($_) } @diagnostics) if @diagnostics;
     push @lines, 'keys=arrows/hjkl move  enter/click play  p pass  R resign  r refresh  q quit';
     push @lines, '';
 
@@ -560,10 +560,24 @@ sub _verdict_text {
     return 'Fork detected; no move will publish until it is resolved'
         if $status eq 'fork';
 
-    my @codes = map { $_->{code} // 'unknown' } grep { ref($_) eq 'HASH' } @diagnostics;
-    return @codes
-        ? 'Validation blocked: ' . join(',', @codes)
+    my @texts = map { _diagnostic_text($_) } grep { ref($_) eq 'HASH' } @diagnostics;
+    return @texts
+        ? 'Validation blocked: ' . join(',', @texts)
         : 'Validation blocked';
+}
+
+sub _diagnostic_text {
+    my ($diagnostic) = @_;
+    require GobanFTP::Diagnostics;
+    my $explain = GobanFTP::Diagnostics->can('explain_diagnostic');
+    if ($explain) {
+        my $text = $explain->($diagnostic);
+        return _single_line($text) if defined($text) && $text ne '';
+    }
+
+    return ref($diagnostic) eq 'HASH'
+        ? ($diagnostic->{code} // 'unknown')
+        : 'unknown';
 }
 
 sub _stone_glyph {
@@ -574,8 +588,8 @@ sub _stone_glyph {
 sub _status_for_result {
     my ($result) = @_;
     my @diagnostics = _diagnostics($result);
-    return 'ok' if !@diagnostics;
-    return (grep { ($_->{code} // '') ne 'fork' } @diagnostics) ? 'failed' : 'fork';
+    require GobanFTP::Diagnostics;
+    return GobanFTP::Diagnostics::replay_status(\@diagnostics);
 }
 
 sub _canonical_ids {

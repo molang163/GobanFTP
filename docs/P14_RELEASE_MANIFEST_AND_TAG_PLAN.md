@@ -308,6 +308,9 @@ local, FTP, Git-tree, DNS-record, and WebDAV runtime read paths are implemented
 Git-like and DNS-like fixture/read-normalizer proofs remain present
 FTP listing-shadow public poison-vector evidence is fixture/listing evidence
 only, not live FTP, RETR, SIZE, MDTM, auth, integrity, or publish behavior
+diagnostics registry is the v1 source for diagnostic code/class/required/optional/human meaning
+storage diagnostic class is active for storage-boundary failures even when current CLI storage failures use exit 4 and storage: stderr
+minimal JSON/JSONL evidence covers witness/schema/diagnostic records only, not complete JSON output for every command
 signed-hmac-goftp1 has an explicit per-event HMAC acceptance gate
 v1 keygen and v1 attest provide verifier-local signed-HMAC operation support without changing unsigned replay
 signed-HMAC cross-substrate overlay proves signed acceptance invariance across admitted read profiles with explicit verifier-local HMAC trust input
@@ -320,6 +323,7 @@ public key and trust fixture reports are advisory outside signed profiles
 text, static HTML, and static terminal witness surfaces are read-only displays
 local play --tui keyboard/mouse input is implemented as a non-consensus input/display layer over existing publish callbacks
 source art is runnable and non-consensus
+source art, Web, TUI, C, and asm-like surfaces do not own replay truth or diagnostics truth
 the arch-gate motif is comment-only source art, not witness output or protocol input
 P14/v1.0 final candidate is active
 v1.0 remains unreleased until the final release-freeze matrix passes
@@ -350,6 +354,8 @@ fixture-ed25519-v1 is a production signing suite
 production publish signing or authorization is implemented
 final scoring/result events are part of GOFTP/1
 source art, Web, TUI, C, or asm-like surfaces own replay truth
+JSON output is complete for every command
+Web, TUI, source art, C, or asm-like surfaces define diagnostic meaning
 the arch-gate motif claims Arch Linux affiliation, endorsement, package
 identity, project logo, protocol name, profile id, or release artifact identity
 ```
