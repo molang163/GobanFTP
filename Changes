@@ -3,6 +3,10 @@ Revision history for GobanFTP
 1.000_001  Not yet released
   - Began v1.0/P14 development after skipping the public v0.2 / package 0.002
     release candidate.
+  - Recorded a fresh clean-checkout `1.000_001` development-freeze matrix for
+    commit e1c8b4036ce9bf2260455b0aa0834df544393845 after the source-art
+    arch-gate, bad-signature public poison vector, and dist hygiene gate landed;
+    this remains development evidence only, not a final stable v1.0 artifact.
   - Added a core `bad-signature` attack fixture and public non-consensus poison
     vector proving unsigned `GOFTP/1` ignores invalid sidecar signatures while
     preserving the same root, replay, board projection, and SGF truth.

@@ -143,29 +143,45 @@ publication event.
 
 ## Current Development Freeze Clean-Checkout Check
 
-After the current claim audit, the development freeze matrix from
-`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` passed from a fresh clean checkout:
+After the source-art arch-gate, bad-signature poison vector, and distribution
+hygiene gate landed, the development freeze matrix from
+`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` passed again from a fresh clean
+checkout:
 
 ```text
 Date: 2026-05-19
-Candidate commit: a7631497ac990e9622102176e322d449f125aaed
+Candidate commit: e1c8b4036ce9bf2260455b0aa0834df544393845
 Documentation record commit: post-run record, not tested tarball source
-Worktree: /tmp/gobanftp-p14-freeze.zvZuPv (removed)
+Worktree: /tmp/gobanftp-p14-current.kfuVD5/worktree (removed)
+Logs: /tmp/gobanftp-p14-current.kfuVD5/logs
 Perl: v5.42.2
 Matrix: PASS
 Dist: GobanFTP-1.000_001.tar.gz
-sha256=a39b5355722a787609d7a044a56699ea42a8f163d7a8a619a53d72954141cd17
-size=323082 bytes
-tar entries=776
-MANIFEST sha256=a05116c72bc0efc1349deb435e5c3e010f4af326d452789ac593005c63b473dd
+sha256=6b88fb2118dd6776f71319e69c3643ee72891a80152aee5e6f10cc5d8e9251bd
+size=323764 bytes
+tar entries=783
+MANIFEST sha256=8ee3efb34417baa521a1f620e8761fe56cc266d346cd2324fe431457f9646bc2
+minimal event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461
 Live FTP: skipped; GOBANFTP_FTP_TEST was not set
 Inline::C: source-art optional path reported inline_c=skip
 ```
+
+The tarball inclusion checks confirmed the P14 release-plan docs, public
+non-consensus poison vector file, minimal FTP listing fixture, intentional
+`tmp-poison/tmp/pending.part` specimen, `ftp-listing-shadow-poison-public-vector`,
+`core-bad-signature-public-vector`, and the comment-only `arch-gate` source-art
+marker. The archive exclusion checks confirmed the restore memory, local build
+trees, `_Inline/`, `MYMETA.*`, `pm_to_blib`, nested tarballs, and stale dist
+directories were absent.
 
 This was the `1.000_001` development freeze matrix, not the reserved stable
 `v1.0` / package `1.000` release matrix. Because this documentation record is
 written after the run, it is not inside the tested tarball and is not the tested
 tarball source unless the matrix is rerun from this record commit.
+
+The earlier clean-checkout matrix at
+`a7631497ac990e9622102176e322d449f125aaed` remains historical development
+evidence; the record above is the current HEAD evidence.
 
 ## Next Release-Route Step
 

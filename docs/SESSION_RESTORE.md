@@ -14,7 +14,8 @@ Current HEAD expectation:
 
 ```text
 at or after:
-- WIP test: add source art arch gate
+- docs: record current P14 development matrix
+- test: add source art arch gate
 - test: add bad signature vector and dist hygiene gate
 - docs: record P14 development freeze matrix
 - chore: normalize manifest order
@@ -39,8 +40,16 @@ at or after:
 
 Confirm the latest commit with `git log --oneline -5` when resuming.
 
-Current WIP after the P14 development-freeze matrix:
+Current state after the latest P14 development-freeze matrix:
 
+- A fresh clean-checkout matrix passed at commit
+  `e1c8b4036ce9bf2260455b0aa0834df544393845`.
+- The development tarball was `GobanFTP-1.000_001.tar.gz` with
+  `sha256=6b88fb2118dd6776f71319e69c3643ee72891a80152aee5e6f10cc5d8e9251bd`,
+  `size=323764`, `tar_entries=783`, and
+  `MANIFEST_sha256=8ee3efb34417baa521a1f620e8761fe56cc266d346cd2324fe431457f9646bc2`.
+- This is still `1.000_001` development-freeze evidence only: no v1.0 tag, P14
+  completion, publication event, or final stable v1.0 artifact is claimed.
 - `oracle/goban.pl` now carries a comment-only ASCII `arch-gate` source-art
   easter egg beside the smoke wrapper.
 - `t/source-art.t` now asserts the arch-gate marker exists, stays ASCII, the
@@ -54,7 +63,8 @@ Current WIP after the P14 development-freeze matrix:
 ## Recent Completed Work
 
 ```text
-WIP test: add source art arch gate
+HEAD docs: record current P14 development matrix
+HEAD test: add source art arch gate
 HEAD test: add bad signature vector and dist hygiene gate
 HEAD docs: record P14 development freeze matrix
 HEAD chore: normalize manifest order
@@ -304,13 +314,16 @@ Key completed boundaries:
   record.
 - `MANIFEST` ordering was normalized after the first clean-checkout matrix run
   found that `make manifest` would otherwise leave a tracked diff.
-- The clean-checkout `1.000_001` development freeze matrix passed at
-  `a7631497ac990e9622102176e322d449f125aaed` and generated
+- The latest clean-checkout `1.000_001` development freeze matrix passed at
+  `e1c8b4036ce9bf2260455b0aa0834df544393845` and generated
   `GobanFTP-1.000_001.tar.gz`
-  (`sha256=a39b5355722a787609d7a044a56699ea42a8f163d7a8a619a53d72954141cd17`,
-  `size=323082`, `tar_entries=776`). This is development-freeze evidence only:
-  no v1.0 tag, P14 completion, publication event, or final stable v1.0 artifact
-  is claimed. This restore-file record is post-run documentation, not the tested
+  (`sha256=6b88fb2118dd6776f71319e69c3643ee72891a80152aee5e6f10cc5d8e9251bd`,
+  `size=323764`, `tar_entries=783`,
+  `MANIFEST_sha256=8ee3efb34417baa521a1f620e8761fe56cc266d346cd2324fe431457f9646bc2`).
+  It includes the source-art arch-gate, bad-signature public poison vector, and
+  distribution hygiene checks. This is development-freeze evidence only: no
+  v1.0 tag, P14 completion, publication event, or final stable v1.0 artifact is
+  claimed. This restore-file record is post-run documentation, not the tested
   tarball source unless the matrix is rerun from this record commit.
 - Ruleset seal, v1 witness CLI, and v1 compare CLI are already implemented.
 
@@ -321,8 +334,9 @@ freeze:
 
 ```text
 clean worktree matrix from docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md
-candidate commit a7631497ac990e9622102176e322d449f125aaed
-worktree /tmp/gobanftp-p14-freeze.zvZuPv, removed after the run
+candidate commit e1c8b4036ce9bf2260455b0aa0834df544393845
+worktree /tmp/gobanftp-p14-current.kfuVD5/worktree, removed after the run
+logs /tmp/gobanftp-p14-current.kfuVD5/logs
 ```
 
 Result:
@@ -332,29 +346,33 @@ Matrix: PASS.
 perl -c oracle/goban.pl: PASS.
 perl oracle/goban.pl --smoke: PASS, source-art inline_c=skip.
 GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make test:
-  Files=73, Tests=1007, all successful.
+  Files=74, Tests=1030, all successful.
 GOBANFTP_RULES_ENGINE=shadow make test:
-  Files=73, Tests=1011, all successful.
+  Files=74, Tests=1034, all successful.
 prove -lr t:
-  Files=73, Tests=1011, all successful.
+  Files=74, Tests=1034, all successful.
 Targeted v1/profile/rules gates:
-  v1-cross-substrate 1/7, v1-attack-fixtures 1/28,
+  v1-cross-substrate 1/7, v1-attack-fixtures 1/30,
   v1-profile-attack-fixtures 1/10, v1-profile-publish-fixtures 1/9,
-  v1-golden-vectors 1/128, v1-signed-hmac 1/14,
+  v1-golden-vectors 1/130, v1-signed-hmac 1/14,
   v1-signed-hmac-golden-vectors 1/29, profile/witness 3/67,
-  diagnostics 1/4, rules-flow+superko 2/7.
+  diagnostics 1/4, rules-flow+superko 2/7, source/surface 4/167.
 v1 witness, compare-roots, and compare-replay fixture commands: PASS.
 make manifest plus MANIFEST/MANIFEST.SKIP diff gate: PASS.
 make dist: PASS, GobanFTP-1.000_001.tar.gz.
 tarball evidence checks: P14 docs, non-consensus poison vector, minimal FTP
   listing fixture, tmp-poison pending.part, and
-  ftp-listing-shadow-poison-public-vector row present.
-disttest no-C: Files=73, Tests=1007, all successful.
+  ftp-listing-shadow-poison-public-vector, core-bad-signature-public-vector,
+  and arch-gate marker present.
+tarball hygiene checks: SESSION_RESTORE, build trees, _Inline, MYMETA,
+  pm_to_blib, nested tarballs, and stale distdirs absent.
+disttest no-C: Files=74, Tests=1030, all successful.
 make distcheck: PASS.
-dist_sha256=a39b5355722a787609d7a044a56699ea42a8f163d7a8a619a53d72954141cd17
-dist_size_bytes=323082
-tar_entries=776
-MANIFEST_sha256=a05116c72bc0efc1349deb435e5c3e010f4af326d452789ac593005c63b473dd
+dist_sha256=6b88fb2118dd6776f71319e69c3643ee72891a80152aee5e6f10cc5d8e9251bd
+dist_size_bytes=323764
+tar_entries=783
+MANIFEST_sha256=8ee3efb34417baa521a1f620e8761fe56cc266d346cd2324fe431457f9646bc2
+minimal_event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461
 Live FTP: skipped; GOBANFTP_FTP_TEST was not set.
 This is not the final stable v1.0 matrix.
 ```
@@ -495,8 +513,9 @@ after entering v1.0/P14 development:
   to real fixture listings and exact ignored-file evidence where needed, and
   proving ignored evidence leaves event-set preimage, root, replay, board,
   projection text, and SGF truth unchanged
-- the `1.000_001` development freeze matrix has passed; do not tag or publish
-  it as v1.0
+- the latest `1.000_001` development freeze matrix has passed at
+  `e1c8b4036ce9bf2260455b0aa0834df544393845`; do not tag or publish it as
+  v1.0
 - next choose either continued `1.000_001` development or the separate final
   stable v1.0 route
 - that slice must not add or claim Git publish, live DNS, AXFR, DNSSEC trust,
@@ -565,6 +584,6 @@ When resuming:
    maintainer guide supplied in the session context.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `docs: record P14 development freeze matrix`.
+4. Confirm HEAD includes `docs: record current P14 development matrix`.
 5. If the user asks to continue, review the next step first, then choose one
    small executable step.
