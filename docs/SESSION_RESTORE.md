@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- test: add FTP public poison vector
 - test: freeze signed public trust vectors
 - test: add core poison public vectors
 - chore: enter v1.0 development
@@ -36,6 +37,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD test: add FTP public poison vector
 HEAD test: freeze signed public trust vectors
 HEAD test: add core poison public vectors
 HEAD chore: enter v1.0 development
@@ -258,22 +260,32 @@ Key completed boundaries:
   traversal href fixture input names to unchanged one-event event-set preimage,
   root, replay, board, projection text, and SGF truth. This is WebDAV
   read/listing href-normalization evidence only.
+- `ftp-listing-shadow-poison` is now promoted into
+  `t/fixtures/vectors/v1-non-consensus-poison.jsonl` as
+  `ftp-listing-shadow-poison-public-vector`, binding the existing hostile
+  `ftp-goftp1` cross-substrate listing to unchanged three-event event-set
+  preimage, root, replay, board, projection text, and SGF truth. This proves
+  FTP-shaped sidecar, tmp, projection, recursive descendant, and list-order rows
+  stay outside witness truth without claiming live FTP, `RETR`, `SIZE`, `MDTM`,
+  auth, integrity, or publish behavior.
 - The P14a release-gate dry run predates the later Git-tree and DNS-record
   runtime read admissions. Treat it as historical evidence, not as the final
   release matrix for the current HEAD. The next release-route proof slice must
-  refresh the golden-vector evidence and claim audit for those admitted read
-  boundaries before any final P14 artifact or tag decision.
+  refresh the claim audit for the admitted read boundaries before any final P14
+  artifact or tag decision.
 - Ruleset seal, v1 witness CLI, and v1 compare CLI are already implemented.
 
 ## Last Verified
 
-Latest verification after freezing signed-HMAC public-trust bridge golden
-vectors and narrowing the next P14 gap to FTP public poison-vector coverage:
+Latest verification after adding the FTP listing-shadow public poison vector and
+narrowing the next P14 gap to claim audit:
 
 ```text
-prove -lr t/v1-signed-hmac-golden-vectors.t t/v1-signed-hmac.t t/auth-trust-report.t t/cli-auth-trust-report.t t/v1-golden-vectors.t t/showcase-demo.t
+prove -lr t/v1-golden-vectors.t
+prove -lr t/v1-profile-attack-fixtures.t t/v1-golden-vectors.t t/v1-cross-substrate.t t/ftp-cli-parity.t t/store-ftp-mock.t
 git diff --check
 perl -MExtUtils::Manifest=fullcheck -e 'fullcheck()'
+prove -lr t/v1-golden-vectors.t t/dependency-sync.t
 prove -lr t
 ```
 
@@ -282,10 +294,9 @@ Result:
 ```text
 Changed files: Changes, README.md, docs/ATTACKS.md, docs/ROADMAP.md,
 docs/SESSION_RESTORE.md, docs/V1_DOD.md, t/fixtures/vectors/README.md,
-t/fixtures/vectors/v1-signed-hmac-witness.jsonl,
-t/v1-signed-hmac-golden-vectors.t.
-Targeted: Files=6, Tests=185, all successful.
-Full: Files=73, Tests=1009, all successful.
+t/fixtures/vectors/v1-non-consensus-poison.jsonl, t/v1-golden-vectors.t.
+Targeted: Files=5, Tests=158, and Files=2, Tests=139, all successful.
+Full: Files=73, Tests=1011, all successful.
 ```
 
 Earlier verification after clarifying the active P14 release plan and separating
@@ -420,14 +431,13 @@ after entering v1.0/P14 development:
   baseline/poison vectors for core/local `bad-mtime`, `bad-payload`,
   `bad-list-order`, `poisoned-sidecar`, `projection-poison`, `tmp-poison`,
   plus `webdav-metadata-poison`, `webdav-href-traversal`, `dns-owner-poison`,
-  and `git-tree-path-metadata-poison`, binding them to real fixture listings
-  and exact ignored-file evidence where needed, and proving ignored evidence
-  leaves event-set preimage, root, replay, board, projection text, and SGF
-  truth unchanged
-- next proof slice should continue the P14 claim audit and fill any remaining
-  FTP public non-consensus poison-vector gap
-- continue the P14 claim audit for the admitted read boundaries now present at
-  HEAD, especially `git-tree-goftp1` and `dns-record-goftp1`
+  `git-tree-path-metadata-poison`, and `ftp-listing-shadow-poison`, binding them
+  to real fixture listings and exact ignored-file evidence where needed, and
+  proving ignored evidence leaves event-set preimage, root, replay, board,
+  projection text, and SGF truth unchanged
+- next proof slice should continue the P14 claim audit for the admitted read
+  boundaries now present at HEAD, especially `git-tree-goftp1`,
+  `dns-record-goftp1`, and the FTP listing boundary
 - that slice must not add or claim Git publish, live DNS, AXFR, DNSSEC trust,
   provider API, dynamic update, DNS record publishing, hosted Web UI,
   interactive TUI, or v1.0/P14 completion

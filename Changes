@@ -141,6 +141,11 @@ Revision history for GobanFTP
     the poison-vector harness so each row declares its own ignored evidence and
     optional poisoned listing order, without claiming Git publish, remote fetch,
     or provider APIs.
+  - Added an FTP listing-shadow public non-consensus-poison golden vector,
+    binding FTP-shaped sidecar, tmp, projection, recursive descendant, and
+    list-order rows to unchanged event-set preimage, root, replay, board,
+    projection text, and SGF truth without claiming live FTP or publish
+    behavior.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

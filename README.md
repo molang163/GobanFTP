@@ -217,9 +217,9 @@ runtime normalization of a local or otherwise declared record file. DNS
 admission does not query live DNS, run AXFR, trust DNSSEC, call provider APIs,
 or publish records, and TTL, answer order, cache age, DNSSEC status, and
 provider metadata stay outside consensus. Production key lifecycle, publish
-authentication policy, final scoring/result events, remaining FTP public
-poison-vector coverage, P14 claim audit, and the full `v1.0/P14` freeze remain
-release-route work.
+authentication policy, final scoring/result events, P14 claim audit, and the
+full `v1.0/P14` freeze remain release-route work. FTP listing-shadow public
+poison-vector coverage is frozen for the current fixture boundary.
 
 Unsigned `GOFTP/1` remains valid and unchanged. A signed/auth profile can reject
 events only when that explicit profile is selected; sidecar signatures do not

@@ -27,13 +27,14 @@ not as an ordinary basename collision claim. Public non-consensus poison
 vectors now bind baseline/poison witness pairs to core/local bad-mtime,
 bad-payload, bad-list-order, poisoned-sidecar, projection-poison, tmp-poison,
 WebDAV metadata-poison, WebDAV href-traversal, DNS owner-poison, and Git-tree
-path/metadata-poison fixtures, including real fixture `input_names`, embedded
-evidence artifacts when poison lives outside the listing, and unchanged
-event-set preimage, root, replay, board, projection, and SGF truth. The next
-signed-HMAC public-trust bridge is now represented in public signed/auth golden
-vectors as rejected `k1.` selector evidence and accepted explicit HMAC selector
-evidence. The next proof slice should continue the P14 claim audit and fill the
-remaining FTP public poison-vector gap.
+path/metadata-poison fixtures, plus the FTP listing-shadow cross-substrate
+fixture, including real fixture `input_names`, embedded evidence artifacts when
+poison lives outside the listing, and unchanged event-set preimage, root,
+replay, board, projection, and SGF truth. The signed-HMAC public-trust bridge
+is now represented in public signed/auth golden vectors as rejected `k1.`
+selector evidence and accepted explicit HMAC selector evidence. The next proof
+slice should continue the P14 claim audit for admitted read boundaries and
+final clean-gate preparation.
 This is not Git publish, Git remote fetch, live DNS, DNS publish, hosted Web UI,
 interactive TUI, or a v1.0/P14 completion claim.
 
@@ -486,10 +487,10 @@ It is a release-route checkpoint, not a v1.0 tag or P14 completion claim.
 The final artifact identity and tag preconditions are tracked in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
 The immediate follow-up is to continue the P14 claim audit around the read-only
-Git-tree and DNS-record runtime admissions and fill the remaining FTP public
-non-consensus poison-vector gap, not to add Git publish, live DNS, AXFR, DNSSEC
-trust, provider APIs, dynamic update, DNS publish, hosted Web UI, interactive
-TUI, or a v1.0/P14 completion claim.
+Git-tree, DNS-record, and FTP listing boundaries and prepare the final clean
+gate, not to add Git publish, live DNS, AXFR, DNSSEC trust, provider APIs,
+dynamic update, DNS publish, hosted Web UI, interactive TUI, or a v1.0/P14
+completion claim.
 
 Acceptance:
 

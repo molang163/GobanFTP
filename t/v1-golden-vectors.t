@@ -252,6 +252,7 @@ for my $case (qw(
     webdav-href-traversal-public-vector
     dns-owner-poison-public-vector
     git-tree-path-metadata-poison-public-vector
+    ftp-listing-shadow-poison-public-vector
 )) {
     ok $seen_poison_id{$case}, "$case poison invariant vector is present";
 }

@@ -189,6 +189,15 @@ It is also promoted into
 and SGF truth. This is evidence for the read/listing boundary only; it does not
 claim Git publish, remote fetch, or provider API behavior.
 
+The FTP listing-shadow public vector uses the existing
+`t/fixtures/v1/cross-substrate/minimal/ftp-goftp1/listing.names` hostile
+listing rather than a separate profile-gallery specimen. It binds FTP-shaped
+sidecar, tmp, projection, recursive descendant, and list-order rows to the same
+three-event event-set preimage, root, replay, board, projection, and SGF truth
+as the clean local baseline. This is evidence for the FTP read/listing boundary
+only; it does not claim live FTP, `RETR`, `SIZE`, `MDTM`, auth, integrity, or
+publish behavior.
+
 Signed/auth profile specimens live under:
 
 ```text
