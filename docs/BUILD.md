@@ -178,7 +178,7 @@ The P14/v1.0 release artifact identity and tag preconditions are tracked in
 a tag while `Changes`, `lib/GobanFTP.pm` `$VERSION`, and the tarball filename
 disagree.
 
-## v0.1 Release Boundary
+## Historical v0.1 Boundary
 
 For v0.1, release checks are hardening and showcase checks, not protocol
 expansion. The expected release surface is the playable protocol artwork:

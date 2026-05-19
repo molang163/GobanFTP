@@ -40,7 +40,7 @@ subtest 'malformed and private-looking records fail closed' => sub {
     like _exception(sub { parse_public_key_record(_read_text("$fixture_dir/bad-suite.pub")) }),
         qr/\Asuite[.]unsupported\b/,
         'unsupported suite is rejected';
-    like _exception(sub { parse_public_key_record(_read_text("$fixture_dir/private-material.pub")) }),
+    like _exception(sub { parse_public_key_record(_read_text("$fixture_dir/private-field-fixture.pub")) }),
         qr/\Aprivate_material\b/,
         'private-looking fields are rejected';
     like _exception(sub {

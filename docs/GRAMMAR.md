@@ -240,10 +240,10 @@ leading zero except `0`.
 
 ## Suggested Vector Fixture Layout
 
-Future golden vectors should be file-based so other implementations can consume
-them without importing Perl modules.
+Golden vectors should stay file-based so other implementations can consume them
+without importing Perl modules.
 
-Suggested directory:
+Suggested directory layout:
 
 ```text
 t/fixtures/vectors/

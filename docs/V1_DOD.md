@@ -4,7 +4,7 @@ GobanFTP v1.0 is not a game server.
 
 It is a proof machine.
 
-It proves that a game can be recovered from public names on hostile storage.
+It must prove that a game can be recovered from public names on hostile storage.
 The storage may pretend to be a filesystem, an FTP directory, a Git tree, DNS
 records, WebDAV resources, or another substrate with different ceremonies. The
 truth must remain the same when the logical event basenames are the same.
@@ -512,4 +512,4 @@ same SGF
 same diagnostics class
 ```
 
-Only then is the rite complete.
+Only then may the v1.0 gate close.

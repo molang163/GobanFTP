@@ -546,7 +546,7 @@ sets; it is not a live DNS transport or publishing backend. WebDAV has a
 runtime store boundary, publish semantics, mock store tests, and CLI parity
 tests; live credentials are still deliberately outside the default test suite.
 
-The production registry names these profiles so witness fixtures can compare
+The runtime registry names these profiles so witness fixtures can compare
 substrates through one API. `GobanFTP::Profile::Adapter` continues to normalize
 fixture-like Git, DNS, and WebDAV listing presentations into visible names.
 Runtime store admission is separate: Git is implemented as a read-only runtime

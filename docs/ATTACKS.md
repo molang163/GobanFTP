@@ -19,15 +19,15 @@ Test attack fixtures live under:
 t/fixtures/attacks/
 ```
 
-Reader-facing copies or larger specimens may later live under
-`examples/fixtures/attacks/`, but `t/fixtures/attacks/` is the authoritative test
-gallery.
+The shipped reader-facing attack specimens are the same test fixtures. Larger
+non-test specimens can be added later only if they carry the same verdict
+discipline. `t/fixtures/attacks/` is the authoritative gallery.
 
 Each child directory is one named attack specimen. A specimen should contain the
 minimum game tree needed to demonstrate the attack and its expected rejection,
 ignore behavior, or conflict report. When a case needs explanatory non-consensus
 material, place it in `sidecar/` or another ignored surface and make the verdict
-prove that replay did not depend on it.
+check that replay did not depend on it.
 
 The directory is for hand-curated examples, not random input accumulation. New
 fixtures should be admitted only when they clarify a distinct invariant,
@@ -138,7 +138,7 @@ t/fixtures/v1/attacks/
 ```
 
 Each profile specimen compares one hostile substrate presentation against a
-clean baseline profile for the same game descriptor. It proves that profile
+clean baseline profile for the same game descriptor. It checks that profile
 metadata, shadow resources, transport-only fields, duplicate rows, and
 substrate-specific encoding hazards normalize to the same accepted event set,
 `event_set_root`, replay status, board hash, SGF hash, and diagnostic classes.
@@ -208,7 +208,7 @@ t/fixtures/v1/signed-hmac/
 The signed-HMAC specimen `public-trust-bridge-poison` attacks the boundary
 between public advisory `GOFTP-TRUST/1` rows and explicit HMAC verifier trust.
 It carries public `k1.` key rows marked trusted, revoked, and expired, including
-metadata that points at `fixture-key-1`. The expected witness proves that a
+metadata that points at `fixture-key-1`. The expected witness checks that a
 public trusted `k1.` row cannot authorize a `signed-hmac-goftp1` HMAC selector,
 public revoked or expired `k1.` rows cannot revoke the explicit
 `fixture-key-1` selector, and unsigned `local-goftp1` replay remains unchanged.
@@ -224,7 +224,7 @@ Publish-failure specimens live under:
 t/fixtures/v1/publish-failures/
 ```
 
-The first publish specimen is `webdav-publish-failure`, which proves that an
+The first publish specimen is `webdav-publish-failure`, which checks that an
 existing final event name is idempotent, a lost WebDAV `MOVE` response succeeds
 only after a fresh `PROPFIND` sees the final event, and a hard `HTTP 423 Locked`
 failure leaves only `tmp/` debris outside witness truth. The paired CLI gate
@@ -250,7 +250,7 @@ tmp-poison
 dangling-ack
 ```
 
-Each sample proves one of three outcomes:
+Each sample checks one of three outcomes:
 
 - ignored shadow input leaves replay and `event_set_root` unchanged
 - rejected filenames stay out of `event_set_root` and DAG replay
@@ -341,7 +341,7 @@ verdict and must not change the `GOFTP/1` result.
 ### `poisoned-sidecar`
 
 Attack: sidecar JSON, notes, or cached snapshots claim a different move, board,
-player, or result than the filename listing proves.
+player, or result than the filename listing shows.
 
 Expected outcome: filename events win. Core replay ignores the poisoned sidecar
 and produces the same board as if `sidecar/` were absent. Verdict status should
@@ -432,7 +432,7 @@ Before adding an attack fixture, write down:
 - the expected CLI command and exit code
 - the exact consensus inputs
 - the ignored or rejected inputs
-- the diagnostic or verdict fields that prove the behavior
+- the diagnostic or verdict fields that check the behavior
 
 Fixtures that cannot be explained this way belong in fuzz corpora or temporary
 debug scratch space, not in the attack gallery.

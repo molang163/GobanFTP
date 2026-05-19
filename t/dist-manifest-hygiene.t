@@ -12,7 +12,7 @@ my @manifest = _read_lines(File::Spec->catfile($repo_root, 'MANIFEST'));
 my $skip     = _read_text(File::Spec->catfile($repo_root, 'MANIFEST.SKIP'));
 
 my @forbidden_manifest_entries = (
-    [qr{\Adocs/SESSION_RESTORE[.]md\z},        'local restore memory'],
+    [qr{\Adocs/SESSION_RESTORE[.]md\z},        'local resume notes'],
     [qr{\A(?:blib|_Inline)(?:/|\z)},           'local build tree'],
     [qr{\AMYMETA[.](?:json|yml)\z},            'local MYMETA file'],
     [qr{\Apm_to_blib\z},                       'MakeMaker copy stamp'],
@@ -34,7 +34,7 @@ my @required_skip_rules = (
     ['pm_to_blib',                '^pm_to_blib$'],
     ['distribution tarballs',     '^GobanFTP-[0-9][^/]*\.tar\.gz$'],
     ['distribution directories',  '^GobanFTP-[0-9][^/]*/'],
-    ['local restore memory',      '^docs/SESSION_RESTORE\.md$'],
+    ['local resume notes',        '^docs/SESSION_RESTORE\.md$'],
 );
 
 for my $case (@required_skip_rules) {

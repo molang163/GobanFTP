@@ -72,7 +72,7 @@ subtest 'v1 keyid reports malformed fixture records as validation failures' => s
 subtest 'v1 keyid rejects private-looking fixture records without echoing material' => sub {
     my ($exit, $stdout, $stderr) = _run_cli(
         'v1', 'keyid',
-        '--fixture', "$fixture_dir/private-material.pub",
+        '--fixture', "$fixture_dir/private-field-fixture.pub",
     );
 
     is $exit, 2, 'private-looking key record exits validation failure';

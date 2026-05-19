@@ -2,7 +2,7 @@
 
 This is the short viewing path for the hardening/showcase release line.
 
-GobanFTP is already the object:
+Start with the fixture, not a server:
 
 ```text
 the listing is the read
@@ -151,8 +151,9 @@ adds a new consensus input.
 Do not read sidecar signatures, event file bytes, FTP metadata, projection
 files, or tmp entries as consensus inputs.
 
-Do not add scoring, final result events, signed consensus, or inline assembly
-to v0.1. Those belong in a later phase, protocol version, or explicit profile.
+Scoring, final result events, signed/auth sidecars, and inline assembly are
+outside this showcase path. They belong in a later phase, protocol version, or
+explicit profile.
 
 Live FTP, WebDAV, signed-HMAC negative matrices, and distribution packaging are
 release gates, not part of the three-minute viewing path.

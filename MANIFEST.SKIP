@@ -17,5 +17,5 @@
 ^(?!t/fixtures/).*[.]bak$
 ^(?!t/fixtures/)(?:.*/)?[.]gobanftp-tmp-[^/]+$
 
-# Local agent memory for resuming work; not part of release artifacts.
+# Local resume memory; not part of release artifacts.
 ^docs/SESSION_RESTORE\.md$

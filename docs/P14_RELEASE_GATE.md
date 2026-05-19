@@ -178,7 +178,7 @@ non-consensus poison vector file, minimal FTP listing fixture, intentional
 `tmp-poison/tmp/pending.part` specimen, `t/p14-claim-audit.t`,
 `ftp-listing-shadow-poison-public-vector`, `core-bad-signature-public-vector`,
 and the comment-only `arch-gate` source-art marker. The archive exclusion checks
-confirmed the restore memory, local build trees, `_Inline/`, `MYMETA.*`,
+confirmed local resume notes, local build trees, `_Inline/`, `MYMETA.*`,
 `pm_to_blib`, nested tarballs, and stale dist directories were absent.
 
 This was the `1.000_001` development freeze matrix, not the reserved stable
@@ -206,7 +206,7 @@ Scope: release-text claim-boundary check only
 ```
 
 This targeted check guards README, Changes, V1 DoD, roadmap, P14 gate,
-release-manifest/tag plan, and source-checkout restore memory against accidental
+release-manifest/tag plan, and optional source-checkout resume notes against accidental
 final-release over-claims. It is not a refreshed full clean-checkout matrix, not
 a stable `v1.0` artifact check, and not a P14/v1.0 completion claim.
 The current development-freeze matrix above now includes this gate.

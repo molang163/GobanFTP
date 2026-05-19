@@ -62,7 +62,7 @@ subtest 'release-state guardrails are explicit' => sub {
         'roadmap keeps the current proof below forbidden release claims');
     _like_optional('docs/SESSION_RESTORE.md',
         qr/do not tag v1[.]0 until the final claim audit passes, the final stable\n  clean-checkout matrix passes, and the external artifact record is attached/,
-        'restore memory blocks tagging v1.0 before the final gates');
+        'optional local resume notes block tagging v1.0 before the final gates');
 };
 
 subtest 'claim-audit gate is part of the release matrix' => sub {

@@ -233,7 +233,6 @@ examples/fixtures/minimal-game/g1.id-minimal.s9.r-chinese-area-v1.k7500.pb-alice
 examples/fixtures/minimal-game/README.md
 examples/fixtures/README.md
 lib/GobanFTP.pm
-lib/GobanFTP/.keep
 lib/GobanFTP/AckPublisher.pm
 lib/GobanFTP/Auth/HMAC.pm
 lib/GobanFTP/Auth/HMACKey.pm
@@ -277,7 +276,6 @@ LICENSE
 Makefile.PL
 MANIFEST			This list of files
 MANIFEST.SKIP
-oracle/.keep
 oracle/goban.pl
 README.md
 script/gobanftp
@@ -370,7 +368,7 @@ t/fixtures/auth/keyid/bad-header.pub
 t/fixtures/auth/keyid/bad-suite.pub
 t/fixtures/auth/keyid/duplicate-field.pub
 t/fixtures/auth/keyid/missing-public-hex.pub
-t/fixtures/auth/keyid/private-material.pub
+t/fixtures/auth/keyid/private-field-fixture.pub
 t/fixtures/auth/keyid/uppercase-hex.pub
 t/fixtures/auth/README.md
 t/fixtures/auth/trust-report/advisory-ok/game.name
@@ -381,7 +379,7 @@ t/fixtures/auth/trust-report/advisory-ok/keys/k1.jk4bs0r77srdlpds260hka9fpp49clp
 t/fixtures/auth/trust-report/advisory-ok/listing.names
 t/fixtures/auth/trust-report/advisory-ok/trust.tsv
 t/fixtures/auth/trust-report/bad-key/game.name
-t/fixtures/auth/trust-report/bad-key/keys/private-material.pub
+t/fixtures/auth/trust-report/bad-key/keys/private-field-fixture.pub
 t/fixtures/auth/trust-report/bad-key/listing.names
 t/fixtures/auth/trust-report/bad-trust/game.name
 t/fixtures/auth/trust-report/bad-trust/keys/alice.pub

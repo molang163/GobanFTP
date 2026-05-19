@@ -10,17 +10,23 @@ Fixture groups:
 
 ```text
 attacks/
+auth/
+cli/
+dag/
+e2e/
+event-id/
 filename-grammar/
 gamespec/
-event-id/
 listing-normalization/
-vectors/
-single-move/
-capture/
-ko/
-fork/
-illegal/
+play-flow/
 projection/
+projection-contract/
+projection-visual/
+replay/
+rules/
+sgf/
+v1/
+vectors/
 ```
 
 Each fixture should state:
@@ -33,7 +39,8 @@ expected replay result
 expected SGF or board output when applicable
 ```
 
-`attacks/` contains hostile, hand-curated specimens with an `expected.verdict`
-judgment. These fixtures prove that file bytes, sidecars, projections,
-temporary files, listing order, duplicates, and malformed or conflicting event
-names do not blur the `GOFTP/1` consensus boundary.
+`attacks/` and `v1/attacks/` contain hostile, hand-curated specimens with an
+`expected.verdict` judgment. These fixtures check that file bytes, sidecars,
+projections, temporary files, listing order, duplicates, substrate metadata,
+and malformed or conflicting event names do not blur the `GOFTP/1` consensus
+boundary.

@@ -45,7 +45,7 @@ Each stage should have a narrow contract and tests. A stage may reject input wit
 diagnostics, but it must not fetch file contents or inspect projection state to
 decide consensus.
 
-`GobanFTP::Witness` is the production read-only assembly point for this proof.
+`GobanFTP::Witness` is the current v1 read-only assembly point for this proof.
 It takes a declared profile id, a game descriptor basename, and raw profile
 listing rows; asks the profile adapter for visible listing names; computes
 `event_set_root`; replays the normalized event candidates; and reports stable

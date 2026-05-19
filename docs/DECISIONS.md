@@ -311,9 +311,9 @@ Reason:
   verifier trust set and must never appear in filenames, projections, or
   diagnostics
 
-## 024: Production Witness API Starts With Explicit Gates
+## 024: Witness API Starts With Explicit Gates
 
-`GobanFTP::Witness` is the production read-only witness assembly point for v1
+`GobanFTP::Witness` is the current read-only witness assembly point for v1
 substrate profiles. It accepts a profile id, game descriptor, and raw listing
 rows, then delegates listing presentation differences to
 `GobanFTP::Profile::Adapter` before computing `event_set_root`, replay status,
@@ -338,7 +338,7 @@ Reason:
 
 ## 025: Signed HMAC Has No Key Lifecycle Yet
 
-`signed-hmac-goftp1` is production witness behavior for deterministic signed
+`signed-hmac-goftp1` is current witness behavior for deterministic signed
 acceptance, but it is not a production key-management system. Verifiers pass an
 explicit in-memory trust set to `GobanFTP::Witness`; HMAC secrets stay outside
 filenames, projections, diagnostics, and generated witness output.

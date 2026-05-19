@@ -321,7 +321,7 @@ Default mode is conservative:
 3. If there is exactly one legal child, append it.
 4. If there are multiple legal children, stop and report a pending fork.
 
-Demo mode may choose a deterministic child for projection:
+A reserved demo mode may choose a deterministic child for projection:
 
 ```text
 lowest event_id lexicographically
