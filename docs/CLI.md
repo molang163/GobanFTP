@@ -401,11 +401,13 @@ or replay results inside CLI code. It does not write events or projections.
 `--surface text|html|terminal` replaces the default key/value stdout summary with a
 read-only inspection surface. `text` writes a `GOFTP-WITNESS-SURFACE/1` plain
 text view. `html` writes self-contained static HTML suitable for redirecting to
-a file. `terminal` writes a `GOFTP-TERMINAL-OBSERVATORY/1` static terminal
-status panel with the witness root, replay status, signature status, board
-hashes, and board/verdict projection excerpts. All formats are derived from the
-same witness result and projection text already rendered by `GobanFTP::Witness`;
-the CLI does not read
+a file, renders `projection.board` as a visual board when the supplied
+projection text is well-formed, and keeps the raw projection text beside it.
+`terminal` writes a `GOFTP-TERMINAL-OBSERVATORY/1` static terminal status panel
+with the witness root, replay status, signature status, board hashes, and
+board/verdict projection excerpts. All formats are derived from the same
+witness result and projection text already rendered by `GobanFTP::Witness`; the
+CLI does not read
 `projections/`, rerun replay, recompute `event_set_root`, or decide profile
 acceptance. Exit codes and stderr diagnostics are unchanged.
 

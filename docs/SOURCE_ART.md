@@ -163,8 +163,8 @@ profile gates.
 
 `examples/static/witness-specimen.html` is a direct-open static specimen of the
 same boundary. It has no script, no network fetch, and no hosted process; the
-visible root, signature status, board, and SGF excerpt are supplied specimen
-fields for reader inspection only.
+visible root, signature status, board skin, raw projection text, and SGF
+excerpt are supplied specimen fields for reader inspection only.
 
 The minimal surface smoke freezes text, static HTML, and terminal observatory
 output digests as reader-facing proof artifacts. It is not a hosted Web UI and

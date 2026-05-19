@@ -16,7 +16,7 @@ body {
   background: #10120f;
 }
 main {
-  width: min(1040px, calc(100% - 32px));
+  width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
   padding: 32px 0 44px;
 }
@@ -28,8 +28,7 @@ footer {
   padding: 4px 0 8px 18px;
 }
 .eyebrow,
-dt,
-.point-label {
+dt {
   color: #94bf8c;
 }
 h1,
@@ -61,45 +60,64 @@ dd {
 }
 .board-wrap {
   display: grid;
-  grid-template-columns: minmax(170px, 220px) minmax(0, 1fr);
-  gap: 22px;
+  grid-template-columns: minmax(320px, 460px) minmax(0, 1fr);
+  gap: 24px;
   align-items: start;
 }
-.board {
-  --cell: min(54px, 15vw);
+.goban {
+  --board-size: 9;
+  --cell: clamp(24px, 5vw, 36px);
   display: grid;
-  grid-template-columns: repeat(3, var(--cell));
-  grid-template-rows: repeat(3, var(--cell));
-  width: calc(var(--cell) * 3);
-  border: 1px solid #5d543f;
-  background: #d0a85f;
+  grid-template-columns: repeat(var(--board-size), var(--cell));
+  grid-template-rows: repeat(var(--board-size), var(--cell));
+  width: max-content;
+  max-width: 100%;
+  padding: calc(var(--cell) * .35);
+  background: #c79a5b;
+  border: 1px solid #4a3321;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.12);
+  overflow: auto;
 }
-.point {
+.board-point {
+  position: relative;
   display: grid;
   place-items: center;
-  min-width: 0;
-  min-height: 0;
-  border-right: 1px solid rgba(40, 29, 16, 0.55);
-  border-bottom: 1px solid rgba(40, 29, 16, 0.55);
-  color: #342615;
+  width: var(--cell);
+  height: var(--cell);
 }
-.point:nth-child(3n) {
-  border-right: 0;
+.board-point::before,
+.board-point::after {
+  content: "";
+  position: absolute;
+  background: rgba(31, 22, 15, .72);
 }
-.point:nth-last-child(-n+3) {
-  border-bottom: 0;
+.board-point::before {
+  width: 100%;
+  height: 1px;
+}
+.board-point::after {
+  width: 1px;
+  height: 100%;
+}
+.board-point.star {
+  background-image: radial-gradient(circle at center, rgba(31, 22, 15, .78) 0 3px, transparent 4px);
 }
 .stone {
-  width: 62%;
-  aspect-ratio: 1;
-  border-radius: 999px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+  position: relative;
+  z-index: 1;
+  width: calc(var(--cell) * .74);
+  height: calc(var(--cell) * .74);
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(0,0,0,.35);
 }
-.black {
-  background: #161616;
+.stone.black {
+  background: radial-gradient(circle at 34% 28%, #4e4e4b, #111);
 }
-.white {
-  background: #f5f1e6;
+.stone.white {
+  background: radial-gradient(circle at 35% 28%, #fff, #d9d3c5 70%, #aaa08e);
+}
+.projection-copy {
+  min-width: 0;
 }
 pre {
   margin: 0;
@@ -110,6 +128,10 @@ pre {
   color: #f0eadc;
   padding: 14px;
 }
+.projection-copy pre {
+  margin-top: 12px;
+}
+.boundary-note,
 footer {
   color: #9ba391;
 }
@@ -129,7 +151,7 @@ footer {
 <header>
 <p class="eyebrow">GOFTP-WITNESS-SPECIMEN/1</p>
 <h1>Witness Static Specimen</h1>
-<p>Static file, no script, no server. Truth source: supplied witness fields.</p>
+<p>Static file, no script, no server. Display source: supplied witness fields; protocol truth stays in event basenames.</p>
 </header>
 
 <section aria-labelledby="truth-heading">
@@ -139,9 +161,9 @@ footer {
 <dt>adapter_id</dt><dd>local-listing-goftp1</dd>
 <dt>signature.status</dt><dd>unsigned</dd>
 <dt>replay_status</dt><dd>ok</dd>
-<dt>accepted_count</dt><dd>3</dd>
-<dt>event_set_root</dt><dd>599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461</dd>
-<dt>canonical_tip</dt><dd>kcvtlonfje163p9q</dd>
+<dt>accepted_count</dt><dd>7</dd>
+<dt>event_set_root</dt><dd>12699daa3f344c6f65358bb36587933aed4657fbb9ddba7db8ff3909b9f451f4</dd>
+<dt>canonical_tip</dt><dd>2m3u03ptk0oqdc91</dd>
 <dt>diagnostic_count</dt><dd>0</dd>
 </dl>
 </section>
@@ -149,31 +171,116 @@ footer {
 <section aria-labelledby="board-heading">
 <h2 id="board-heading">projection.board</h2>
 <div class="board-wrap">
-<div class="board" role="img" aria-label="3 by 3 board projection with black at aa and white at bb">
-<div class="point" data-point="aa"><span class="stone black" aria-label="black aa"></span></div>
-<div class="point" data-point="ba"><span class="point-label">ba</span></div>
-<div class="point" data-point="ca"><span class="point-label">ca</span></div>
-<div class="point" data-point="ab"><span class="point-label">ab</span></div>
-<div class="point" data-point="bb"><span class="stone white" aria-label="white bb"></span></div>
-<div class="point" data-point="cb"><span class="point-label">cb</span></div>
-<div class="point" data-point="ac"><span class="point-label">ac</span></div>
-<div class="point" data-point="bc"><span class="point-label">bc</span></div>
-<div class="point" data-point="cc"><span class="point-label">cc</span></div>
+<div class="goban" role="img" aria-label="9 by 9 board projection with six stones">
+<span class="board-point" data-point="aa"></span>
+<span class="board-point" data-point="ba"></span>
+<span class="board-point" data-point="ca"></span>
+<span class="board-point" data-point="da"></span>
+<span class="board-point" data-point="ea"></span>
+<span class="board-point" data-point="fa"></span>
+<span class="board-point" data-point="ga"></span>
+<span class="board-point" data-point="ha"></span>
+<span class="board-point" data-point="ia"></span>
+<span class="board-point" data-point="ab"></span>
+<span class="board-point" data-point="bb"></span>
+<span class="board-point" data-point="cb"></span>
+<span class="board-point" data-point="db"></span>
+<span class="board-point" data-point="eb"></span>
+<span class="board-point" data-point="fb"></span>
+<span class="board-point" data-point="gb"></span>
+<span class="board-point" data-point="hb"></span>
+<span class="board-point" data-point="ib"></span>
+<span class="board-point" data-point="ac"></span>
+<span class="board-point" data-point="bc"></span>
+<span class="board-point star" data-point="cc"></span>
+<span class="board-point" data-point="dc"></span>
+<span class="board-point star" data-point="ec"></span>
+<span class="board-point" data-point="fc"></span>
+<span class="board-point star" data-point="gc"></span>
+<span class="board-point" data-point="hc"></span>
+<span class="board-point" data-point="ic"></span>
+<span class="board-point" data-point="ad"></span>
+<span class="board-point" data-point="bd"></span>
+<span class="board-point" data-point="cd"></span>
+<span class="board-point has-stone" data-point="dd"><span class="stone black" aria-label="black dd"></span></span>
+<span class="board-point" data-point="ed"></span>
+<span class="board-point" data-point="fd"></span>
+<span class="board-point" data-point="gd"></span>
+<span class="board-point" data-point="hd"></span>
+<span class="board-point" data-point="id"></span>
+<span class="board-point" data-point="ae"></span>
+<span class="board-point" data-point="be"></span>
+<span class="board-point star" data-point="ce"></span>
+<span class="board-point has-stone" data-point="de"><span class="stone black" aria-label="black de"></span></span>
+<span class="board-point star" data-point="ee"></span>
+<span class="board-point has-stone" data-point="fe"><span class="stone white" aria-label="white fe"></span></span>
+<span class="board-point star" data-point="ge"></span>
+<span class="board-point" data-point="he"></span>
+<span class="board-point" data-point="ie"></span>
+<span class="board-point" data-point="af"></span>
+<span class="board-point" data-point="bf"></span>
+<span class="board-point" data-point="cf"></span>
+<span class="board-point has-stone" data-point="df"><span class="stone black" aria-label="black df"></span></span>
+<span class="board-point has-stone" data-point="ef"><span class="stone white" aria-label="white ef"></span></span>
+<span class="board-point has-stone" data-point="ff"><span class="stone white" aria-label="white ff"></span></span>
+<span class="board-point" data-point="gf"></span>
+<span class="board-point" data-point="hf"></span>
+<span class="board-point" data-point="if"></span>
+<span class="board-point" data-point="ag"></span>
+<span class="board-point" data-point="bg"></span>
+<span class="board-point star" data-point="cg"></span>
+<span class="board-point" data-point="dg"></span>
+<span class="board-point star" data-point="eg"></span>
+<span class="board-point" data-point="fg"></span>
+<span class="board-point star" data-point="gg"></span>
+<span class="board-point" data-point="hg"></span>
+<span class="board-point" data-point="ig"></span>
+<span class="board-point" data-point="ah"></span>
+<span class="board-point" data-point="bh"></span>
+<span class="board-point" data-point="ch"></span>
+<span class="board-point" data-point="dh"></span>
+<span class="board-point" data-point="eh"></span>
+<span class="board-point" data-point="fh"></span>
+<span class="board-point" data-point="gh"></span>
+<span class="board-point" data-point="hh"></span>
+<span class="board-point" data-point="ih"></span>
+<span class="board-point" data-point="ai"></span>
+<span class="board-point" data-point="bi"></span>
+<span class="board-point" data-point="ci"></span>
+<span class="board-point" data-point="di"></span>
+<span class="board-point" data-point="ei"></span>
+<span class="board-point" data-point="fi"></span>
+<span class="board-point" data-point="gi"></span>
+<span class="board-point" data-point="hi"></span>
+<span class="board-point" data-point="ii"></span>
 </div>
-<pre>3 B . .
-2 . W .
-1 . . .
-  a b c</pre>
+<div class="projection-copy">
+<p class="boundary-note">Visual board is a static projection skin. Filenames remain the only packets.</p>
+<pre>game=g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
+size=9
+next_color=b
+terminal=0
+  a b c d e f g h i
+9 . . . . . . . . .
+8 . . . . . . . . .
+7 . . . . . . . . .
+6 . . . B . . . . .
+5 . . . B . W . . .
+4 . . . B W W . . .
+3 . . . . . . . . .
+2 . . . . . . . . .
+1 . . . . . . . . .</pre>
+</div>
 </div>
 </section>
 
 <section aria-labelledby="sgf-heading">
 <h2 id="sgf-heading">projection.sgf_main</h2>
-<pre>(;GM[1]FF[4]CA[UTF-8]AP[GobanFTP]SZ[3]KM[0]PB[alice]PW[bob]RU[chinese-area-v1];B[aa];W[bb];B[])</pre>
+<pre>(;GM[1]FF[4]CA[UTF-8]AP[GobanFTP]SZ[9]KM[7.5]PB[daemon]PW[pilgrim]RU[chinese-area-v1];B[dd];W[ff];B[de];W[ef];B[df];W[fe])</pre>
 </section>
 
 <footer>
-GOFTP static witness specimen. Layout may change; supplied witness fields stay boring.
+GOFTP static witness specimen. The skin can be beautiful; the truth stays boring.
 </footer>
 </main>
 </body>

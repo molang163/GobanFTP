@@ -130,18 +130,25 @@ subtest 'renderer exposes board state without deriving truth' => sub {
     );
 
     like $frame, qr/\AGOBANFTP-PLAY-TUI\/1\n/, 'frame has a version header';
-    like $frame, qr/^truth=event-filenames$/m, 'frame names the truth boundary';
-    like $frame, qr/^now=Black to play: alice$/m, 'frame includes a readable turn line';
-    like $frame, qr/^verdict=No fork detected$/m, 'frame includes a readable safety line';
-    like $frame, qr/^action=Click a point or press Enter to select ba$/m,
+    like $frame, qr/Truth: event filenames only/, 'frame names the truth boundary';
+    like $frame, qr/Witness: clean [|] Fork: none [|] State: SELECT/,
+        'frame includes readable witness and state lines';
+    like $frame, qr/Black to play: alice [|] Selected: BA/,
+        'frame includes a readable turn line';
+    like $frame, qr/Move cursor or click a point; Enter selects BA/,
         'frame includes a readable input line';
     like $frame, qr/^publish_state=select$/m, 'frame starts in select mode';
-    like $frame, qr/^status=ok events=1 accepted=1 canonical=1$/m,
+    like $frame, qr/^Status: ok  Events: 1  Accepted: 1  Main line: 1$/m,
         'frame summarizes supplied replay and event-set fields';
-    like $frame, qr/^turn=black\(alice\) cursor=ba$/m, 'frame displays the selected point';
-    like $frame, qr/^message=candidate rejected$/m, 'message is single-line sanitized';
-    like $frame, qr/^9 B  W  \.  \.  \.  \.  \.  \.  \.$/m, 'board stones are rendered';
+    like $frame, qr/^Turn: black\(alice\)  Cursor: BA$/m, 'frame displays the selected point';
+    like $frame, qr/^Message: candidate rejected$/m, 'message is single-line sanitized';
+    like $frame, qr/^9 \x{25CF}  \x{25CB}  \x{00B7}  \x{00B7}/m,
+        'board stones are rendered as a visual goban';
     is $layout->{first_cell_row} > 1, 1, 'renderer returns a terminal hit-test layout';
+    my @frame_lines = split /\n/, $frame;
+    my ($first_board_line) = grep { $frame_lines[$_ - 1] =~ /\A9 / } 1 .. @frame_lines;
+    is $layout->{first_cell_row}, $first_board_line,
+        'returned hit-test row matches the actual rendered first board row';
 
     my ($confirm_frame) = render_play_frame(
         context        => _fake_context($board),
@@ -152,7 +159,7 @@ subtest 'renderer exposes board state without deriving truth' => sub {
     );
     like $confirm_frame, qr/^publish_state=confirm pending_action=ba$/m,
         'confirm frame names the pending action';
-    like $confirm_frame, qr/^action=Press Enter\/click ba again to confirm publish$/m,
+    like $confirm_frame, qr/Selected BA; press Enter\/click again to publish/,
         'confirm frame requires a second action before publishing';
 };
 
@@ -174,13 +181,13 @@ subtest 'renderer uses diagnostics registry text for validation state' => sub {
         ansi    => 0,
     );
 
-    like $frame, qr/^status=validation events=1 accepted=1 canonical=1$/m,
+    like $frame, qr/^Status: validation  Events: 1  Accepted: 1  Main line: 1$/m,
         'validation state comes from the shared diagnostics replay status';
     like $frame,
-        qr/^verdict=Validation blocked: illegal_move: The rules engine rejected the move[.]$/m,
-        'validation verdict uses registry explanation text';
+        qr/Witness: blocked [|] Fork: blocked [|] State: SELECT/,
+        'validation status is promoted into the top panel';
     like $frame,
-        qr/^diagnostics=illegal_move: The rules engine rejected the move[.]$/m,
+        qr/^Diagnostics: illegal_move: The rules engine rejected the move[.]$/m,
         'diagnostics line uses registry explanation text';
 };
 
@@ -235,7 +242,7 @@ subtest 'scripted TUI run confirms, locks, and publishes' => sub {
             };
         },
         output_fh => $out_fh,
-        script    => "\e[C\r\r",
+        script    => "\e[C\r\r\r",
         ansi      => 0,
     );
 
@@ -322,7 +329,7 @@ subtest 'scripted repeated mouse click publishes through the lock' => sub {
             };
         },
         output_fh => $out_fh,
-        script    => "\e[<0;$col;${row}M\e[<0;$col;${row}M",
+        script    => "\e[<0;$col;${row}M\e[<0;$col;${row}M\e[<0;$col;${row}M",
         ansi      => 0,
     );
 
@@ -366,8 +373,15 @@ subtest 'CLI play --tui has a real pty smoke path when script(1) is available' =
     is $key_stderr, '', 'pty keyboard publish has no stderr';
 
     my (undef, $mouse_game) = _make_game_root();
+    my (undef, $mouse_layout) = render_play_frame(
+        context => _fake_context(GobanFTP::Board->new(9)),
+        cursor  => [0, 0],
+        ansi    => 0,
+    );
+    my $mouse_col = $mouse_layout->{first_cell_col} + $mouse_layout->{cell_step};
+    my $mouse_row = $mouse_layout->{first_cell_row} + 1;
     my ($mouse_exit, $mouse_stdout, $mouse_stderr) =
-        _run_pty_cli("\e[<0;6;17M\e[<0;6;17M", 'play', '--tui', $mouse_game);
+        _run_pty_cli("\e[<0;$mouse_col;${mouse_row}M\e[<0;$mouse_col;${mouse_row}M", 'play', '--tui', $mouse_game);
     is $mouse_exit, 0, 'pty mouse publish exits successfully';
     like $mouse_stdout, qr/event=m1[.].*play-bb/, 'pty mouse publishes the hit-tested bb point';
     is scalar(_event_names($mouse_game)), 1, 'pty mouse publishes exactly one event';

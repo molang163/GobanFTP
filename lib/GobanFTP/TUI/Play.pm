@@ -232,28 +232,43 @@ sub render_play_frame {
     my $publish_state = _plain_state($args{publish_state})
         // (defined($pending_action) ? 'confirm' : 'select');
 
-    my @lines = (
-        'GOBANFTP-PLAY-TUI/1',
-        'truth=event-filenames',
-        'game=' . ($context->{game_descriptor} // ''),
-        'now=' . _now_text($state, $game),
-        'verdict=' . _verdict_text($status, @diagnostics),
-        'action=' . _action_prompt(
+    my $root = $event_set->{event_set_root} // '';
+    my $events_count = scalar(@{ $context->{events} // [] });
+    my $accepted_count = $event_set->{event_count} // 0;
+    my $canonical_count = scalar(@canonical);
+    my $diagnostic_text = @diagnostics
+        ? join('; ', map { _diagnostic_text($_) } @diagnostics)
+        : 'none';
+    my $message = _single_line($args{message});
+
+    my @panel = split /\n/, _play_box(
+        'GobanFTP / PLAY',
+        'Truth: event filenames only',
+        'Witness: ' . _witness_label($status) . ' | Fork: ' . _fork_label($status)
+            . ' | State: ' . _state_label($publish_state),
+        _now_text($state, $game) . ' | Selected: ' . uc($cursor_point),
+        _action_prompt(
             publish_state  => $publish_state,
             pending_action => $pending_action,
             cursor_point   => $cursor_point,
         ),
-        _publish_state_line($publish_state, $pending_action),
-        'status=' . $status
-            . ' events=' . scalar(@{ $context->{events} // [] })
-            . ' accepted=' . ($event_set->{event_count} // 0)
-            . ' canonical=' . scalar(@canonical),
-        'root=' . ($event_set->{event_set_root} // ''),
-        'turn=' . $turn . ' cursor=' . $cursor_point,
     );
-    push @lines, 'message=' . _single_line($args{message});
-    push @lines, 'diagnostics=' . join(',', map { _diagnostic_text($_) } @diagnostics);
-    push @lines, 'keys=arrows/hjkl move  enter/click select+confirm  p pass  R resign  r refresh  q quit';
+
+    my @lines = (
+        'GOBANFTP-PLAY-TUI/1',
+        @panel,
+        'Game: ' . _short_text($context->{game_descriptor} // '', 70),
+        'Status: ' . $status
+            . '  Events: ' . $events_count
+            . '  Accepted: ' . $accepted_count
+            . '  Main line: ' . $canonical_count,
+        'Root: ' . _short_hash($root),
+        'Turn: ' . $turn . '  Cursor: ' . uc($cursor_point),
+        _publish_state_line($publish_state, $pending_action),
+    );
+    push @lines, 'Message: ' . _short_text(length($message) ? $message : 'none', 70);
+    push @lines, 'Diagnostics: ' . _short_text($diagnostic_text, 65);
+    push @lines, 'Keys: arrows/hjkl | Enter/click x2 | P pass | R resign | r refresh | q quit';
     push @lines, '';
 
     my $label_width = length($size);
@@ -265,12 +280,12 @@ sub render_play_frame {
         cell_step      => 3,
     );
 
-    my @letters = map { chr(97 + $_) } 0 .. $size - 1;
+    my @letters = map { chr(65 + $_) } 0 .. $size - 1;
     push @lines, (' ' x ($label_width + 1)) . join('  ', @letters);
     for my $y (0 .. $size - 1) {
         my @cells;
         for my $x (0 .. $size - 1) {
-            my $glyph = _stone_glyph($board->get($x, $y));
+            my $glyph = _board_glyph($board->get($x, $y), $x, $y, $size);
             if ($ansi && $cursor->[0] == $y && $cursor->[1] == $x) {
                 $glyph = "\e[7m$glyph\e[0m";
             }
@@ -299,6 +314,7 @@ sub run_play_tui {
     my $layout;
     my $raw_guard;
     my $session;
+    my $calibrate_layout = defined($script) ? 0 : 1;
 
     if (!defined $script) {
         croak 'play.tui.tty' if !-t $input_fh || !-t $output_fh;
@@ -316,24 +332,29 @@ sub run_play_tui {
 
     my $ok = eval {
         ($context, $layout) = _draw_frame(
+            input_fh     => $input_fh,
             output_fh    => $output_fh,
+            input_state  => $input_state,
             load_context => $load_context,
             cursor       => $cursor,
             message      => $message,
+            calibrate_layout => $calibrate_layout,
             ansi         => $ansi,
         );
 
         SESSION:
         while (1) {
-            my $bytes = defined($script)
-                ? _shift_script_chunk(\$script)
-                : _read_terminal_chunk($input_fh);
-            if (!defined $bytes) {
-                $session = { exit => 0, stage => 'eof' };
-                last SESSION;
+            my @events = feed_tui_input($input_state, '');
+            if (!@events) {
+                my $bytes = defined($script)
+                    ? _shift_script_chunk(\$script)
+                    : _read_terminal_chunk($input_fh);
+                if (!defined $bytes) {
+                    $session = { exit => 0, stage => 'eof' };
+                    last SESSION;
+                }
+                @events = feed_tui_input($input_state, $bytes);
             }
-
-            my @events = feed_tui_input($input_state, $bytes);
             for my $event (@events) {
                 my $state = _final_state($context->{replay_result});
                 my $board = ref($state) eq 'HASH' ? $state->{board} : undef;
@@ -355,11 +376,14 @@ sub run_play_tui {
                     $pending_action = undef if $type eq 'refresh' || $type eq 'cursor';
                     $message = $type eq 'refresh' ? 'reloaded' : '';
                     ($context, $layout) = _draw_frame(
+                        input_fh     => $input_fh,
                         output_fh    => $output_fh,
+                        input_state  => $input_state,
                         load_context => $load_context,
                         cursor       => $cursor,
                         message      => $message,
                         pending_action => $pending_action,
+                        calibrate_layout => $calibrate_layout,
                         ansi         => $ansi,
                     );
                     next;
@@ -375,12 +399,15 @@ sub run_play_tui {
                         $pending_action = $action;
                         $message = "selected $action; confirm to publish";
                         ($context, $layout) = _draw_context_frame(
+                            input_fh      => $input_fh,
                             output_fh      => $output_fh,
+                            input_state    => $input_state,
                             context        => $context,
                             cursor         => $cursor,
                             message        => $message,
                             pending_action => $pending_action,
                             publish_state  => 'confirm',
+                            calibrate_layout => $calibrate_layout,
                             ansi           => $ansi,
                         );
                         next;
@@ -388,12 +415,15 @@ sub run_play_tui {
 
                     $pending_action = undef;
                     ($context, $layout) = _draw_context_frame(
+                        input_fh      => $input_fh,
                         output_fh      => $output_fh,
+                        input_state    => $input_state,
                         context        => $context,
                         cursor         => $cursor,
                         message        => "publishing $confirmed_action; input locked",
                         pending_action => $confirmed_action,
                         publish_state  => 'publishing_locked',
+                        calibrate_layout => $calibrate_layout,
                         ansi           => $ansi,
                     );
 
@@ -401,12 +431,15 @@ sub run_play_tui {
                     if (ref($publish) eq 'HASH' && ($publish->{stage} // '') eq 'published') {
                         $context = ref($publish->{context}) eq 'HASH' ? $publish->{context} : $context;
                         ($context, $layout) = _draw_context_frame(
+                            input_fh      => $input_fh,
                             output_fh      => $output_fh,
+                            input_state    => $input_state,
                             context        => $context,
                             cursor         => $cursor,
                             message        => _publish_message($publish),
                             pending_action => $confirmed_action,
                             publish_state  => 'published',
+                            calibrate_layout => $calibrate_layout,
                             ansi           => $ansi,
                         );
                         $session = {
@@ -439,6 +472,12 @@ sub run_play_tui {
                         ansi    => $ansi,
                     );
                     _write_frame($output_fh, $rendered);
+                    _calibrate_layout(
+                        input_fh  => $input_fh,
+                        output_fh => $output_fh,
+                        input_state => $input_state,
+                        layout    => $layout,
+                    ) if $calibrate_layout;
                     next;
                 }
             }
@@ -472,12 +511,67 @@ sub _draw_context_frame {
         ansi    => $args{ansi},
     );
     _write_frame($args{output_fh}, $frame);
+    _calibrate_layout(
+        input_fh  => $args{input_fh},
+        output_fh => $args{output_fh},
+        input_state => $args{input_state},
+        layout    => $layout,
+    ) if $args{calibrate_layout};
     return ($context, $layout);
 }
 
 sub _write_frame {
     my ($fh, $frame) = @_;
-    print {$fh} "\e[H\e[2J", $frame;
+    my $output = $frame;
+    $output =~ s/\n/\r\n/g if defined(fileno($fh)) && -t $fh;
+    print {$fh} "\e[H\e[2J", $output;
+}
+
+sub _calibrate_layout {
+    my (%args) = @_;
+    my $input_fh = $args{input_fh};
+    my $output_fh = $args{output_fh};
+    my $input_state = $args{input_state};
+    my $layout = $args{layout};
+    return if ref($layout) ne 'HASH';
+    return if !$input_fh || !$output_fh;
+    return if !defined(fileno($input_fh)) || !defined(fileno($output_fh));
+    return if !-t $input_fh || !-t $output_fh;
+
+    my ($cursor_row, undef, $leftover) = _query_cursor_position($input_fh, $output_fh);
+    $input_state->{pending} .= $leftover
+        if ref($input_state) eq 'HASH' && defined($leftover) && $leftover ne '';
+    return if !defined $cursor_row;
+
+    my $size = $layout->{size} // return;
+    my $first_row = $cursor_row - $size;
+    return if $first_row < 1;
+    $layout->{first_cell_row} = $first_row;
+}
+
+sub _query_cursor_position {
+    my ($input_fh, $output_fh) = @_;
+
+    print {$output_fh} "\e[6n";
+
+    my $select = IO::Select->new($input_fh);
+    my $buffer = '';
+    for (1 .. 4) {
+        last if !$select->can_read(0.02);
+        my $chunk = '';
+        my $read = sysread($input_fh, $chunk, 64);
+        last if !defined($read) || $read == 0;
+        $buffer .= $chunk;
+        last if $buffer =~ /\e\[([0-9]+);([0-9]+)R/;
+    }
+
+    if ($buffer =~ /\e\[([0-9]+);([0-9]+)R/) {
+        my ($row, $col) = (0 + $1, 0 + $2);
+        $buffer =~ s/\e\[[0-9]+;[0-9]+R//;
+        return ($row, $col, $buffer);
+    }
+
+    return (undef, undef, $buffer);
 }
 
 sub _read_terminal_chunk {
@@ -508,6 +602,7 @@ sub _enter_terminal {
     my ($input_fh, $output_fh) = @_;
     my $fd = fileno($input_fh);
     croak 'play.tui.tty' if !defined $fd;
+    binmode($output_fh, ':encoding(UTF-8)') if defined fileno($output_fh);
 
     my $old = POSIX::Termios->new;
     $old->getattr($fd);
@@ -579,13 +674,71 @@ sub _action_prompt {
     my $pending_action = $args{pending_action};
     my $cursor_point = $args{cursor_point} // '';
 
-    return 'Publishing ' . ($pending_action // $cursor_point) . '; input locked'
+    return 'Publishing ' . uc($pending_action // $cursor_point) . '; input locked'
         if $state eq 'publishing_locked';
-    return 'Published ' . ($pending_action // $cursor_point)
+    return 'Published ' . uc($pending_action // $cursor_point) . '; session closed'
         if $state eq 'published';
-    return 'Press Enter/click ' . $pending_action . ' again to confirm publish'
+    return 'Selected ' . uc($pending_action) . '; press Enter/click again to publish'
         if $state eq 'confirm' && defined $pending_action;
-    return 'Click a point or press Enter to select ' . $cursor_point;
+    return 'Move cursor or click a point; Enter selects ' . uc($cursor_point);
+}
+
+sub _play_box {
+    my (@rows) = @_;
+
+    my $inner = 70;
+    my $rule = '+' . ('-' x ($inner + 2)) . '+';
+    return join "\n",
+        $rule,
+        map({ '| ' . _play_cell($_, $inner) . ' |' } @rows),
+        $rule;
+}
+
+sub _play_cell {
+    my ($text, $width) = @_;
+
+    $text = _single_line($text);
+    $text = substr($text, 0, $width) if length($text) > $width;
+    return $text . (' ' x ($width - length($text)));
+}
+
+sub _state_label {
+    my ($state) = @_;
+
+    $state //= 'select';
+    $state =~ s/_/ /g;
+    return uc $state;
+}
+
+sub _witness_label {
+    my ($status) = @_;
+    return 'clean' if ($status // '') eq 'ok';
+    return 'forked' if ($status // '') eq 'fork';
+    return 'blocked' if ($status // '') eq 'validation';
+    return $status // 'unknown';
+}
+
+sub _fork_label {
+    my ($status) = @_;
+    return 'visible' if ($status // '') eq 'fork';
+    return 'none' if ($status // '') eq 'ok';
+    return 'blocked' if ($status // '') eq 'validation';
+    return 'unknown';
+}
+
+sub _short_hash {
+    my ($value) = @_;
+    return '' if !defined $value;
+    return $value if length($value) <= 18;
+    return substr($value, 0, 16) . '...';
+}
+
+sub _short_text {
+    my ($value, $limit) = @_;
+    $value = _single_line($value);
+    $limit = 70 if !defined($limit) || $limit < 4;
+    return $value if length($value) <= $limit;
+    return substr($value, 0, $limit - 3) . '...';
 }
 
 sub _plain_action {
@@ -670,18 +823,6 @@ sub _now_text {
     return length($player) ? "$label to play: $player" : "$label to play";
 }
 
-sub _verdict_text {
-    my ($status, @diagnostics) = @_;
-    return 'No fork detected' if $status eq 'ok';
-    return 'Fork detected; no move will publish until it is resolved'
-        if $status eq 'fork';
-
-    my @texts = map { _diagnostic_text($_) } grep { ref($_) eq 'HASH' } @diagnostics;
-    return @texts
-        ? 'Validation blocked: ' . join(',', @texts)
-        : 'Validation blocked';
-}
-
 sub _diagnostic_text {
     my ($diagnostic) = @_;
     require GobanFTP::Diagnostics;
@@ -696,9 +837,21 @@ sub _diagnostic_text {
         : 'unknown';
 }
 
-sub _stone_glyph {
-    my ($stone) = @_;
-    return $stone == 1 ? 'B' : $stone == 2 ? 'W' : '.';
+sub _board_glyph {
+    my ($stone, $x, $y, $size) = @_;
+    return "\x{25CF}" if $stone == 1;
+    return "\x{25CB}" if $stone == 2;
+    return '+' if _is_star_point($x, $y, $size);
+    return "\x{00B7}";
+}
+
+sub _is_star_point {
+    my ($x, $y, $size) = @_;
+    return 0 if $size < 7;
+
+    my @points = $size == 9 ? (2, 4, 6) : $size == 13 ? (3, 6, 9) : (3, int($size / 2), $size - 4);
+    my %point = map { $_ => 1 } @points;
+    return $point{$x} && $point{$y} ? 1 : 0;
 }
 
 sub _status_for_result {

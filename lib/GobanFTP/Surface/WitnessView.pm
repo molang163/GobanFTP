@@ -107,12 +107,8 @@ sub render_witness_html {
         (map { _html_field_row($_->[0], $_->[1]) } _witness_pairs($witness)),
         _html_field_row('signature.status', _signature_status($witness)),
     );
-    my @projection_blocks = map {
-        '<section class="projection">'
-            . '<h2>' . _html("projection.$_->[0]") . '</h2>'
-            . '<pre>' . _html($_->[1]) . '</pre>'
-            . '</section>'
-    } _projection_pairs($projections);
+    my @projection_blocks = map { _html_projection_section($_->[0], $_->[1]) }
+        _projection_pairs($projections);
 
     return join("\n",
         '<!doctype html>',
@@ -239,6 +235,107 @@ sub _html_field_row {
     return '<dt>' . _html($name) . '</dt><dd>' . _html($value) . '</dd>';
 }
 
+sub _html_projection_section {
+    my ($name, $text) = @_;
+
+    if ($name eq 'board') {
+        my $board = _parse_board_projection($text);
+        if ($board) {
+            return '<section class="projection projection-board">'
+                . '<h2>' . _html('projection.board') . '</h2>'
+                . '<div class="board-layout">'
+                . _html_goban($board)
+                . '<div class="projection-copy">'
+                . '<p class="boundary-note">Visual board is rendered from supplied projection text only.</p>'
+                . '<pre class="projection-raw">' . _html($text) . '</pre>'
+                . '</div>'
+                . '</div>'
+                . '</section>';
+        }
+    }
+
+    return '<section class="projection">'
+        . '<h2>' . _html("projection.$name") . '</h2>'
+        . '<pre>' . _html($text) . '</pre>'
+        . '</section>';
+}
+
+sub _parse_board_projection {
+    my ($text) = @_;
+    return undef if !defined $text || ref($text);
+
+    my $size;
+    my @rows;
+    my @labels;
+    for my $line (split /\n/, $text) {
+        $size = 0 + $1 if !defined($size) && $line =~ /\Asize=([1-9][0-9]*)\z/;
+        if ($line =~ /\A\s*([1-9][0-9]*)\s+([.BW](?:\s+[.BW])*)\s*\z/) {
+            push @labels, 0 + $1;
+            my @cells = split /\s+/, $2;
+            push @rows, \@cells;
+            $size //= scalar @cells;
+        }
+    }
+
+    return undef if !$size || $size < 1 || $size > 26;
+    return undef if @rows != $size;
+    for my $idx (0 .. $#rows) {
+        return undef if $labels[$idx] != $size - $idx;
+        return undef if @{ $rows[$idx] } != $size;
+    }
+
+    return {
+        size => $size,
+        rows => \@rows,
+    };
+}
+
+sub _html_goban {
+    my ($board) = @_;
+    my $size = $board->{size};
+    my @cells;
+
+    for my $y (0 .. $size - 1) {
+        my $row = $board->{rows}[$y];
+        for my $x (0 .. $size - 1) {
+            my $stone = $row->[$x];
+            my $point = chr(97 + $x) . chr(97 + $y);
+            my @classes = ('board-point');
+            push @classes, 'star' if _is_star_point($x, $y, $size);
+            my $content = '<span class="empty" aria-hidden="true"></span>';
+            if ($stone eq 'B') {
+                push @classes, 'has-stone';
+                $content = '<span class="stone black" aria-label="black stone"></span>';
+            }
+            elsif ($stone eq 'W') {
+                push @classes, 'has-stone';
+                $content = '<span class="stone white" aria-label="white stone"></span>';
+            }
+
+            push @cells,
+                '<span class="' . join(' ', @classes) . '" data-point="' . _html($point) . '">'
+                . $content
+                . '</span>';
+        }
+    }
+
+    return '<figure class="goban-figure">'
+        . '<div class="goban" style="--board-size: ' . _html($size) . '">'
+        . join('', @cells)
+        . '</div>'
+        . '<figcaption>Projection skin; not a consensus input.</figcaption>'
+        . '</figure>';
+}
+
+sub _is_star_point {
+    my ($x, $y, $size) = @_;
+    return 0 if $size < 7;
+
+    my @points = $size == 9 ? (2, 4, 6) : $size == 13 ? (3, 6, 9) : (3, int($size / 2), $size - 4);
+    my %point = map { $_ => 1 } @points;
+    return $point{$x} && $point{$y} ? 1 : 0;
+}
+
 sub _value {
     my ($value) = @_;
     return '' if !defined $value;
@@ -354,12 +451,93 @@ pre {
   border: 1px solid #3b3d34;
   padding: 14px;
 }
+.board-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.goban-figure {
+  margin: 0;
+}
+.goban {
+  --cell: clamp(24px, 6vw, 38px);
+  display: grid;
+  grid-template-columns: repeat(var(--board-size), var(--cell));
+  grid-template-rows: repeat(var(--board-size), var(--cell));
+  width: max-content;
+  max-width: 100%;
+  padding: calc(var(--cell) * .35);
+  background: #c79a5b;
+  border: 1px solid #4a3321;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.12);
+  overflow: auto;
+}
+.board-point {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--cell);
+  height: var(--cell);
+}
+.board-point::before,
+.board-point::after {
+  content: "";
+  position: absolute;
+  background: rgba(31, 22, 15, .72);
+  pointer-events: none;
+}
+.board-point::before {
+  width: 100%;
+  height: 1px;
+}
+.board-point::after {
+  width: 1px;
+  height: 100%;
+}
+.board-point.star .empty::before {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(31, 22, 15, .78);
+}
+.stone {
+  position: relative;
+  z-index: 1;
+  width: calc(var(--cell) * .74);
+  height: calc(var(--cell) * .74);
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(0,0,0,.35);
+}
+.stone.black {
+  background: radial-gradient(circle at 34% 28%, #4e4e4b, #111);
+}
+.stone.white {
+  background: radial-gradient(circle at 35% 28%, #fff, #d9d3c5 70%, #aaa08e);
+}
+.projection-copy {
+  min-width: 0;
+}
+.projection-raw {
+  margin-top: 12px;
+}
+.boundary-note,
+figcaption {
+  color: #c7bea9;
+  margin: 0 0 10px;
+  font-size: 13px;
+}
 @media (max-width: 720px) {
   dl {
     grid-template-columns: 1fr;
   }
   dd {
     margin-bottom: 8px;
+  }
+  .board-layout {
+    grid-template-columns: 1fr;
   }
 }
 CSS

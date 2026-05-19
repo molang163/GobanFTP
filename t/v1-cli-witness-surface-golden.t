@@ -50,9 +50,9 @@ subtest 'minimal witness HTML surface is frozen' => sub {
 
     is $exit, 0, 'HTML surface exits success';
     is $stderr, '', 'HTML surface has no diagnostics';
-    is length($stdout), 5391, 'HTML surface byte length is frozen';
+    is length($stdout), 8300, 'HTML surface byte length is frozen';
     is sha256_hex($stdout),
-        '8a3321639f9a754935f0f17df1d5f07f56439506cbcd5aec61957f57fb230efd',
+        '9a4fddb4388812354c33d77cff2cb4e4a4648f44751c6f2e883e2a8fe99df63f',
         'HTML surface digest is frozen';
     like $stdout, qr/\A<!doctype html>\n/, 'HTML surface starts with doctype';
     like $stdout,

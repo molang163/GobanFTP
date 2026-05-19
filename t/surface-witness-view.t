@@ -93,9 +93,36 @@ subtest 'renders witness fields and projection text only' => sub {
     like $html, qr/<dt>signature[.]status<\/dt><dd>unsigned<\/dd>/,
         'HTML surface includes signature status';
     like $html, qr/<h2>projection[.]board<\/h2>/, 'HTML surface includes projection section';
+    like $html, qr/<div class="goban" style="--board-size: 3">/,
+        'HTML surface renders board projection as a visual goban';
+    like $html, qr/data-point="aa"/,
+        'HTML visual goban keeps point coordinates';
+    like $html, qr/data-point="ab"><span class="stone black"/,
+        'HTML visual goban maps supplied black stone text to the matching point';
+    like $html, qr/data-point="bb"><span class="stone white"/,
+        'HTML visual goban maps supplied white stone text to the matching point';
+    like $html, qr/data-point="aa"><span class="empty"/,
+        'HTML visual goban leaves supplied empty points empty';
+    like $html, qr/<pre class="projection-raw">3 \. \. \./,
+        'HTML surface keeps the raw board projection beside the visual skin';
     like $html, qr/&lt;script&gt;alert\(&#39;shadow&#39;\)&lt;\/script&gt;/,
         'HTML projection text is escaped';
     unlike $html, qr/<script>alert/, 'HTML surface does not emit raw script text';
+};
+
+subtest 'malformed board projection falls back to raw escaped pre text' => sub {
+    my $witness = _minimal_witness();
+    my $html = render_witness_html(
+        witness     => $witness,
+        projections => {
+            board => "3 . . .\n3 B W .\n1 . . .\n  a b c\n",
+        },
+    );
+
+    unlike $html, qr/<div class="goban"/,
+        'malformed board labels do not render as a visual goban';
+    like $html, qr/<h2>projection[.]board<\/h2><pre>3 \. \. \.\n3 B W \.\n1 \. \. \./,
+        'malformed board text remains visible as raw projection text';
 };
 
 subtest 'does not call witness, replay, root, listing, rules, projection, or parser code' => sub {

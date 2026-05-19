@@ -1,18 +1,25 @@
 # GobanFTP
 
-A Go game can live in hostile listings.
+A Go game recovered from hostile directory listings.
 
-GobanFTP is a listing-first Go protocol artwork: public names are packets,
-replay is proof, and projections are shadows. A server may lie about time, size,
-order, type, locks, bodies, and presentation. The game still emerges from the
-names it is allowed to trust.
+![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
+![Version 1.000](https://img.shields.io/badge/version-1.000-333333)
+![License perl_5](https://img.shields.io/badge/license-perl__5-blue)
+![Showcase gate](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
+
+Moves are filenames. Replay ignores file contents.
+
+Change the basename, the game changes. Change bytes, mtime, order, sidecars, or
+projections, it does not.
 
 Current line: `v1.0/package 1.000` release source.
 
-The `v1.0/P14` source is the release proof machine: the same logical event
-basenames must produce the same `event_set_root`, DAG, canonical prefix, board
-projection, SGF, and diagnostic class for the same logical failure where
-observable across declared substrates.
+[Three-minute proof](#three-minute-proof) · [Terminal play](#terminal-play) ·
+[Static specimen](#static-witness-specimen) · [The contract](#the-contract)
+
+`v1.0/P14` freezes one rule: the same accepted event names produce the same
+replay. Source-art, terminal play, static witness HTML, and fixture evidence are
+surfaces. They cannot add truth.
 
 ```text
 Names are packets.
@@ -23,6 +30,48 @@ FTP is the altar, not the authority.
 ```
 
 The strange surface is deliberate. The replay contract is not negotiable.
+
+Try the local proof:
+
+```sh
+perl Makefile.PL
+make test
+prove -lr t/showcase-demo.t
+```
+
+## First Look
+
+These are views of the same boundary. Only event basenames decide replay.
+
+### Protocol Object, Not App State
+
+![GobanFTP protocol object: the game descriptor directory, event basenames, sidecar, projections, and tmp residue.](docs/assets/readme-01-protocol-object.png)
+
+The game descriptor basename and direct `events/` basenames are the packets.
+`sidecar/`, `projections/`, and `tmp/` cannot decide replay.
+
+### Race Becomes Fork
+
+![GobanFTP race shrine replay output showing a visible fork diagnostic.](docs/assets/readme-04-race-fork.png)
+
+Listing order does not choose a winner. Default conservative replay stops at
+the fork unless explicit ack-assisted recovery is requested.
+
+### Terminal Play Locks Before Publish
+
+![GobanFTP terminal play surface with keyboard and optional SGR mouse two-step confirmation.](docs/assets/readme-02-tui.png)
+
+`play --tui` is a local input/display layer over replay and publish callbacks.
+Keyboard and SGR mouse, where available, select first; a second Enter/click
+confirms; input locks while publishing.
+
+### Static Specimen, Not Hosted UI
+
+![GobanFTP static witness specimen showing a visual 9x9 board and raw projection text.](docs/assets/readme-03-witness-specimen.png)
+
+The static witness specimen is a direct-open file: no script, no server, no
+hosted Web UI. It displays supplied witness fields and projection text; protocol
+truth stays in event basenames.
 
 ## The Contract
 
@@ -79,12 +128,13 @@ prove -lr t/showcase-demo.t
 ```
 
 It checks the clean shrine, the race shrine, the source-art oracle smoke, the
-unsigned `local-goftp1` v1 witness, and the text, static HTML, and static
-terminal witness surfaces that expose the same root. Those surfaces are
-read-only inspection output: static HTML is not hosted Web UI, and
+unsigned `local-goftp1` v1 witness, and static inspection surfaces. Those
+surfaces are read-only inspection output: static HTML is not hosted Web UI, and
 `--surface terminal` is not the local `play --tui` input surface. Local terminal
 play is available through `gobanftp play --tui`; it remains an input/display
-layer over replay and publish callbacks.
+layer over replay and publish callbacks. Keyboard and SGR mouse input select a
+candidate first, require a second Enter/click to publish, and lock input once
+publishing starts.
 
 Open the shrine:
 
@@ -142,6 +192,26 @@ legal_moves=3
 
 That is the point: the race remains visible.
 
+## Terminal Play
+
+`gobanftp play --tui` is local play over the same replay and publish callbacks.
+It does not own rules, roots, diagnostics, or event acceptance.
+
+```text
+select -> confirm -> publishing_locked -> published
+```
+
+Keyboard is the fallback path. SGR mouse is used where the terminal supports it.
+One successful publish ends the session.
+
+## Static Witness Specimen
+
+`examples/static/witness-specimen.html` is a direct-open specimen. It has no
+script, no network fetch, no server process, and no hosted UI behavior.
+
+The visual board is a projection skin beside raw projection text. It cannot
+testify; it can only display.
+
 ## The Shrine
 
 The browsable specimen is not a screenshot. It is a protocol object:
@@ -190,40 +260,16 @@ SGF is a witness, not the source of truth.
 
 Implemented in v1.0/package 1.000:
 
-- strict game descriptor and event filename parsing
-- filename-derived event ids
-- deterministic event-set roots
-- DAG construction and conservative replay
-- Go rules for `chinese-area-v1`
-- optional `Inline::C` board-mechanics backend
-- SGF rendering
-- rebuildable board, graveyard, SGF, and oracle projections
-- local filesystem store
-- FTP store, including the declared `ftp-goftp1` zero-byte `tmp/` upload plus
-  `RNTO` publish path, with mock coverage and optional disposable live smoke
-  coverage
-- read-only Git tree store with runtime CLI parity coverage
-- read-only DNS record admission over local or declared record-file inputs
-- WebDAV store with mock and CLI parity coverage
-- CLI create, verify, replay, project, SGF, publish-move, publish-ack, play,
-  and watch flows
-- explicit ack-assisted fork recovery
-- v1 profile registry and witness output
-- `local-goftp1`, `ftp-goftp1`, `git-tree-goftp1`, `dns-record-goftp1`, and
-  `webdav-goftp1` substrate profiles
-- `signed-hmac-goftp1` per-event HMAC witness acceptance gate
-- verifier-local `v1 keygen`, `v1 attest`, and `v1 witness --trusted-hmac-key-file`
-  support for signed-HMAC operation without leaking HMAC secrets
-- signed-HMAC overlay witness proof across local, FTP, Git-tree, DNS-record,
-  and WebDAV read normalizers using explicit verifier-local HMAC trust input
-- verifier-local `GOFTP-HMAC-PUBLISH/1` publish-purpose token generation and
-  fixture verification for new-material preflight/lifecycle evidence
-- public signed/auth mismatch fixture and golden-vector evidence for
-  signature-class witness-gate rejections and publish-auth token denial
-- default-off verifier-local publish preflight gate for `publish-move`,
-  `publish-ack`, `play --move`, `play --ack`, and `play --tui`
-- core, v1, and profile attack fixture galleries
-- executable source-art oracle smoke
+- Consensus core: filename grammar, event ids, `event_set_root`, DAG replay,
+  `chinese-area-v1` rules, SGF, and ack-assisted fork recovery.
+- Stores: local, FTP, WebDAV, read-only Git tree, and read-only DNS record-file
+  admission.
+- Surfaces: `play --tui`, witness text/html/terminal, projections, direct-open
+  static specimen, and executable source-art oracle smoke.
+- Profiles: unsigned `GOFTP/1`, declared substrate profiles, and explicit
+  signed-HMAC witness/preflight gates.
+- Evidence: showcase gate, attack fixtures, cross-substrate golden vectors, and
+  profile publish fixtures.
 
 Boundary lines in v1.0/package 1.000:
 
@@ -246,9 +292,9 @@ only. It does not claim `RETR`, `SIZE`, `MDTM`, live FTP auth, live FTP
 integrity, or production FTP deployment safety. The `ftp-goftp1` tmp+rename
 publish path is declared separately and covered by mock FTP tests plus optional
 `script/live-ftp-smoke`.
-Signed/auth mismatch rows are fixture and vector evidence only; they do not
-claim complete production key lifecycle, complete publish auth, or real writer
-authorization.
+
+Signed/auth material in this release is verifier-local fixture/preflight
+evidence. It is not production writer authorization or production key lifecycle.
 
 Unsigned `GOFTP/1` remains valid and unchanged. A signed/auth profile can reject
 events only when that explicit profile is selected; sidecar signatures do not
@@ -271,10 +317,10 @@ gobanftp.oracle=ok
 rules.move=ok
 ```
 
-The source art may dispatch to tested modules. It must not own filename grammar,
-event id calculation, DAG replay, rule legality, storage behavior, SGF output,
-or projection rebuilding. Whitespace, comments, POD, C hooks, and asm-like
-surface are ritual surface, never consensus input.
+The source art may dispatch to tested modules. It must not own protocol truth:
+filenames, event ids, DAG replay, rule legality, storage behavior, SGF, and
+diagnostics remain outside the drawing. Whitespace, comments, POD, C hooks, and
+asm-like surface are ritual surface, never consensus input.
 
 ## Run It
 
@@ -412,66 +458,11 @@ nonlocal listings.
 
 ## Proof Gates
 
-Showcase:
+Main gates:
 
 ```sh
 prove -lr t/showcase-demo.t
-```
-
-Local runtime flow:
-
-```sh
-prove -lr t/store-local.t t/create-game.t t/e2e-local.t t/play-flow-store.t
-```
-
-FTP store and CLI parity, without a live server:
-
-```sh
-prove -lr t/store-ftp-mock.t t/ftp-cli-parity.t
-```
-
-Optional disposable live FTP smoke:
-
-```sh
-script/live-ftp-smoke
-```
-
-WebDAV store and CLI parity, mock-backed:
-
-```sh
-prove -lr t/store-webdav-mock.t t/webdav-cli-parity.t t/v1-profile-publish-fixtures.t
-```
-
-Git tree store and CLI parity, real temporary repository:
-
-```sh
-prove -lr t/store-git-tree.t
-```
-
-DNS record store and CLI parity, local record-file only:
-
-```sh
-prove -lr t/store-dns-record.t t/dns-cli-parity.t
-```
-
-v1 profiles, witnesses, and compare commands:
-
-```sh
-prove -lr t/profile-registry.t t/profile-adapter.t t/witness-api.t \
-  t/v1-cli-witness.t t/v1-cli-compare.t t/v1-cross-substrate.t
-```
-
-Signed-HMAC witness gate:
-
-```sh
-prove -lr t/hmac-auth.t t/profile-signed-hmac.t \
-  t/v1-signed-hmac.t t/v1-signed-hmac-golden-vectors.t
-```
-
-Attack galleries:
-
-```sh
-prove -lr t/attack-fixtures.t t/v1-attack-fixtures.t t/v1-profile-attack-fixtures.t
+prove -lr t
 ```
 
 The current P14 release-gate evidence is recorded in
@@ -481,6 +472,12 @@ the source tree.
 
 The final artifact identity, version decision, and tag preconditions are tracked
 in `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
+
+Optional disposable live FTP smoke:
+
+```sh
+script/live-ftp-smoke
+```
 
 ## v1.0/P14 Shape
 
