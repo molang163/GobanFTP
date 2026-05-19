@@ -246,8 +246,24 @@ sub _html_projection_section {
                 . '<div class="board-layout">'
                 . _html_goban($board)
                 . '<div class="projection-copy">'
-                . '<p class="boundary-note">Visual board is rendered from supplied projection text only.</p>'
+                . '<div class="proof-panel">'
+                . '<div class="proof-card">'
+                . '<h3>Projection Skin</h3>'
+                . '<p class="boundary-note">This is not terminal output. It is a static rendering of supplied projection text.</p>'
+                . '</div>'
+                . '<div class="proof-card">'
+                . '<h3>Packet Boundary</h3>'
+                . '<ul class="packet-list">'
+                . '<li><strong>truth</strong> game descriptor basename</li>'
+                . '<li><strong>truth</strong> direct events/ basenames</li>'
+                . '<li><strong>shadow</strong> bytes, mtime, order, sidecars, projections, tmp</li>'
+                . '</ul>'
+                . '</div>'
+                . '<div class="proof-card">'
+                . '<h3>Raw Projection Witness</h3>'
                 . '<pre class="projection-raw">' . _html($text) . '</pre>'
+                . '</div>'
+                . '</div>'
                 . '</div>'
                 . '</div>'
                 . '</section>';
@@ -424,6 +440,11 @@ h2 {
 h2 {
   font-size: 18px;
 }
+h3 {
+  color: #f4f0e6;
+  font-size: 15px;
+  margin: 0 0 10px;
+}
 .subtitle {
   color: #c7bea9;
   margin: 0;
@@ -520,8 +541,28 @@ pre {
 .projection-copy {
   min-width: 0;
 }
+.proof-panel {
+  display: grid;
+  gap: 14px;
+}
+.proof-card {
+  border: 1px solid #3b3d34;
+  background: #171a15;
+  padding: 14px;
+}
+.packet-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.packet-list strong {
+  color: #9fbf8f;
+}
 .projection-raw {
-  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.45;
 }
 .boundary-note,
 figcaption {

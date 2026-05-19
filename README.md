@@ -67,7 +67,7 @@ confirms; input locks while publishing.
 
 ### Static Specimen, Not Hosted UI
 
-![GobanFTP static witness specimen showing a visual 9x9 board and raw projection text.](docs/assets/readme-03-witness-specimen.png)
+![GobanFTP static witness specimen showing a visual 9x9 board and proof panel.](docs/assets/readme-03-witness-specimen.png)
 
 The static witness specimen is a direct-open file: no script, no server, no
 hosted Web UI. It displays supplied witness fields and projection text; protocol

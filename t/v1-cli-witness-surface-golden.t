@@ -50,9 +50,9 @@ subtest 'minimal witness HTML surface is frozen' => sub {
 
     is $exit, 0, 'HTML surface exits success';
     is $stderr, '', 'HTML surface has no diagnostics';
-    is length($stdout), 8300, 'HTML surface byte length is frozen';
+    is length($stdout), 9094, 'HTML surface byte length is frozen';
     is sha256_hex($stdout),
-        '9a4fddb4388812354c33d77cff2cb4e4a4648f44751c6f2e883e2a8fe99df63f',
+        '1624ad76c75391b9f1f0d25f73a0b5d4e54cdd3bb3ba1ac5c3cef836e834804f',
         'HTML surface digest is frozen';
     like $stdout, qr/\A<!doctype html>\n/, 'HTML surface starts with doctype';
     like $stdout,
@@ -60,6 +60,10 @@ subtest 'minimal witness HTML surface is frozen' => sub {
         'HTML surface keeps root visible';
     like $stdout, qr/<h2>projection[.]board<\/h2>/,
         'HTML surface includes board projection';
+    like $stdout, qr/<h3>Raw Projection Witness<\/h3>/,
+        'HTML surface labels raw projection text as witness material';
+    like $stdout, qr/This is not terminal output[.]/,
+        'HTML surface does not present board projection as an old terminal UI';
     like $stdout, qr/<h2>projection[.]sgf_main<\/h2>/,
         'HTML surface keeps canonical SGF section';
     unlike $stdout, qr/<h2>projection[.]sgf<\/h2>/,

@@ -25,6 +25,10 @@ like $html, qr/<dt>signature[.]status<\/dt><dd>unsigned<\/dd>/,
     'specimen exposes unsigned signature status';
 like $html, qr/<h2 id="board-heading">projection[.]board<\/h2>/,
     'specimen includes a board projection section';
+like $html, qr/<h3>Raw Projection Witness<\/h3>/,
+    'specimen labels raw projection text as witness material';
+like $html, qr/This is not terminal output[.]/,
+    'specimen does not present raw projection as an old terminal UI';
 like $html, qr/<h2 id="sgf-heading">projection[.]sgf_main<\/h2>/,
     'specimen includes a canonical SGF projection section';
 like $html,

@@ -18,13 +18,13 @@ body {
 main {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 32px 0 44px;
+  padding: 24px 0 36px;
 }
 header,
 section,
 footer {
   border-left: 3px solid #c45336;
-  margin: 0 0 30px;
+  margin: 0 0 24px;
   padding: 4px 0 8px 18px;
 }
 .eyebrow,
@@ -44,6 +44,11 @@ h1 {
 h2 {
   font-size: 18px;
 }
+h3 {
+  color: #fff6e6;
+  font-size: 15px;
+  margin: 0 0 10px;
+}
 p {
   color: #cfc4ad;
   margin: 0;
@@ -60,13 +65,13 @@ dd {
 }
 .board-wrap {
   display: grid;
-  grid-template-columns: minmax(320px, 460px) minmax(0, 1fr);
+  grid-template-columns: minmax(300px, 440px) minmax(0, 1fr);
   gap: 24px;
   align-items: start;
 }
 .goban {
   --board-size: 9;
-  --cell: clamp(24px, 5vw, 36px);
+  --cell: clamp(22px, 5vw, 34px);
   display: grid;
   grid-template-columns: repeat(var(--board-size), var(--cell));
   grid-template-rows: repeat(var(--board-size), var(--cell));
@@ -119,6 +124,36 @@ dd {
 .projection-copy {
   min-width: 0;
 }
+.proof-panel {
+  display: grid;
+  gap: 12px;
+}
+.proof-card {
+  border: 1px solid #3b3d34;
+  background: #171a15;
+  padding: 12px;
+}
+.proof-card dl {
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+  margin-top: 12px;
+}
+.proof-card dt,
+.packet-list strong {
+  color: #94bf8c;
+}
+.packet-list {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+.packet-list li {
+  color: #d9d0be;
+}
+.packet-list code {
+  color: #fff6e6;
+}
 pre {
   margin: 0;
   max-width: 100%;
@@ -130,6 +165,10 @@ pre {
 }
 .projection-copy pre {
   margin-top: 12px;
+}
+.projection-raw {
+  font-size: 13px;
+  line-height: 1.45;
 }
 .boundary-note,
 footer {
@@ -255,8 +294,27 @@ footer {
 <span class="board-point" data-point="ii"></span>
 </div>
 <div class="projection-copy">
-<p class="boundary-note">Visual board is a static projection skin. Filenames remain the only packets.</p>
-<pre>game=g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
+<div class="proof-panel">
+<div class="proof-card">
+<h3>Projection Skin</h3>
+<p class="boundary-note">This is not terminal output. It is a static rendering of supplied projection text; event basenames remain the only packets.</p>
+<dl>
+<dt>next_color</dt><dd>black</dd>
+<dt>stones</dt><dd>3 black / 3 white</dd>
+<dt>accepted names</dt><dd>6 moves + 1 ack</dd>
+</dl>
+</div>
+<div class="proof-card">
+<h3>Packet Boundary</h3>
+<ul class="packet-list">
+<li><strong>truth</strong> <code>game descriptor basename</code></li>
+<li><strong>truth</strong> <code>events/&lt;event basename&gt;</code></li>
+<li><strong>shadow</strong> bytes, mtime, order, sidecars, projections, tmp</li>
+</ul>
+</div>
+<div class="proof-card">
+<h3>Raw Projection Witness</h3>
+<pre class="projection-raw">game=g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
 size=9
 next_color=b
 terminal=0
@@ -270,6 +328,7 @@ terminal=0
 3 . . . . . . . . .
 2 . . . . . . . . .
 1 . . . . . . . . .</pre>
+</div>
 </div>
 </div>
 </section>
