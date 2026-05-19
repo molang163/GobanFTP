@@ -186,10 +186,13 @@ done_testing;
 
 sub _dns_rows {
     my $other_game = 'g1.id-dns-other.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob';
+    my $upper_game = uc $GAME;
+    my $upper_poison = uc $POISON_MOVE;
     return (
         "ttl=3600 type=TXT owner=02.events.$GAME.example. event=\"$MOVE_W\"",
         "ttl=1 type=txt owner=01.events.$GAME.example. event=$MOVE_B",
         "ttl=2 type=TXT owner=01.duplicate.events.$GAME.example. event=\"$MOVE_B\"",
+        "ttl=2 TyPe=Txt owner=01.EVENTS.$upper_game.EXAMPLE. event=\"$MOVE_B\"",
         "ttl=3 type=A owner=03.events.$GAME.example. event=$POISON_MOVE",
         "ttl=4 type=TXT owner=03.events.$other_game.example. event=$POISON_MOVE",
         "ttl=5 type=TXT owner=03.events.$GAME.evil. event=$POISON_MOVE",
@@ -197,6 +200,8 @@ sub _dns_rows {
         "ttl=7 type=TXT owner=sidecar.$GAME.example. event=$POISON_MOVE sidecar=$ID_B.sig",
         "ttl=8 type=TXT owner=projections.sgf.$GAME.example. event=$POISON_MOVE projection=sgf/main.sgf",
         "ttl=9 type=TXT owner=tmp.$GAME.example. event=$POISON_MOVE tmp=upload.part",
+        "ttl=10 type=TXT owner=04.events.$GAME.example. event=$upper_poison",
+        "ttl=11 type=TXT owner=05.events.$GAME.example. event=events/$POISON_MOVE",
     );
 }
 

@@ -104,7 +104,7 @@ subtest 'event reducer produces one canonical action intent' => sub {
         size   => 9,
     );
     is_deeply $decision, { type => 'action', action => 'ba', cursor => [0, 1] },
-        'submit publishes the selected point';
+        'submit yields the selected point action';
 
     my $layout = board_layout(size => 9, first_cell_row => 10, first_cell_col => 3);
     $decision = apply_tui_event(
@@ -114,7 +114,7 @@ subtest 'event reducer produces one canonical action intent' => sub {
         layout => $layout,
     );
     is_deeply $decision, { type => 'action', action => 'bb', cursor => [1, 1] },
-        'mouse click publishes the hit-tested point and moves the cursor there';
+        'mouse click yields the hit-tested point action and moves the cursor there';
 };
 
 subtest 'renderer exposes board state without deriving truth' => sub {
@@ -133,14 +133,27 @@ subtest 'renderer exposes board state without deriving truth' => sub {
     like $frame, qr/^truth=event-filenames$/m, 'frame names the truth boundary';
     like $frame, qr/^now=Black to play: alice$/m, 'frame includes a readable turn line';
     like $frame, qr/^verdict=No fork detected$/m, 'frame includes a readable safety line';
-    like $frame, qr/^action=Click a point or press Enter to publish ba$/m,
+    like $frame, qr/^action=Click a point or press Enter to select ba$/m,
         'frame includes a readable input line';
+    like $frame, qr/^publish_state=select$/m, 'frame starts in select mode';
     like $frame, qr/^status=ok events=1 accepted=1 canonical=1$/m,
         'frame summarizes supplied replay and event-set fields';
     like $frame, qr/^turn=black\(alice\) cursor=ba$/m, 'frame displays the selected point';
     like $frame, qr/^message=candidate rejected$/m, 'message is single-line sanitized';
     like $frame, qr/^9 B  W  \.  \.  \.  \.  \.  \.  \.$/m, 'board stones are rendered';
     is $layout->{first_cell_row} > 1, 1, 'renderer returns a terminal hit-test layout';
+
+    my ($confirm_frame) = render_play_frame(
+        context        => _fake_context($board),
+        cursor         => [0, 1],
+        pending_action => 'ba',
+        publish_state  => 'confirm',
+        ansi           => 0,
+    );
+    like $confirm_frame, qr/^publish_state=confirm pending_action=ba$/m,
+        'confirm frame names the pending action';
+    like $confirm_frame, qr/^action=Press Enter\/click ba again to confirm publish$/m,
+        'confirm frame requires a second action before publishing';
 };
 
 subtest 'renderer uses diagnostics registry text for validation state' => sub {
@@ -171,7 +184,35 @@ subtest 'renderer uses diagnostics registry text for validation state' => sub {
         'diagnostics line uses registry explanation text';
 };
 
-subtest 'scripted TUI run locks after one publish' => sub {
+subtest 'scripted TUI run selects before publishing' => sub {
+    my $board = GobanFTP::Board->new(9);
+    my $context = _fake_context($board);
+    my (@actions, $stdout);
+    open my $out_fh, '>', \$stdout or die "open scalar stdout: $!";
+
+    my $session = run_play_tui(
+        load_context => sub {
+            return $context;
+        },
+        publish_action => sub {
+            my ($action) = @_;
+            push @actions, $action;
+            die "unexpected publish for $action";
+        },
+        output_fh => $out_fh,
+        script    => "\e[C\rq",
+        ansi      => 0,
+    );
+
+    is_deeply \@actions, [], 'right arrow plus one Enter selects but does not publish';
+    is $session->{stage}, 'quit', 'quit exits after a pending selection';
+    like $stdout, qr/^publish_state=confirm pending_action=ba$/m,
+        'pending selection is rendered for confirmation';
+    unlike $stdout, qr/^publish_state=publishing_locked/m,
+        'one accidental key press never enters the publishing lock';
+};
+
+subtest 'scripted TUI run confirms, locks, and publishes' => sub {
     my $board = GobanFTP::Board->new(9);
     my $context = _fake_context($board);
     my (@actions, $loads, $stdout);
@@ -194,18 +235,24 @@ subtest 'scripted TUI run locks after one publish' => sub {
             };
         },
         output_fh => $out_fh,
-        script    => "\e[C\rq",
+        script    => "\e[C\r\r",
         ansi      => 0,
     );
 
-    is_deeply \@actions, ['ba'], 'right arrow plus Enter publishes exactly one selected point';
+    is_deeply \@actions, ['ba'], 'right arrow plus two Enters publishes exactly one selected point';
     is $session->{stage}, 'published', 'published move ends the TUI session';
     is $session->{publish}{event_id}, 'deadbeefdeadbeef', 'publish result is returned to CLI';
     ok $loads >= 2, 'cursor movement redraws from the supplied loader';
     like $stdout, qr/GOBANFTP-PLAY-TUI\/1/, 'scripted session renders frames';
+    like $stdout, qr/^publish_state=confirm pending_action=ba$/m,
+        'first submit renders the confirmation stage';
+    like $stdout, qr/^publish_state=publishing_locked pending_action=ba$/m,
+        'confirmed submit renders the publishing lock';
+    like $stdout, qr/^publish_state=published pending_action=ba$/m,
+        'published result renders the final stage';
 };
 
-subtest 'scripted mouse click publishes through the same one-shot lock' => sub {
+subtest 'scripted mouse click also requires confirmation' => sub {
     my $board = GobanFTP::Board->new(9);
     my $context = _fake_context($board);
     my (@actions, $stdout);
@@ -235,13 +282,55 @@ subtest 'scripted mouse click publishes through the same one-shot lock' => sub {
             };
         },
         output_fh => $out_fh,
-        script    => "\e[<0;$col;${row}M\e[<0;3;10M",
+        script    => "\e[<0;$col;${row}Mq",
         ansi      => 0,
     );
 
-    is_deeply \@actions, ['bb'], 'mouse click publishes exactly one hit-tested point';
+    is_deeply \@actions, [], 'one mouse click selects but does not publish';
+    is $session->{stage}, 'quit', 'mouse selection can be abandoned';
+    like $stdout, qr/^publish_state=confirm pending_action=bb$/m,
+        'mouse selection is rendered for confirmation';
+};
+
+subtest 'scripted repeated mouse click publishes through the lock' => sub {
+    my $board = GobanFTP::Board->new(9);
+    my $context = _fake_context($board);
+    my (@actions, $stdout);
+    open my $out_fh, '>', \$stdout or die "open scalar stdout: $!";
+
+    my (undef, $layout) = render_play_frame(
+        context => $context,
+        cursor  => [0, 0],
+        ansi    => 0,
+    );
+    my $col = $layout->{first_cell_col} + $layout->{cell_step};
+    my $row = $layout->{first_cell_row} + 1;
+
+    my $session = run_play_tui(
+        load_context => sub {
+            return $context;
+        },
+        publish_action => sub {
+            my ($action) = @_;
+            push @actions, $action;
+            return {
+                exit       => 0,
+                stage      => 'published',
+                context    => $context,
+                event_name => 'm1.t-root.by-alice.x-bb.h-feedfacefeedface',
+                event_id   => 'feedfacefeedface',
+            };
+        },
+        output_fh => $out_fh,
+        script    => "\e[<0;$col;${row}M\e[<0;$col;${row}M",
+        ansi      => 0,
+    );
+
+    is_deeply \@actions, ['bb'], 'repeated mouse click publishes exactly one hit-tested point';
     is $session->{stage}, 'published', 'mouse publish ends the TUI session';
     is $session->{publish}{event_id}, 'feedfacefeedface', 'mouse publish result is returned';
+    like $stdout, qr/^publish_state=publishing_locked pending_action=bb$/m,
+        'mouse confirmation renders the publishing lock';
 };
 
 subtest 'CLI play --tui refuses non-terminal stdio before loading a store' => sub {
@@ -268,15 +357,17 @@ subtest 'CLI play --tui has a real pty smoke path when script(1) is available' =
     is $quit_stderr, '', 'pty q has no stderr';
 
     my (undef, $keyboard_game) = _make_game_root();
-    my ($key_exit, $key_stdout, $key_stderr) = _run_pty_cli("\e[C\r", 'play', '--tui', $keyboard_game);
+    my ($key_exit, $key_stdout, $key_stderr) = _run_pty_cli("\e[C\r\r", 'play', '--tui', $keyboard_game);
     is $key_exit, 0, 'pty keyboard publish exits successfully';
     like $key_stdout, qr/event=m1[.].*play-ba/, 'pty keyboard publishes the selected ba point';
     is scalar(_event_names($keyboard_game)), 1, 'pty keyboard publishes exactly one event';
+    like $key_stdout, qr/^publish_state=publishing_locked pending_action=ba$/m,
+        'pty keyboard path renders the publishing lock';
     is $key_stderr, '', 'pty keyboard publish has no stderr';
 
     my (undef, $mouse_game) = _make_game_root();
     my ($mouse_exit, $mouse_stdout, $mouse_stderr) =
-        _run_pty_cli("\e[<0;6;14M\e[<0;9;15M", 'play', '--tui', $mouse_game);
+        _run_pty_cli("\e[<0;6;17M\e[<0;6;17M", 'play', '--tui', $mouse_game);
     is $mouse_exit, 0, 'pty mouse publish exits successfully';
     like $mouse_stdout, qr/event=m1[.].*play-bb/, 'pty mouse publishes the hit-tested bb point';
     is scalar(_event_names($mouse_game)), 1, 'pty mouse publishes exactly one event';
@@ -287,7 +378,7 @@ subtest 'CLI play --tui has a real pty smoke path when script(1) is available' =
     my ($event, $event_id) = _move_name(action => 'play-ba', nonce => 'authdeny');
     my $token_path = _write_publish_token($auth_root, $key, $event, $event_id);
     my ($auth_exit, $auth_stdout, $auth_stderr) = _run_pty_cli(
-        "\e[C\r",
+        "\e[C\r\r",
         'play',
         '--tui',
         '--nonce', 'authdeny',

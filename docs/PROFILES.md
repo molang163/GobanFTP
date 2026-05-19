@@ -678,6 +678,7 @@ ignored DNSSEC trust chain or validation result
 live DNS response metadata
 zone/provider API metadata
 record type outside the profile declaration
+owner/type presentation case
 presentation whitespace
 ```
 
@@ -686,9 +687,11 @@ Read algorithm:
 ```text
 read the local or otherwise declared record set from GOBANFTP_DNS_RECORD_FILE
 extract event basename strings from the declared label/value slot
-lowercase DNS presentation names before decoding
+normalize DNS owner names and record type case before matching
+keep authoritative event= values as exact GOFTP/1 event basenames
+reject event= values that require case folding or contain events/ path prefixes
 reject any label encoding that cannot round-trip to one GOFTP/1 ASCII basename
-normalize and verify GOFTP/1 event basenames
+verify GOFTP/1 event basenames
 ```
 
 Publish algorithm:

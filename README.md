@@ -7,13 +7,12 @@ replay is proof, and projections are shadows. A server may lie about time, size,
 order, type, locks, bodies, and presentation. The game still emerges from the
 names it is allowed to trust.
 
-Current line: `v1.0/P14` final candidate.
+Current line: `v1.0/package 1.000` release source.
 
 The local `v0.2` / package `0.002` release candidate was skipped as a public
-release. The `v1.0/P14` target is the release-freeze proof machine: the same
-logical event basenames must produce the same `event_set_root`, DAG, canonical
-prefix, board projection, SGF, and diagnostics class across declared
-substrates.
+release. The `v1.0/P14` source is the release proof machine: the same logical
+event basenames must produce the same `event_set_root`, DAG, canonical prefix,
+board projection, SGF, and diagnostics class across declared substrates.
 
 ```text
 Names are packets.
@@ -189,7 +188,7 @@ SGF is a witness, not the source of truth.
 
 ## What Runs Now
 
-Implemented in the current final-candidate line:
+Implemented in v1.0/package 1.000:
 
 - strict game descriptor and event filename parsing
 - filename-derived event ids
@@ -224,17 +223,24 @@ Implemented in the current final-candidate line:
 - core, v1, and profile attack fixture galleries
 - executable source-art oracle smoke
 
-Implemented does not mean every future ritual is complete. `git-tree-goftp1` is
-read-only at runtime, and `dns-record-goftp1` is admitted only as read-only
-runtime normalization of a local or otherwise declared record file. DNS
-admission does not query live DNS, run AXFR, trust DNSSEC, call provider APIs,
-or publish records, and TTL, answer order, cache age, DNSSEC status, and
-provider metadata stay outside consensus. Production key lifecycle beyond
-verifier-local HMAC key files, explicit verifier-supplied lifecycle status, and
-fixture publish-token/preflight semantics remains release-route work; so do real
-writer authorization, final scoring/result events, final P14 release matrix,
-and the full `v1.0/P14` freeze. FTP listing-shadow public poison-vector coverage is
-frozen for the current fixture/listing boundary only.
+Boundary lines in v1.0/package 1.000:
+
+- `git-tree-goftp1` is read-only at runtime; publish commands fail at the
+  storage boundary.
+- `dns-record-goftp1` is read-only normalization of a local or otherwise
+  declared record file. DNS admission does not query live DNS, run AXFR, trust
+  DNSSEC, call provider APIs, or publish records.
+- TTL, answer order, cache age, DNSSEC status, authoritative server identity,
+  and provider metadata stay outside consensus.
+- Static HTML witness output is not hosted Web UI, and `--surface terminal` is
+  not the local `play --tui` input surface.
+- Verifier-local HMAC key files, explicit verifier-supplied lifecycle status,
+  and fixture publish-token/preflight semantics are not production key
+  lifecycle, production auth, or real writer authorization.
+- Final scoring/result events remain outside `GOFTP/1`.
+
+FTP listing-shadow public poison-vector coverage is frozen for the current
+fixture/listing boundary only.
 The FTP listing-shadow vector does not claim live FTP, `RETR`, `SIZE`, `MDTM`,
 FTP auth, FTP integrity, or FTP publish behavior.
 Signed/auth mismatch rows are fixture and vector evidence only; they do not
@@ -461,9 +467,9 @@ prove -lr t/attack-fixtures.t t/v1-attack-fixtures.t t/v1-profile-attack-fixture
 ```
 
 The current P14 release-gate evidence is recorded in
-`docs/P14_RELEASE_GATE.md`. It includes development-freeze matrix evidence and
-the final-candidate route checkpoint, but it is not a v1.0 tag or release-ready
-declaration.
+`docs/P14_RELEASE_GATE.md`. It records final release-source evidence and points
+to the external artifact/tag record plan; the final tarball hash belongs outside
+the source tree.
 
 The final artifact identity, version decision, and tag preconditions are tracked
 in `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
@@ -473,8 +479,8 @@ in `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
 GobanFTP v1.0 is not a game server. It is a protocol-abuse proof machine for
 making a Go game emerge from untrusted enumerable substrates.
 
-The release freeze is not tagged until the profile, adapter, attack, witness,
-auth, and display gates agree:
+The release proof requires the profile, adapter, attack, witness, auth, and
+display gates to agree:
 
 ```text
 same event basenames
@@ -498,8 +504,8 @@ bad signed profile -> rejected by that signed profile
 source art / C / asm / Web UI / TUI -> cannot change truth
 ```
 
-`v0.1` freezes the GOFTP/1 consensus boundary. `v1.0/P14` turns that boundary
-into a cross-substrate proof.
+`v0.1` froze the GOFTP/1 consensus boundary. `v1.0/P14` turns that boundary into
+a cross-substrate proof source for package 1.000.
 
 ## Documentation
 
@@ -512,7 +518,7 @@ Profiles:     docs/PROFILES.md
 Grammar:      docs/GRAMMAR.md
 Attacks:      docs/ATTACKS.md
 v1.0 DoD:     docs/V1_DOD.md
-P14 dry run:  docs/P14_RELEASE_GATE.md
+P14 gate:     docs/P14_RELEASE_GATE.md
 P14 tag plan: docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md
 Algorithms:   docs/ALGORITHMS.md
 Rules:        docs/RULES.md

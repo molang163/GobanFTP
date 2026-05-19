@@ -416,15 +416,15 @@ freezes a mismatched `GOFTP-HMAC-PUBLISH/1` token denial with
 `local-goftp1` witness to show denied candidate/auth material does not enter
 unsigned truth. These signed/auth rows are fixture and golden-vector evidence
 only: they are not production writer authorization, complete production key
-lifecycle, or publish-auth completion. The next proof slice should audit P14
-release claims while keeping `git-tree-goftp1` and `dns-record-goftp1`
-read-only and avoiding any claim of Git publish, live FTP, FTP auth, FTP
-integrity, FTP publish behavior, live DNS, AXFR, DNSSEC trust, provider APIs,
-dynamic update, or DNS record publishing.
+lifecycle, or publish-auth completion. The final v1.0 claim audit keeps
+`git-tree-goftp1` and `dns-record-goftp1` read-only. No Git publish, no live
+FTP auth, no live FTP integrity, no FTP publish behavior, no live DNS, no AXFR,
+no DNSSEC trust, no provider APIs, no dynamic update, and no DNS record
+publishing are claimed there.
 
 ## Release Gates
 
-v1.0 may not be tagged until these gates pass from a clean checkout:
+The v1.0/package 1.000 release source is gated by this clean-checkout matrix:
 
 ```sh
 perl -c oracle/goban.pl
@@ -457,25 +457,22 @@ GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make disttest
 make distcheck
 ```
 
-Dry-run executions of this matrix are recorded separately in
+Final P14 evidence and the claim-audit registry are recorded in
 `docs/P14_RELEASE_GATE.md`. This file remains the normative v1.0 requirement;
-the dry-run report is evidence for a point in time, not a replacement for the
-final clean-checkout gate.
+the gate report is evidence for the package 1.000 source identity.
 
-Any final P14 run after Git-tree or DNS-record runtime admission, or after a
-public poison-vector refresh such as FTP listing-shadow, must audit the release
-text against the current HEAD. A stale dry-run claim that Git-like or DNS-like
-support is only fixture/read-normalizer evidence is not enough once runtime read
-paths are admitted, but runtime read admission still does not imply publish
-support, live FTP, FTP auth, FTP integrity, live DNS, AXFR, DNSSEC trust,
-provider API support, dynamic update, DNS record publishing, hosted Web UI,
-cross-terminal TUI compatibility completion, production key lifecycle
-completion, publish auth completion, or v1.0 completion.
+Any P14 source refresh after Git-tree or DNS-record runtime admission, or after
+a public poison-vector refresh such as FTP listing-shadow, must audit the
+release text against the current HEAD. Runtime read admission still does not
+imply publish support, live FTP auth, live FTP integrity, FTP publish behavior,
+live DNS, AXFR, DNSSEC trust, provider API support, dynamic update, DNS record
+publishing, hosted Web UI, cross-terminal TUI compatibility completion,
+production key lifecycle completion, or publish auth completion.
 
-The final release identity, artifact hash, and tag preconditions are planned in
-`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`. A v1.0 tag is blocked until the
-chosen version, `Changes` heading, tarball name, final matrix, and artifact
-record agree.
+The release identity, external artifact hash record, and tag procedure are
+planned in `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`. The final tarball hash
+must be recorded outside source files that are included in the distribution
+archive.
 
 Current v1 proof commands:
 

@@ -168,9 +168,11 @@ boundary only.
 
 The DNS specimen `dns-owner-poison` attacks TXT records that carry tempting
 `event=` values under the wrong game owner, records without an owner, TTL/order
-noise, sidecar records, non-TXT records, and duplicate answers. The expected
-witness remains the current-game one-event baseline; a wrong-owner event that
-enters the accepted set changes the root and fails the fixture.
+noise, sidecar records, non-TXT records, duplicate answers, event-value case
+folding attempts, and `event=events/<basename>` path prefixes. Owner/type case
+is normalized, but `event=` values are exact basenames. The expected witness
+remains the current-game one-event baseline; a wrong-owner or rewritten event
+that enters the accepted set changes the root and fails the fixture.
 It is also promoted into
 `t/fixtures/vectors/v1-non-consensus-poison.jsonl` as
 `dns-owner-poison-public-vector`, binding the real fixture `input_names` to

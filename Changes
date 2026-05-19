@@ -1,226 +1,35 @@
 Revision history for GobanFTP
 
 1.000  2026-05-19
-  - Entered the v1.0 / package 1.000 final-candidate identity after the
-    refreshed `1.000_001` development-freeze matrix passed; this is not a tag,
-    publication event, P14 completion claim, or release-ready declaration.
-  - Added local `gobanftp play --tui` terminal play as a non-consensus
-    input/display surface over the existing play publish path, with keyboard,
-    SGR mouse, one-publish lockout, and pty smoke coverage.
-  - Added verifier-local signed-HMAC operation support through `gobanftp v1
-    keygen`, `gobanftp v1 attest`, and
-    `gobanftp v1 witness --trusted-hmac-key-file`, keeping HMAC secrets out of
-    stdout, diagnostics, public attestations, filenames, and unsigned replay.
-  - Added a read-only signed-HMAC substrate overlay witness path, so
-    `signed-hmac-goftp1` can verify the same explicit HMAC attestations after
-    local, FTP, Git-tree, DNS-record, or WebDAV read normalization while keeping
-    publish authorization and production identity lifecycle out of scope.
-  - Added verifier-local `GOFTP-HMAC-PUBLISH/1` publish token generation and
-    verification, freezing fixture publish-purpose lifecycle semantics where
-    only trusted selectors may authorize new material while rotated, revoked,
-    and expired selectors fail closed.
-  - Added a default-off verifier-local publish preflight gate for
-    `publish-move`, `publish-ack`, `play --move`, `play --ack`, and
-    `play --tui`, checking a `GOFTP-HMAC-PUBLISH/1` token after candidate
-    replay validation and before store publication without changing unsigned
-    replay.
-  - Hardened publish preflight coverage for `play --ack`, `play --tui`, and
-    Git-tree/DNS-record read-only store boundaries, proving denied tokens do
-    not print post-publish snapshots, write events, leak key material, or blur
-    verifier-local auth denial with read-only store rejection.
-  - Clarified the v1 diagnostics registry claim: `docs/DIAGNOSTICS.md` is the
-    source for diagnostic codes, classes, required fields, optional fields, and
-    human meaning; storage-boundary failures are storage-class failures, JSONL
-    evidence stays limited to witness/schema/diagnostic records, and display or
-    source-art surfaces do not own replay or diagnostic truth.
-  - Added public signed/auth mismatch evidence for the fixture boundary:
-    signed-HMAC witness and publish-auth diagnostics now have contract tests for
-    stable signature-class fields and redaction, and
-    `v1-publish-auth.jsonl` freezes a mismatched `GOFTP-HMAC-PUBLISH/1` token
-    denial while proving unsigned `GOFTP/1` witness truth stays unchanged.
-  - Recorded a P21c clean-checkout-style final-candidate rehearsal from a
-    temporary detached worktree at commit 7ae0e25, including claim audit,
-    profile/vector/auth matrices, dist, disttest, distcheck, and tarball
-    inclusion/exclusion checks. This remains rehearsal evidence only, not a
-    v1.0 tag, publication event, or final artifact record.
-  - Began v1.0/P14 development after skipping the public v0.2 / package 0.002
-    release candidate.
-  - Recorded a fresh clean-checkout `1.000_001` development-freeze matrix for
-    commit 1f5f646921f675c93e25819cb3cf3652f5d6bebe, including the P14 claim
-    audit gate, distribution archive evidence, disttest, and distcheck; this
-    remains development evidence only, not a final stable v1.0 artifact.
-  - Recorded a fresh clean-checkout `1.000_001` development-freeze matrix for
-    commit e1c8b4036ce9bf2260455b0aa0834df544393845 after the source-art
-    arch-gate, bad-signature public poison vector, and dist hygiene gate landed;
-    this remains development evidence only, not a final stable v1.0 artifact.
-  - Added `t/p14-claim-audit.t` as a release-text claim-boundary gate for the
-    current P14 documents, optional local resume notes, and changelog, without declaring
-    P14/v1.0 complete or adding Git publish, live DNS, hosted Web UI,
-    interactive TUI, or final release capability.
-  - Added a core `bad-signature` attack fixture and public non-consensus poison
-    vector proving unsigned `GOFTP/1` ignores invalid sidecar signatures while
-    preserving the same root, replay, board projection, and SGF truth.
-  - Added a dist manifest hygiene gate proving local resume notes, build
-    products, `MYMETA.*`, and stale distribution artifacts stay out of the
-    source manifest and release archive checks.
-  - Added a hidden ASCII arch-gate source-art easter egg to the smoke wrapper,
-    with tests asserting the current marker is comment-only, smoke output does
-    not emit it, and existing source-art invariance checks keep wrapper art
-    outside replay truth.
-  - Clarified that `unicode-name`, `path-traversal-name`, and `huge-directory`
-    are deferred boundary attack topics, not current v1.0 public vector claims.
-  - Promoted `git-tree-goftp1` to read-only runtime admission through
-    `GOBANFTP_STORE=git-tree`, enumerating direct Git tree children under
-    `<game>/events` while keeping blob bytes, commit metadata, sidecars,
-    projections, tmp entries, and Git publish semantics outside consensus.
-  - Promoted `dns-record-goftp1` to read-only runtime admission over local or
-    otherwise declared record files through `GOBANFTP_STORE=dns-record`, while
-    excluding live DNS, AXFR, DNSSEC trust, provider APIs, dynamic updates,
-    record publishing, TTLs, ordering, cache state, and provider metadata from
-    consensus claims.
-  - Added a mock-tested WebDAV store backend that reads `events/` with
-    `PROPFIND Depth: 1` and publishes by zero-byte `tmp/` resource plus `MOVE`
-    and fresh `PROPFIND` confirmation.
-  - Promoted `webdav-goftp1` to an implemented transport-auth profile while
-    keeping WebDAV metadata, locks, resource bodies, sidecars, projections, and
-    temporary entries outside replay consensus.
-  - Documented WebDAV environment configuration and added CLI parity coverage
-    for play, watch, SGF, and publish-through-play flows.
-  - Added the first v1 profile attack fixture, proving WebDAV metadata,
-    body-like PROPFIND row fields, locks, wrong-game hrefs, shadow resources,
-    recursive hrefs, duplicates, order, and percent-decoding hazards do not
-    change the witness.
-  - Added a focused WebDAV href traversal fixture proving raw and percent-encoded
-    dot segments cannot smuggle extra events into the profile witness.
-  - Added a signed-HMAC payload mismatch fixture proving a trusted MAC over a
-    different game descriptor still fails closed at the signed profile gate.
-  - Added a signed-HMAC game descriptor mismatch fixture proving a public
-    attestation record cannot claim another game descriptor.
-  - Added a core `bad-mtime` attack fixture proving event file mtimes do not
-    affect replay or `event_set_root`.
-  - Added a showcase smoke gate for the public shrine, fork, source-art, and
-    unsigned `local-goftp1` v1 witness demonstration path.
-  - Added v1 cross-substrate golden vectors for future event versions, missing
-    parents, and wrong-player rule failures.
-  - Expanded unsigned v1 witness golden vectors to freeze profile, adapter,
-    raw, normalized, accepted, rejected, and diagnostic count fields.
-  - Hardened unsigned and signed-HMAC witness golden vectors with self-contained
-    input names, replay diagnostics, rejected diagnostics, and rendered board,
-    verdict, listing, and SGF projection text while keeping HMAC secrets out of
-    public vectors.
-  - Added v1 replay-invariant golden vectors for illegal sibling isolation,
-    invalid root preflight diagnostics, and outsider ACK rejection without
-    changing the canonical move line.
-  - Expanded v1 replay-invariant golden vectors for capture, suicide rejection,
-    bounds parse rejection, single pass, two-pass terminal play, resign
-    terminal play, simple-ko superko rejection, ack-assisted fork choice,
-    malformed basenames, parent-is-ACK rejection, dangling ACK targets, and ACK
-    targets that are themselves ACKs.
-  - Added a DNS owner-poison v1 profile attack fixture proving wrong-owner and
-    ownerless TXT records cannot smuggle event basenames into the witness.
-  - Reworked the README into a release-shaped showcase entrypoint while keeping
-    `v0.1`, `v1.0/P14`, signed-HMAC, WebDAV, and deferred-surface boundaries
-    explicit.
-  - Added a signed-HMAC injected-event fixture proving an unsigned event with a
-    valid filename event id is rejected by the signed profile gate while the
-    accepted signed chain keeps the same root, replay, board, and SGF.
-  - Added a Git-tree path and metadata poison fixture proving commit metadata,
-    refs, modes, object ids, object sizes, sidecars, projections, tmp entries,
-    recursive paths, wrong-game paths, and duplicates do not change the profile
-    witness.
-  - Added a WebDAV publish-failure fixture and CLI parity gates proving existing
-    final names, delayed MOVE visibility, hard 423 failures, zero-byte temporary
-    payloads, retry bounds, and tmp debris do not create hidden witness truth or
-    leak bearer tokens.
-  - Added fixture-only `gobanftp v1 keyid --fixture` support for `GOFTP-KEY/1`
-    public key ids, keeping public key metadata separate from HMAC secrets,
-    signatures, trust, and unsigned replay truth.
-  - Added fixture-only `gobanftp v1 trust-report --fixture` support for public
-    trust TSV summaries, proving trusted, rotated, revoked, and expired key
-    rows remain advisory and do not alter unsigned witness truth.
-  - Defined the signed-HMAC/trust bridge boundary: `signed-hmac-goftp1` keeps
-    explicit HMAC selectors separate from public `GOFTP-KEY/1` `k1.` identities
-    and records deterministic trust lifecycle semantics before enforcement.
-  - Added explicit signed-HMAC lifecycle enforcement for verifier-supplied HMAC
-    selectors, allowing rotated keys to verify old material while revoked and
-    expired selectors reject before MAC verification.
-  - Expanded signed-HMAC witness golden vectors to freeze lifecycle status,
-    accepted and rejected event sets, and lifecycle rejection diagnostics for
-    trusted, rotated, revoked, and expired HMAC selectors.
-  - Added a signed-HMAC public-trust bridge poison fixture proving public
-    `GOFTP-TRUST/1` rows cannot authorize `k1.` HMAC selectors or revoke
-    explicit HMAC selectors, while unsigned replay remains unchanged.
-  - Promoted the signed-HMAC public-trust bridge into public golden vectors,
-    binding advisory `GOFTP-KEY/1` and `GOFTP-TRUST/1` fixture text to both the
-    rejected `k1.` selector case and the accepted explicit HMAC selector case
-    without leaking the fixture HMAC secret.
-  - Routed the executable source-art smoke surface through `GobanFTP::Witness`,
-    so it displays `event_set_root`, replay status, board hash, SGF hash, and
-    diagnostics without owning protocol truth.
-  - Added a witness/projection-only surface renderer that formats fields already
-    produced by `GobanFTP::Witness` and projection text without reading storage,
-    parsing events, recomputing roots, or deciding profile acceptance.
-  - Added `gobanftp v1 witness --surface text|html` as a read-only CLI
-    inspection surface over the existing witness result and its already-rendered
-    projection text.
-  - Added a golden smoke for the minimal `v1 witness --surface` text and static
-    HTML outputs, freezing their digests and canonical projection sections.
-  - Added `gobanftp v1 witness --surface terminal` as a static terminal
-    observatory over the same witness result, freezing its minimal digest while
-    avoiding any interactive TUI claim.
-  - Extended the public showcase smoke gate to cover the text, static HTML, and
-    static terminal witness surfaces alongside the shrine, race, source-art, and
-    default v1 witness paths.
-  - Added a P14 release-gate dry-run report documenting the command matrix,
-    pass/skip status, generated artifacts, and remaining non-release claims
-    without tagging v1.0 or declaring P14 complete.
-  - Tightened manifest skip rules so detached-worktree `.git` files and local
-    scratch suffixes are excluded without dropping intentional attack fixtures
-    under `t/fixtures/`.
-  - Added a P14 release manifest and tag plan, then clarified it as the
-    then-active v1.0/P14 development release plan after the local `v0.2` /
-    package `0.002` candidate was skipped in favor of continuing directly
-    toward v1.0/P14, while separating the `1.000_001` development freeze
-    matrix from the final reserved `v1.0` / package `1.000` release identity.
-  - Prepared and then skipped the local v0.2 / package 0.002 release candidate,
-    keeping v1.0/P14 as the active release route.
-  - Clarified the next golden-vector and P14 claim-audit slice after Git-tree
-    and DNS-record runtime read admission, without claiming Git publish, live
-    DNS, DNS publish, hosted Web UI, interactive TUI, or v1.0/P14 completion.
-  - Added a synthetic DAG-boundary golden vector for `event_id_collision`,
-    without claiming an ordinary GOFTP/1 basename hash collision.
-  - Added the first public non-consensus-poison golden vector, binding the
-    WebDAV metadata-poison fixture to unchanged event-set preimage, root,
-    replay, board, projection text, and SGF truth.
-  - Added core/local public non-consensus-poison golden vectors for bad mtime,
-    bad payload bytes, bad listing order, poisoned sidecar, stale projections,
-    and temporary publish debris, binding self-contained evidence artifacts
-    where the poison is not part of listing names.
-  - Added a WebDAV href-traversal public non-consensus-poison golden vector,
-    binding raw and percent-encoded traversal href fixture input names to
-    unchanged one-event event-set preimage, root, replay, board, projection
-    text, and SGF truth.
-  - Added a DNS owner-poison public non-consensus-poison golden vector, binding
-    real record fixture input names to unchanged event-set preimage, root,
-    replay, board, projection text, and SGF truth.
-  - Added a Git-tree public non-consensus-poison golden vector and generalized
-    the poison-vector harness so each row declares its own ignored evidence and
-    optional poisoned listing order, without claiming Git publish, remote fetch,
-    or provider APIs.
-  - Added an FTP listing-shadow public non-consensus-poison golden vector,
-    binding FTP-shaped sidecar, tmp, projection, recursive descendant, and
-    list-order rows to unchanged event-set preimage, root, replay, board,
-    projection text, and SGF truth without claiming live FTP, `RETR`, `SIZE`,
-    `MDTM`, FTP auth, FTP integrity, or publish behavior.
-  - Refreshed the P14 claim-audit and clean-gate plan after the FTP public
-    poison vector, adding profile attack/publish gates and tarball checks for
-    shipped public poison-vector evidence without tagging or declaring v1.0
-    complete.
-  - Normalized `MANIFEST` ordering so a clean-checkout `make manifest` gate
-    leaves no tracked diff.
-  - Recorded a successful clean-checkout `1.000_001` development freeze matrix
-    as development evidence only, leaving v1.0 untagged and reserving the final
-    `v1.0` / package `1.000` artifact path for a separate stable matrix.
+  - Release v1.0 / package 1.000 as the P14 proof-machine source for
+    listing-first Go over enumerable stores, with `GOFTP/1` still anchored on
+    descriptor basenames and direct `events/` child basenames.
+  - Freeze filename-derived event ids, accepted-basename `event_set_root`,
+    DAG construction, conservative replay, `chinese-area-v1` rules, SGF, and
+    diagnostics as the shared proof boundary.
+  - Ship v1 profiles and runtime read paths for local, FTP, read-only Git tree,
+    read-only DNS record-file admission, and WebDAV, while keeping Git publish,
+    live DNS, AXFR, DNSSEC trust, provider APIs, and DNS publishing outside the
+    release claim.
+  - Add cross-substrate witness and golden-vector coverage for root equality,
+    replay equality, rule failures, DAG edge cases, ACK recovery, terminal play,
+    and public non-consensus poison vectors.
+  - Add signed-HMAC witness acceptance, verifier-local `v1 keygen` / `v1 attest`
+    operation, explicit trusted-key input, and read-only signed-HMAC overlays
+    across the admitted read profiles without changing unsigned `GOFTP/1`.
+  - Add fixture publish-token semantics and default-off verifier-local publish
+    preflight for local, FTP, and WebDAV publish flows, without claiming
+    production key lifecycle, production auth, or real writer authorization.
+  - Add local `gobanftp play --tui` terminal play and read-only text, static
+    HTML, and static terminal witness surfaces as non-consensus display/input
+    layers over existing replay and publish callbacks.
+  - Keep source art, optional `Inline::C`, Web-style output, terminal surfaces,
+    sidecars, projections, temporary entries, metadata, resource bodies, and
+    file bytes outside replay truth.
+  - Add final release documentation, manifest hygiene, and `t/p14-claim-audit.t`
+    gates so the source tree states the implemented v1.0 boundary while still
+    rejecting over-claims for hosted Web UI, Git publish, live DNS, production
+    auth, complete JSON output, and complete future attack coverage.
 
 0.001  2026-05-17
   - Treat this distribution as the v0.1 hardening/showcase release: the Perl

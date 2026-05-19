@@ -228,6 +228,9 @@ sub render_play_frame {
     my @diagnostics = _diagnostics($result);
     my $turn = _turn_text($state, $game);
     my $cursor_point = point_for_cursor($cursor, $size);
+    my $pending_action = _plain_action($args{pending_action});
+    my $publish_state = _plain_state($args{publish_state})
+        // (defined($pending_action) ? 'confirm' : 'select');
 
     my @lines = (
         'GOBANFTP-PLAY-TUI/1',
@@ -235,7 +238,12 @@ sub render_play_frame {
         'game=' . ($context->{game_descriptor} // ''),
         'now=' . _now_text($state, $game),
         'verdict=' . _verdict_text($status, @diagnostics),
-        'action=Click a point or press Enter to publish ' . $cursor_point,
+        'action=' . _action_prompt(
+            publish_state  => $publish_state,
+            pending_action => $pending_action,
+            cursor_point   => $cursor_point,
+        ),
+        _publish_state_line($publish_state, $pending_action),
         'status=' . $status
             . ' events=' . scalar(@{ $context->{events} // [] })
             . ' accepted=' . ($event_set->{event_count} // 0)
@@ -243,9 +251,9 @@ sub render_play_frame {
         'root=' . ($event_set->{event_set_root} // ''),
         'turn=' . $turn . ' cursor=' . $cursor_point,
     );
-    push @lines, 'message=' . _single_line($args{message}) if defined($args{message}) && $args{message} ne '';
-    push @lines, 'diagnostics=' . join(',', map { _diagnostic_text($_) } @diagnostics) if @diagnostics;
-    push @lines, 'keys=arrows/hjkl move  enter/click play  p pass  R resign  r refresh  q quit';
+    push @lines, 'message=' . _single_line($args{message});
+    push @lines, 'diagnostics=' . join(',', map { _diagnostic_text($_) } @diagnostics);
+    push @lines, 'keys=arrows/hjkl move  enter/click select+confirm  p pass  R resign  r refresh  q quit';
     push @lines, '';
 
     my $label_width = length($size);
@@ -286,6 +294,7 @@ sub run_play_tui {
     my $cursor = _normal_cursor($args{cursor} // [ 0, 0 ], 26);
     my $input_state = new_input_state();
     my $message = $args{message} // '';
+    my $pending_action;
     my $context;
     my $layout;
     my $raw_guard;
@@ -343,19 +352,63 @@ sub run_play_tui {
                     last SESSION;
                 }
                 if ($type eq 'refresh' || $type eq 'cursor' || $type eq 'noop') {
+                    $pending_action = undef if $type eq 'refresh' || $type eq 'cursor';
                     $message = $type eq 'refresh' ? 'reloaded' : '';
                     ($context, $layout) = _draw_frame(
                         output_fh    => $output_fh,
                         load_context => $load_context,
                         cursor       => $cursor,
                         message      => $message,
+                        pending_action => $pending_action,
                         ansi         => $ansi,
                     );
                     next;
                 }
                 if ($type eq 'action') {
-                    my $publish = $publish_action->($decision->{action});
+                    my $action = $decision->{action};
+                    my $confirmed_action = _confirmed_action(
+                        pending_action => $pending_action,
+                        action         => $action,
+                        event          => $event,
+                    );
+                    if (!defined $confirmed_action) {
+                        $pending_action = $action;
+                        $message = "selected $action; confirm to publish";
+                        ($context, $layout) = _draw_context_frame(
+                            output_fh      => $output_fh,
+                            context        => $context,
+                            cursor         => $cursor,
+                            message        => $message,
+                            pending_action => $pending_action,
+                            publish_state  => 'confirm',
+                            ansi           => $ansi,
+                        );
+                        next;
+                    }
+
+                    $pending_action = undef;
+                    ($context, $layout) = _draw_context_frame(
+                        output_fh      => $output_fh,
+                        context        => $context,
+                        cursor         => $cursor,
+                        message        => "publishing $confirmed_action; input locked",
+                        pending_action => $confirmed_action,
+                        publish_state  => 'publishing_locked',
+                        ansi           => $ansi,
+                    );
+
+                    my $publish = $publish_action->($confirmed_action);
                     if (ref($publish) eq 'HASH' && ($publish->{stage} // '') eq 'published') {
+                        $context = ref($publish->{context}) eq 'HASH' ? $publish->{context} : $context;
+                        ($context, $layout) = _draw_context_frame(
+                            output_fh      => $output_fh,
+                            context        => $context,
+                            cursor         => $cursor,
+                            message        => _publish_message($publish),
+                            pending_action => $confirmed_action,
+                            publish_state  => 'published',
+                            ansi           => $ansi,
+                        );
                         $session = {
                             exit    => $publish->{exit} // 0,
                             stage   => 'published',
@@ -382,6 +435,7 @@ sub run_play_tui {
                         context => $context,
                         cursor  => $cursor,
                         message => $message,
+                        publish_state => 'select',
                         ansi    => $ansi,
                     );
                     _write_frame($output_fh, $rendered);
@@ -403,10 +457,18 @@ sub run_play_tui {
 sub _draw_frame {
     my (%args) = @_;
     my $context = $args{load_context}->();
+    return _draw_context_frame(%args, context => $context);
+}
+
+sub _draw_context_frame {
+    my (%args) = @_;
+    my $context = $args{context};
     my ($frame, $layout) = render_play_frame(
         context => $context,
         cursor  => $args{cursor},
         message => $args{message},
+        pending_action => $args{pending_action},
+        publish_state  => $args{publish_state},
         ansi    => $args{ansi},
     );
     _write_frame($args{output_fh}, $frame);
@@ -482,8 +544,62 @@ sub _publish_message {
     return 'publish failed' if ref($publish) ne 'HASH';
     my $stage = $publish->{stage} // 'unknown';
     my $exit = $publish->{exit} // '';
+    return "published event_id=$publish->{event_id} exit=$exit"
+        if $stage eq 'published' && defined $publish->{event_id};
     return "candidate rejected exit=$exit" if $stage eq 'candidate';
     return "publish $stage exit=$exit";
+}
+
+sub _confirmed_action {
+    my (%args) = @_;
+    my $pending = $args{pending_action};
+    return undef if !defined $pending;
+
+    my $action = $args{action};
+    return $pending if defined($action) && $action eq $pending;
+
+    my $event = $args{event};
+    my $event_type = ref($event) eq 'HASH' ? ($event->{type} // '') : '';
+    return $pending
+        if $event_type eq 'submit' && $pending =~ /\A(?:pass|resign)\z/;
+
+    return undef;
+}
+
+sub _publish_state_line {
+    my ($state, $pending_action) = @_;
+    my $line = 'publish_state=' . ($state // 'select');
+    $line .= ' pending_action=' . $pending_action if defined $pending_action;
+    return $line;
+}
+
+sub _action_prompt {
+    my (%args) = @_;
+    my $state = $args{publish_state} // 'select';
+    my $pending_action = $args{pending_action};
+    my $cursor_point = $args{cursor_point} // '';
+
+    return 'Publishing ' . ($pending_action // $cursor_point) . '; input locked'
+        if $state eq 'publishing_locked';
+    return 'Published ' . ($pending_action // $cursor_point)
+        if $state eq 'published';
+    return 'Press Enter/click ' . $pending_action . ' again to confirm publish'
+        if $state eq 'confirm' && defined $pending_action;
+    return 'Click a point or press Enter to select ' . $cursor_point;
+}
+
+sub _plain_action {
+    my ($action) = @_;
+    return undef if !defined $action;
+    return undef if ref($action);
+    return $action =~ /\A(?:[a-z][a-z]|pass|resign)\z/ ? $action : undef;
+}
+
+sub _plain_state {
+    my ($state) = @_;
+    return undef if !defined $state;
+    return undef if ref($state);
+    return $state =~ /\A(?:select|confirm|publishing_locked|published)\z/ ? $state : undef;
 }
 
 sub _consume {

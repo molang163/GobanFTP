@@ -5,11 +5,13 @@ use strict;
 use warnings;
 
 use Exporter qw(import);
+use Config qw(%Config);
+use File::Spec;
 use File::Temp qw(tempdir);
 
 use GobanFTP::Witness qw(witness_for_listing);
 
-our @EXPORT_OK = qw(run_smoke smoke_report inline_c_smoke);
+our @EXPORT_OK = qw(run_smoke smoke_report inline_c_smoke asm_ritual_smoke);
 
 sub run_smoke {
     my (%args) = @_;
@@ -57,6 +59,7 @@ sub smoke_report {
         "variations_sgf_hash=$witness->{variations_sgf_hash}",
         "diagnostic_count=$witness->{diagnostic_count}",
         'inline_c=' . inline_c_smoke(),
+        'asm_ritual=' . asm_ritual_smoke(),
     );
 }
 
@@ -84,6 +87,45 @@ END_C
     return $value == 361 ? 'ok value=361' : "bad value=$value";
 }
 
+sub asm_ritual_smoke {
+    return 'disabled' if !$ENV{GOBANFTP_ORACLE_ASM_SMOKE};
+
+    my $arch = $Config{archname} // '';
+    return 'skip platform=' . _token($^O)
+        if $^O ne 'linux';
+    return 'skip platform=' . _token($arch || 'unknown')
+        if $arch !~ /(?:x86_64|amd64)/i;
+
+    my @cc = _command_words($ENV{CC} // $Config{cc} // 'cc');
+    return 'skip cc=missing' if !@cc || !_command_available($cc[0]);
+
+    my $dir = tempdir('gobanftp-asm-XXXXXX', TMPDIR => 1, CLEANUP => 1);
+    my $asm = File::Spec->catfile($dir, 'ritual.S');
+    my $c = File::Spec->catfile($dir, 'main.c');
+    my $exe = File::Spec->catfile($dir, 'ritual-smoke');
+
+    _write_file($asm, <<'ASM');
+.text
+.globl gobanftp_asm_ritual
+.type gobanftp_asm_ritual, @function
+gobanftp_asm_ritual:
+    movl $361, %eax
+    ret
+.size gobanftp_asm_ritual, .-gobanftp_asm_ritual
+.section .note.GNU-stack,"",@progbits
+ASM
+
+    _write_file($c, <<'C');
+extern int gobanftp_asm_ritual(void);
+int main(void) {
+    return gobanftp_asm_ritual() == 361 ? 0 : 1;
+}
+C
+
+    return 'skip compile' if !_quiet_system(@cc, '-o', $exe, $c, $asm);
+    return _quiet_system($exe) ? 'ok value=361' : 'skip runtime';
+}
+
 sub _visual_board_is {
     my ($board, $size) = @_;
 
@@ -93,6 +135,47 @@ sub _visual_board_is {
     }
 
     return 1;
+}
+
+sub _write_file {
+    my ($path, $text) = @_;
+
+    open my $fh, '>:encoding(UTF-8)', $path or die "write $path: $!";
+    print {$fh} $text;
+    close $fh or die "close $path: $!";
+}
+
+sub _quiet_system {
+    my (@cmd) = @_;
+
+    open my $null_out, '>', File::Spec->devnull or die 'open devnull: ' . $!;
+    open my $null_err, '>', File::Spec->devnull or die 'open devnull: ' . $!;
+    local *STDOUT = $null_out;
+    local *STDERR = $null_err;
+    return system(@cmd) == 0;
+}
+
+sub _command_words {
+    my ($command) = @_;
+    return grep { $_ ne '' } split /\s+/, $command // '';
+}
+
+sub _command_available {
+    my ($command) = @_;
+    return 0 if !defined($command) || $command eq '';
+    return -x $command && !-d $command if File::Spec->file_name_is_absolute($command);
+    for my $dir (File::Spec->path) {
+        my $path = File::Spec->catfile($dir, $command);
+        return 1 if -x $path && !-d $path;
+    }
+    return 0;
+}
+
+sub _token {
+    my ($value) = @_;
+    $value //= 'unknown';
+    $value =~ s/[^A-Za-z0-9_.-]+/_/g;
+    return $value eq '' ? 'unknown' : $value;
 }
 
 1;

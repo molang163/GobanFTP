@@ -187,11 +187,11 @@ f98qai37nace5spg
 tim1sb5lpmd0d4q5
 ```
 
-## Draft Event Set Root
+## v1.0 Event Set Root
 
-`event_set_root` is a draft profile/witness hash for comparing independent
-listings. It is not part of GOFTP/1 event id calculation and must not change
-canonical replay unless a future profile explicitly adopts it.
+`event_set_root` is the frozen v1.0 profile/witness hash for comparing
+independent listings. It is not part of GOFTP/1 event id calculation and must
+not change canonical replay unless a future profile explicitly adopts it.
 
 Inputs:
 
@@ -217,7 +217,7 @@ Normalization:
 6. Do not read event bytes, sidecars, projections, temporary files, mtimes,
    sizes, entry types, or listing order.
 
-Draft preimage:
+Frozen preimage:
 
 ```text
 "GOFTP-EVENT-SET/1\0" ||
@@ -229,10 +229,10 @@ event_basename_2 || "\0" ||
 event_basename_N || "\0"
 ```
 
-Draft encoding:
+Frozen encoding:
 
 ```text
-event_set_root = lowercase hex SHA256(draft_preimage)
+event_set_root = lowercase hex SHA256(frozen_preimage)
 ```
 
 The terminal NUL after every basename is intentional. The decimal count has no
@@ -270,7 +270,7 @@ Vector expectations should include:
   event-id length, event-id alphabet, and event-id mismatch
 - event id preimage inputs and expected short ids
 - listing normalization inputs and sorted visible event basenames
-- draft `event_set_root` inputs and expected digest
+- frozen `event_set_root` inputs and expected digest
 - duplicate exact basenames and event-id collision cases
 - unknown direct event versions preserved for parser diagnostics and excluded
   from `event_set_root`

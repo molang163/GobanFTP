@@ -9,7 +9,7 @@ use Test::More;
 
 use lib "$FindBin::Bin/../lib";
 
-use GobanFTP::Oracle::Smoke qw(smoke_report);
+use GobanFTP::Oracle::Smoke qw(asm_ritual_smoke smoke_report);
 
 my $root = "$FindBin::Bin/..";
 my $script = "$root/oracle/goban.pl";
@@ -29,8 +29,8 @@ like $source, qr/arch-gate\s*[-:]\s*(?:a\s+)?(?:non-consensus|easter egg).*?(?:n
     'source-art wrapper carries hidden arch-gate non-consensus marker';
 like $source, qr/^(?:#\s*)?\s*\/\\\n(?:#\s*)?\s*\/__\\\n(?:#\s*)?\s*\/_\/\\_\\$/m,
     'source-art wrapper carries ASCII arch-gate threshold';
-unlike $source, qr/Arch Linux|archlinux|official|endorse|wordmark/i,
-    'source-art wrapper does not claim Arch Linux branding or affiliation';
+unlike $source, qr/official|endorse|branding mark|distribution branding|package affiliation/i,
+    'source-art wrapper does not claim outside branding or affiliation';
 my @gobanftp_uses = $source =~ /^\s*use\s+(GobanFTP::[A-Za-z0-9_:]+)\b/mg;
 is_deeply \@gobanftp_uses, ['GobanFTP::Oracle::Smoke'],
     'source-art wrapper only imports the smoke module';
@@ -94,6 +94,7 @@ like $smoke_out,
     'smoke reports witness variations SGF hash';
 like $smoke_out, qr/^diagnostic_count=0$/m, 'smoke reports witness diagnostics count';
 like $smoke_out, qr/^inline_c=(?:missing|skip|ok value=361)$/m, 'Inline::C smoke is optional';
+like $smoke_out, qr/^asm_ritual=disabled$/m, 'ASM ritual smoke is opt-in by default';
 unlike $smoke_out, qr/arch-gate|\/__\\|\/_\/\\_\\/,
     'arch-gate source art is not emitted as witness truth';
 is_deeply [ grep { !/^[A-Za-z0-9_.]+=/ } grep { length } split /\n/, $smoke_out ], [],
@@ -138,6 +139,25 @@ for my $field (@truth_fields) {
 }
 is _field(\@no_inline_report, 'inline_c'), 'forced value=0',
     'Inline::C smoke line can vary independently';
+
+my @no_asm_report;
+{
+    no warnings 'redefine';
+    local *GobanFTP::Oracle::Smoke::asm_ritual_smoke = sub { 'forced value=361' };
+    @no_asm_report = smoke_report(visual_board => _alternate_visual_board());
+}
+for my $field (@truth_fields) {
+    is _field(\@no_asm_report, $field), _field(\@wrapper_report, $field),
+        "ASM ritual availability does not change $field";
+}
+is _field(\@no_asm_report, 'asm_ritual'), 'forced value=361',
+    'ASM ritual smoke line can vary independently';
+
+{
+    local $ENV{GOBANFTP_ORACLE_ASM_SMOKE} = 1;
+    like asm_ritual_smoke(), qr/\A(?:ok value=361|skip (?:platform=[A-Za-z0-9_.-]+|cc=missing|compile|runtime))\z/,
+        'ASM ritual smoke is allowed only as an optional platform smoke';
+}
 
 my ($help_status, $help_out, $help_err) = run_cmd($^X, $script, '--help');
 is $help_status, 0, 'source-art oracle --help exits 0';

@@ -36,33 +36,52 @@ for my $case (@release_files) {
 
 subtest 'release-state guardrails are explicit' => sub {
     _like('Changes', qr/^1[.]000  2026-05-19$/m,
-        'Changes keeps the final-candidate package version and date');
+        'Changes keeps the final package version and date');
     _like('lib/GobanFTP.pm', qr/^our \$VERSION = '1[.]000';$/m,
-        'module declares the final-candidate package version');
-    _like('README.md', qr/^Current line: `v1[.]0\/P14` final candidate[.]$/m,
-        'README names the current line as final candidate');
+        'module declares the final package version');
+    _like('README.md', qr/^Current line: `v1[.]0\/package 1[.]000` release source[.]$/m,
+        'README names the current line as final release source');
     _like('README.md',
         qr/static HTML is not hosted Web UI, and\n`--surface terminal` is not the local `play --tui` input surface[.]/,
         'README separates static witness surfaces from hosted Web UI and local TUI input');
-    _like('README.md', qr/DNS\s+admission does not query live DNS, run AXFR, trust DNSSEC, call provider APIs,\s+or publish records,/,
+    _like('README.md', qr/DNS\s+admission does not query live DNS, run AXFR, trust\s+DNSSEC, call provider APIs,\s+or publish records[.]/,
         'README keeps DNS admission read-only and non-live');
     _like('README.md', qr/The FTP listing-shadow vector does not claim live FTP, `RETR`, `SIZE`, `MDTM`,\nFTP auth, FTP integrity, or FTP publish behavior[.]/,
         'README keeps FTP listing-shadow evidence fixture-bound');
     _like('docs/P14_RELEASE_GATE.md',
-        qr/Status: dry-run, development-freeze, and final-candidate preparation evidence\nonly[.] This is not a v1[.]0 tag, not P14 completion, and not a release-ready\ndeclaration[.]/,
-        'P14 gate report is preparation evidence, not a release declaration');
+        qr/^Status: final v1[.]0\/package 1[.]000 release-source evidence[.]$/m,
+        'P14 gate report records final release-source evidence');
     _like('docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md',
-        qr/Do not tag before the final stable matrix and external artifact record are\ncomplete[.]/,
-        'tag plan blocks tagging before the final matrix and artifact record');
+        qr/^Status: final v1[.]0\/package 1[.]000 release-source plan[.]$/m,
+        'tag plan records final release-source plan');
+    _like('docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md',
+        qr/The source files intentionally do not contain the final tarball hash[.]/,
+        'tag plan keeps the final tarball hash external');
     _like('docs/V1_DOD.md',
-        qr/v1[.]0 may not be tagged until these gates pass from a clean checkout:/,
-        'V1 DoD keeps tagging behind the clean checkout gate');
+        qr/The v1[.]0\/package 1[.]000 release source is gated by this clean-checkout matrix:/,
+        'V1 DoD names the final release-source gate');
     _like('docs/ROADMAP.md',
-        qr/This is not Git publish, Git remote fetch, live FTP, FTP auth, FTP integrity,\nFTP publish behavior, live DNS, DNS publish, hosted Web UI, production key\nlifecycle completion, publish auth completion, or a v1[.]0\/P14 completion claim[.]/,
-        'roadmap keeps the current proof below forbidden release claims');
-    _like_optional('docs/SESSION_RESTORE.md',
-        qr/do not tag v1[.]0 until the final claim audit passes, the final stable\n  clean-checkout matrix passes, and the external artifact record is attached/,
-        'optional local resume notes block tagging v1.0 before the final gates');
+        qr/^### Completed\n.*^### Deferred\n.*^### Next$/ms,
+        'roadmap current status is split into Completed, Deferred, and Next');
+    _like('docs/ROADMAP.md',
+        qr/Git publish, Git remote fetch, live FTP auth, live FTP integrity,\s+FTP publish\s+behavior, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic\s+update, DNS\s+record publishing, hosted Web UI, production key lifecycle\s+completion, publish\s+auth completion,/,
+        'roadmap keeps deferred capabilities outside the final v1.0 claim');
+};
+
+subtest 'final tarball hash is not embedded in source release docs' => sub {
+    for my $rel (qw(
+        README.md
+        Changes
+        docs/P14_RELEASE_GATE.md
+        docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md
+        docs/V1_DOD.md
+        docs/ROADMAP.md
+    )) {
+        unlike $text{$rel} // '', qr/tarball sha256:\s*[a-f0-9]{64}\b/i,
+            "$rel does not store a final tarball sha256";
+        unlike $text{$rel} // '', qr/artifact sha256 [a-f0-9]{64}\b/i,
+            "$rel does not store a final artifact sha256";
+    }
 };
 
 subtest 'claim-audit gate is part of the release matrix' => sub {
@@ -78,11 +97,14 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
     my $plan = $text{'docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md'};
 
     for my $allowed (
+        'v1.0/package 1.000 release source is active',
         'GOFTP/1 descriptor and direct events/ basenames remain authoritative',
         'event ids remain filename-context derived',
-        'event_set_root is stable across accepted event basenames',
+        'event_set_root is frozen across accepted event basenames',
         'local, FTP, Git-tree, DNS-record, and WebDAV runtime read paths are implemented',
-        'FTP listing-shadow public poison-vector evidence is fixture/listing evidence',
+        'Git-tree and DNS-record runtime paths are read-only',
+        'WebDAV publish uses zero-byte tmp resource, MOVE, and fresh PROPFIND confirmation',
+        'FTP listing-shadow public poison-vector evidence is fixture/listing evidence only, not live FTP, RETR, SIZE, MDTM, auth, integrity, or publish behavior',
         'diagnostics registry is the v1 source for diagnostic code/class/required/optional/human meaning',
         'storage diagnostic class is active for storage-boundary failures even when current CLI storage failures use exit 4 and storage: stderr',
         'minimal JSON/JSONL evidence covers witness/schema/diagnostic records only, not complete JSON output for every command',
@@ -102,26 +124,28 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'source art is runnable and non-consensus',
         'source art, Web, TUI, C, and asm-like surfaces do not own replay truth or diagnostics truth',
         'the arch-gate motif is comment-only source art, not witness output or protocol input',
-        'P14/v1.0 final candidate is active',
-        'v1.0 remains unreleased until the final release-freeze matrix passes',
+        'final tarball hash is external release metadata and not source content',
     ) {
         like $plan, qr/^\Q$allowed\E/m, "allowed claim recorded: $allowed";
     }
 
     for my $forbidden (
-        'v1.0 is complete',
-        'P14 is complete',
+        'hosted Web UI is implemented',
         'hosted Web UI is complete',
         'cross-terminal TUI compatibility matrix is complete',
         'Git publish support is implemented',
+        'Git remote fetch support is implemented',
         'live DNS / AXFR / DNSSEC trust / provider API support is implemented',
+        'live DNS resolver support is implemented',
         'DNS dynamic update or DNS record publishing is implemented',
         'production key lifecycle is complete',
+        'production auth is complete',
         'publish authentication policy is complete',
         'publish auth is complete',
         'signed-HMAC overlay is production key lifecycle',
         'signed-HMAC overlay implements publish authentication',
         'HMAC attestations authorize publish or writer access',
+        'GOFTP-HMAC-PUBLISH/1 is production auth',
         'public GOFTP-TRUST k1 rows authorize signed-HMAC selectors',
         'fixture key lifecycle is production key lifecycle',
         'publish auth fixture semantics authorize real publish or writer access',
@@ -135,7 +159,7 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'source art, Web, TUI, C, or asm-like surfaces own replay truth',
         'JSON output is complete for every command',
         'Web, TUI, source art, C, or asm-like surfaces define diagnostic meaning',
-        'the arch-gate motif claims Arch Linux affiliation, endorsement, package',
+        'the arch-gate motif claims outside distribution affiliation, endorsement, package',
     ) {
         like $plan, qr/^\Q$forbidden\E/m, "forbidden claim recorded: $forbidden";
     }
@@ -143,12 +167,6 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
 
 subtest 'forbidden claims appear only in guarded contexts' => sub {
     my @patterns = (
-        [qr/\bv1[.]0\s+(?:is\s+)?(?:complete|ready|released|tagged|done(?! when)|final(?![- ]candidate)|frozen|shipped)\b/i,
-            'v1.0 final state'],
-        [qr/\bP14\s+(?:is\s+)?(?:complete|ready|done(?! when)|final(?![- ]candidate)|frozen|shipped)\b/i,
-            'P14 final state'],
-        [qr/\brelease-ready declaration\b/i,
-            'release-ready declaration'],
         [qr/\bhosted Web UI\s+(?:is\s+)?(?:complete|implemented|ready|shipped)\b/i,
             'hosted Web UI completion'],
         [qr/\bcross-terminal TUI compatibility matrix\s+(?:is\s+)?(?:complete|implemented|ready|shipped)\b/i,
@@ -187,6 +205,8 @@ subtest 'forbidden claims appear only in guarded contexts' => sub {
             'FTP publish support'],
         [qr/\bproduction key lifecycle\b.*\b(?:complete|implemented|ready|supported|shipped|landed|done)\b/i,
             'production key lifecycle completion'],
+        [qr/\bproduction auth\b.*\b(?:complete|implemented|ready|supported|shipped|landed|done)\b/i,
+            'production auth completion'],
         [qr/\bcomplete production key lifecycle\b/i,
             'complete production key lifecycle'],
         [qr/\bpublish(?:ing)? auth(?:entication)?(?: policy)?\b.*\b(?:complete|implemented|ready|supported|shipped|landed|done)\b/i,
@@ -197,7 +217,7 @@ subtest 'forbidden claims appear only in guarded contexts' => sub {
             'production publish signing or authorization'],
         [qr/\bHMAC attestations\b.*\bauthorize\b.*\b(?:publish|writer access)\b/i,
             'HMAC attestations authorize publish or writer access'],
-        [qr/\bGOFTP-HMAC-PUBLISH\/1\b.*\b(?:production|real writer|transport authentication)\b/i,
+        [qr/\bGOFTP-HMAC-PUBLISH\/1\b.*\b(?:production|real writer|transport authentication|production auth)\b/i,
             'GOFTP-HMAC-PUBLISH/1 production or real-writer auth'],
         [qr/\b(?:rotated|revoked|expired)\b.*\b(?:can|may)\b.*\bpublish new material\b/i,
             'non-trusted lifecycle publishes new material'],
@@ -235,26 +255,26 @@ subtest 'forbidden claims appear only in guarded contexts' => sub {
 };
 
 subtest 'claim guard helper distinguishes forbidden lists from positive claims' => sub {
-    my @unguarded = ('GobanFTP v1.0 is ready.');
+    my @unguarded = ('Git publish support is implemented.');
     ok !_guarded_context(\@unguarded, 0), 'unguarded positive claim would fail';
 
-    my @negated = ('GobanFTP v1.0 is not ready.');
+    my @negated = ('Git publish support is not implemented.');
     ok _guarded_context(\@negated, 0, $negated[0]), 'nearby negation guards a forbidden phrase';
 
     my @registry = (
-        'Forbidden final-release claims unless additional code and gates land first:',
+        'Forbidden over-claims:',
         '',
-        'v1.0 is complete',
+        'Git publish support is implemented',
     );
     ok _guarded_context(\@registry, 2, $registry[2]), 'forbidden-claim registry may name the claim';
 
-    my @wrapped = ('GobanFTP v1.0 is', 'ready.');
+    my @wrapped = ('hosted Web UI is', 'implemented.');
     my $wrapped_candidate = "$wrapped[0] $wrapped[1]";
-    like $wrapped_candidate, qr/\bv1[.]0\s+(?:is\s+)?(?:complete|ready|released|tagged|done(?! when)|final(?![- ]candidate)|frozen|shipped)\b/i,
+    like $wrapped_candidate, qr/\bhosted Web UI\s+(?:is\s+)?(?:complete|implemented|ready|shipped)\b/i,
         'wrapped positive claim is still matched';
     ok !_guarded_context(\@wrapped, 0, $wrapped_candidate), 'wrapped positive claim is not guarded';
 
-    my @previous_future = ('Future work remains.', 'GobanFTP v1.0 is ready.');
+    my @previous_future = ('Future work remains.', 'Git publish support is implemented.');
     ok !_guarded_context(\@previous_future, 1, $previous_future[1]),
         'previous-line future context does not guard a positive claim';
 };
@@ -301,7 +321,7 @@ sub _guarded_context {
     my $section_start = $index - 32;
     $section_start = 0 if $section_start < 0;
     my $section = join "\n", @{$lines}[$section_start .. $index];
-    return $section =~ /^Forbidden final-release claims\b/m;
+    return $section =~ /^(?:Forbidden (?:final-release claims|over-claims)|## Deferred Claims|### Deferred)\b/m;
 
     return 0;
 }

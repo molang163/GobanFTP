@@ -83,16 +83,40 @@ sub _dns_record_event_value {
 
     return undef if !defined $line || $line eq '';
 
-    my $presentation = lc $line;
-    return undef if $presentation !~ /(?:\A|\s)type=txt(?:\s|\z)/;
+    my %record = _dns_record_fields($line);
+    return undef if lc($record{type} // '') ne 'txt';
 
-    my ($owner) = $presentation =~ /(?:\A|\s)owner="?([a-z0-9._-]+)"?(?:\s|\z)/;
-    return undef if !defined $owner || !_dns_owner_matches_game($owner, $game);
+    my $owner = _dns_canon_owner($record{owner} // '');
+    return undef if $owner eq '' || !_dns_owner_matches_game($owner, $game);
 
-    my ($event) = $presentation =~ /(?:\A|\s)event="?([a-z0-9._-]+)"?(?:\s|\z)/;
-    return undef if !defined $event;
+    my $event = $record{event};
+    return undef if !defined $event || !_dns_exact_event_basename($event);
 
     return $event;
+}
+
+sub _dns_record_fields {
+    my ($line) = @_;
+
+    my %record;
+    while ($line =~ /(?:\A|\s)([A-Za-z][A-Za-z0-9_-]*)=("[^"]*"|'[^']*'|[^\s]+)/g) {
+        my ($key, $value) = (lc $1, $2);
+        $value =~ s/\A"(.*)"\z/$1/s;
+        $value =~ s/\A'(.*)'\z/$1/s;
+        $record{$key} = $value;
+    }
+
+    return %record;
+}
+
+sub _dns_canon_owner {
+    my ($owner) = @_;
+
+    return '' if !defined $owner;
+    $owner = lc $owner;
+    $owner =~ s/\A\.//;
+    $owner =~ s/\.\z//;
+    return $owner;
 }
 
 sub _dns_owner_matches_game {
@@ -100,6 +124,11 @@ sub _dns_owner_matches_game {
 
     my $game_label = lc $game;
     return $owner =~ /(?:\A|[.])\Q$game_label\E(?:[.]|\z)/ ? 1 : 0;
+}
+
+sub _dns_exact_event_basename {
+    my ($name) = @_;
+    return defined($name) && $name =~ /\A(?:m[0-9]+|a[0-9]+)(?:\.|\z)[a-z0-9._-]*\z/ ? 1 : 0;
 }
 
 sub _webdav_listing_names {

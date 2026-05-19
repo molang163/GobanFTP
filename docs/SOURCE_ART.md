@@ -109,15 +109,15 @@ release artifact names
 anything that looks like official endorsement
 ```
 
-The easter egg should read as a small source-art threshold: an arch-shaped gate
-in the shrine. It should not copy the official Arch Linux logo or wordmark, and
-it should not suggest that GobanFTP is affiliated with, endorsed by, or packaged
-by the Arch Linux project.
+The easter egg should read as a small source-art threshold: an A-shaped gate in
+the shrine. It should not copy any distribution logo or branding mark, and it
+should not suggest that GobanFTP is affiliated with, endorsed by, or packaged by
+an outside project.
 
 The current placement is in `oracle/goban.pl` as a source-only
 `arch-gate` threshold beside the smoke wrapper. `t/source-art.t` asserts that
-the motif exists, stays ASCII, the wrapper contains no obvious Arch Linux,
-official, or endorsement wording, and the motif is not emitted as witness truth.
+the motif exists, stays ASCII, the wrapper contains no outside-branding or
+endorsement wording, and the motif is not emitted as witness truth.
 The executable board glyphs still feed only
 `GobanFTP::Oracle::Smoke`, and the smoke truth fields remain invariant under
 alternate visual boards.
@@ -132,6 +132,7 @@ Required checks for executable art:
 perl -c oracle/goban.pl
 perl oracle/goban.pl --smoke
 prove -l t/source-art.t
+prove -l t/static-witness-specimen.t
 ```
 
 The smoke command is allowed to display proof fields, but it must obtain them
@@ -140,6 +141,11 @@ through `GobanFTP::Witness`. It may print profile id, adapter id,
 diagnostic count. It must not become a second implementation of filename
 parsing, event id calculation, DAG replay, rules, projection hashing, or
 storage normalization.
+
+Optional runtime ritual checks such as `inline_c` and `asm_ritual` are separate
+smoke lines. They may report `missing`, `disabled`, `skip`, or `ok` depending on
+local tools and platform support, but changing those lines must not change any
+witness field. The asm ritual is opt-in via `GOBANFTP_ORACLE_ASM_SMOKE=1`.
 
 Additional source-art tests should assert behavior, not layout trivia. A changed
 border must not fail a protocol test. A changed glyph must not alter any replay
@@ -154,6 +160,11 @@ The `v1 witness --surface text|html|terminal` CLI path is such a surface. It
 can emit plain text, static HTML, or a static terminal observatory for
 inspection, while exit codes and diagnostics still come from the witness and
 profile gates.
+
+`examples/static/witness-specimen.html` is a direct-open static specimen of the
+same boundary. It has no script, no network fetch, and no hosted process; the
+visible root, signature status, board, and SGF excerpt are supplied specimen
+fields for reader inspection only.
 
 The minimal surface smoke freezes text, static HTML, and terminal observatory
 output digests as reader-facing proof artifacts. It is not a hosted Web UI and

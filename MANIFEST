@@ -232,6 +232,7 @@ examples/fixtures/minimal-game/g1.id-minimal.s9.r-chinese-area-v1.k7500.pb-alice
 examples/fixtures/minimal-game/g1.id-minimal.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob/projections/sgf/variations.sgf
 examples/fixtures/minimal-game/README.md
 examples/fixtures/README.md
+examples/static/witness-specimen.html
 lib/GobanFTP.pm
 lib/GobanFTP/AckPublisher.pm
 lib/GobanFTP/Auth/HMAC.pm
@@ -579,6 +580,7 @@ t/ruleset-seal.t
 t/sgf.t
 t/showcase-demo.t
 t/source-art.t
+t/static-witness-specimen.t
 t/store-contract.t
 t/store-dns-record.t
 t/store-ftp-mock.t

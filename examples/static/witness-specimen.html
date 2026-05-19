@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GOFTP Witness Static Specimen</title>
+<style>
+:root {
+  color-scheme: dark;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: #10120f;
+  color: #f0eadc;
+}
+body {
+  margin: 0;
+  background: #10120f;
+}
+main {
+  width: min(1040px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 44px;
+}
+header,
+section,
+footer {
+  border-left: 3px solid #c45336;
+  margin: 0 0 30px;
+  padding: 4px 0 8px 18px;
+}
+.eyebrow,
+dt,
+.point-label {
+  color: #94bf8c;
+}
+h1,
+h2 {
+  color: #fff6e6;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin: 0 0 14px;
+}
+h1 {
+  font-size: 28px;
+}
+h2 {
+  font-size: 18px;
+}
+p {
+  color: #cfc4ad;
+  margin: 0;
+}
+dl {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  gap: 8px 18px;
+  margin: 0;
+}
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.board-wrap {
+  display: grid;
+  grid-template-columns: minmax(170px, 220px) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+.board {
+  --cell: min(54px, 15vw);
+  display: grid;
+  grid-template-columns: repeat(3, var(--cell));
+  grid-template-rows: repeat(3, var(--cell));
+  width: calc(var(--cell) * 3);
+  border: 1px solid #5d543f;
+  background: #d0a85f;
+}
+.point {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid rgba(40, 29, 16, 0.55);
+  border-bottom: 1px solid rgba(40, 29, 16, 0.55);
+  color: #342615;
+}
+.point:nth-child(3n) {
+  border-right: 0;
+}
+.point:nth-last-child(-n+3) {
+  border-bottom: 0;
+}
+.stone {
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+}
+.black {
+  background: #161616;
+}
+.white {
+  background: #f5f1e6;
+}
+pre {
+  margin: 0;
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid #3b3d34;
+  background: #1a1d18;
+  color: #f0eadc;
+  padding: 14px;
+}
+footer {
+  color: #9ba391;
+}
+@media (max-width: 720px) {
+  dl,
+  .board-wrap {
+    grid-template-columns: 1fr;
+  }
+  dd {
+    margin-bottom: 8px;
+  }
+}
+</style>
+</head>
+<body>
+<main data-boundary="static-supplied-witness">
+<header>
+<p class="eyebrow">GOFTP-WITNESS-SPECIMEN/1</p>
+<h1>Witness Static Specimen</h1>
+<p>Static file, no script, no server. Truth source: supplied witness fields.</p>
+</header>
+
+<section aria-labelledby="truth-heading">
+<h2 id="truth-heading">Witness</h2>
+<dl>
+<dt>profile_id</dt><dd>local-goftp1</dd>
+<dt>adapter_id</dt><dd>local-listing-goftp1</dd>
+<dt>signature.status</dt><dd>unsigned</dd>
+<dt>replay_status</dt><dd>ok</dd>
+<dt>accepted_count</dt><dd>3</dd>
+<dt>event_set_root</dt><dd>599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461</dd>
+<dt>canonical_tip</dt><dd>kcvtlonfje163p9q</dd>
+<dt>diagnostic_count</dt><dd>0</dd>
+</dl>
+</section>
+
+<section aria-labelledby="board-heading">
+<h2 id="board-heading">projection.board</h2>
+<div class="board-wrap">
+<div class="board" role="img" aria-label="3 by 3 board projection with black at aa and white at bb">
+<div class="point" data-point="aa"><span class="stone black" aria-label="black aa"></span></div>
+<div class="point" data-point="ba"><span class="point-label">ba</span></div>
+<div class="point" data-point="ca"><span class="point-label">ca</span></div>
+<div class="point" data-point="ab"><span class="point-label">ab</span></div>
+<div class="point" data-point="bb"><span class="stone white" aria-label="white bb"></span></div>
+<div class="point" data-point="cb"><span class="point-label">cb</span></div>
+<div class="point" data-point="ac"><span class="point-label">ac</span></div>
+<div class="point" data-point="bc"><span class="point-label">bc</span></div>
+<div class="point" data-point="cc"><span class="point-label">cc</span></div>
+</div>
+<pre>3 B . .
+2 . W .
+1 . . .
+  a b c</pre>
+</div>
+</section>
+
+<section aria-labelledby="sgf-heading">
+<h2 id="sgf-heading">projection.sgf_main</h2>
+<pre>(;GM[1]FF[4]CA[UTF-8]SZ[3]KM[7.50]PB[black]PW[white];B[aa];W[bb])</pre>
+</section>
+
+<footer>
+GOFTP static witness specimen. Layout may change; supplied witness fields stay boring.
+</footer>
+</main>
+</body>
+</html>

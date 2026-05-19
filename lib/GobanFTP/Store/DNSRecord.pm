@@ -146,7 +146,6 @@ sub _event_value {
     my $event = $record{event};
     return undef if !defined($event) || $event eq '';
 
-    $event =~ s{\Aevents/}{};
     return _looks_like_event_basename($event) ? $event : undef;
 }
 

@@ -4,49 +4,68 @@ This roadmap exists so the project advances in a stable order.
 
 ## Current Status
 
+### Completed
+
 P0 through P8 are implemented for the v0.1 release. The v0.1 boundary freezes
-`GOFTP/1` consensus around the existing descriptor-name and direct-events
-filename protocol, while result events, scoring, and signed consensus remain
-future work unless a later phase or decision records them first.
+`GOFTP/1` consensus around the descriptor-name and direct-events filename
+protocol.
 
-The v1.0 route is to turn that boundary into a proof machine: explicit
-profiles, adapter contracts, hostile fixtures, cross-system witnesses, optional
-signed/auth profiles, and reader-facing surfaces. WebDAV is the first admitted
-non-FTP write-capable runtime store on that route, and Git tree is admitted as a
-read-only runtime store. DNS record admission is read-only over local or
-otherwise declared record files, with no live DNS, AXFR, DNSSEC trust, provider
-API, dynamic update, or publish path. `GOFTP/1` remains unchanged.
+The v1.0/package 1.000 source completes the P14 proof-machine source boundary:
+explicit profiles, adapter contracts, hostile fixtures, cross-system witnesses,
+optional signed/auth profiles, and reader-facing surfaces. `GOFTP/1` remains
+unchanged.
 
-The current route work is signed-HMAC overlay hardening, P14 claim audit, and
-final clean-gate preparation for the admitted read boundaries now present at
-HEAD, especially `git-tree-goftp1` and `dns-record-goftp1`. The witness vectors
-now carry self-contained input names, diagnostics, and rendered projection text,
-and replay-invariant vectors now cover ordinary rule, DAG, ACK, terminal,
-malformed, and ack-assisted fork behavior. Event-id collision is now covered as
-a synthetic DAG-boundary vector, not as an ordinary basename collision claim.
-Public non-consensus poison vectors now bind baseline/poison witness pairs to
+Implemented v1.0 profiles and runtime paths cover local, FTP, read-only Git
+tree, read-only DNS record-file admission, WebDAV, and `signed-hmac-goftp1`.
+WebDAV is the admitted non-FTP write-capable runtime store; Git tree and DNS
+record admission are read-only. DNS record admission is limited to local or
+otherwise declared record files.
+
+The witness vectors carry self-contained input names, diagnostics, rendered
+projection text, accepted/rejected sets, and stable roots. Replay-invariant
+vectors cover ordinary rule, DAG, ACK, terminal, malformed, and ack-assisted
+fork behavior. Event-id collision is covered as a synthetic DAG-boundary vector,
+not as an ordinary basename collision claim.
+
+Public non-consensus poison vectors bind baseline/poison witness pairs to
 core/local bad-mtime, bad-payload, bad-list-order, bad-signature,
 poisoned-sidecar, projection-poison, tmp-poison, WebDAV metadata-poison, WebDAV
-href-traversal, DNS owner-poison, and Git-tree path/metadata-poison fixtures,
-plus the FTP listing-shadow cross-substrate fixture, including real fixture
-`input_names`, embedded evidence artifacts when poison lives outside the
-listing, and unchanged event-set preimage, root, replay, board, projection, and
-SGF truth. The signed-HMAC public-trust bridge is now represented in public
-signed/auth golden vectors as rejected `k1.` selector evidence and accepted
-explicit HMAC selector evidence. Verifier-local `v1 keygen`, `v1 attest`, and
-`v1 witness --trusted-hmac-key-file` now exercise the signed-HMAC operation path
-without leaking HMAC secrets or changing unsigned replay. `signed-hmac-goftp1`
-can also run as a read-only overlay over the admitted local, FTP, Git-tree,
-DNS-record, and WebDAV read normalizers, proving the same signed-accepted root
-and replay under explicit verifier-local HMAC trust input. The publish-purpose
-fixture layer can mint and verify one `GOFTP-HMAC-PUBLISH/1` token for one
-proposed event, distinguishing verification lifecycle from new-material publish
-lifecycle without authorizing real writers. The FTP listing-shadow vector is
-fixture/listing evidence only. Local `play --tui` is a non-consensus
-input/display surface over the existing play publish path.
-This is not Git publish, Git remote fetch, live FTP, FTP auth, FTP integrity,
-FTP publish behavior, live DNS, DNS publish, hosted Web UI, production key
-lifecycle completion, publish auth completion, or a v1.0/P14 completion claim.
+href-traversal, DNS owner-poison, Git-tree path/metadata-poison, and FTP
+listing-shadow fixtures. These vectors pin unchanged event-set preimage, root,
+replay, board, projection, and SGF truth.
+
+Verifier-local `v1 keygen`, `v1 attest`, and
+`v1 witness --trusted-hmac-key-file` exercise signed-HMAC operation without
+leaking HMAC secrets or changing unsigned replay. The signed-HMAC overlay proves
+the same signed-accepted root and replay across admitted read normalizers under
+explicit verifier-local HMAC trust input. The fixture publish-purpose layer can
+mint and verify one `GOFTP-HMAC-PUBLISH/1` token for one proposed event, and the
+default-off publish preflight can deny local, FTP, and WebDAV writes before
+publication.
+
+Local `play --tui`, text witness output, static HTML witness output, static
+terminal witness output, executable source art, and optional `Inline::C` are
+implemented as display/input or acceleration surfaces that do not own replay
+truth.
+
+### Deferred
+
+Result/scoring events remain outside `GOFTP/1`.
+
+Git publish, Git remote fetch, live FTP auth, live FTP integrity, FTP publish
+behavior, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic update, DNS
+record publishing, hosted Web UI, production key lifecycle completion, publish
+auth completion, complete JSON output for every command, and complete future
+attack coverage remain outside the v1.0/package 1.000 claim.
+
+### Next
+
+Future phases may add deferred publish, DNS, hosted Web UI, production auth, or
+result-event behavior only through explicit profile, protocol, decision, and
+gate updates.
+
+The final tarball hash is recorded only in an external tag or release record,
+not in source files that become part of the tarball.
 
 ## Cross-Cutting Acceptance: Elegance Without Obscurity
 
@@ -506,17 +525,15 @@ Tasks:
 - document every deferred surface as a future profile, protocol version, or
   later phase
 
-Current proof: `docs/P14_RELEASE_GATE.md` records the first P14a dry-run command
-matrix, generated artifact list, skipped gates, and manifest-skip correction.
-It is a release-route checkpoint, not a v1.0 tag or P14 completion claim.
-The final artifact identity and tag preconditions are tracked in
+Current proof: `docs/P14_RELEASE_GATE.md` records final v1.0/package 1.000
+release-source evidence and the targeted claim-audit gate. The final artifact
+identity, external hash record, and tag procedure are tracked in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
-The `t/p14-claim-audit.t` gate guards current release-facing text against
-accidental over-claims. The immediate follow-up is final clean-gate preparation
-over the signed-HMAC overlay and admitted read profiles. No Git publish, no live
-DNS, no AXFR, no DNSSEC trust, no provider APIs, no dynamic update, no DNS
-publish, no hosted Web UI, no production key lifecycle completion, no publish
-auth completion, and no v1.0/P14 completion claim.
+The `t/p14-claim-audit.t` gate guards release-facing text against accidental
+over-claims. No Git publish, no live DNS, no AXFR, no DNSSEC trust, no provider
+APIs, no dynamic update, no DNS publish, no hosted Web UI, no production key
+lifecycle completion, and no publish auth completion are claimed by
+v1.0/package 1.000.
 
 Acceptance:
 

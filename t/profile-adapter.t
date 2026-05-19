@@ -60,15 +60,21 @@ subtest 'git tree adapter extracts only visible tree paths' => sub {
     ], 'git tree normalizer strips git metadata and game prefix';
 };
 
-subtest 'DNS record adapter extracts lower-case TXT event values' => sub {
+subtest 'DNS record adapter case-normalizes owner/type but preserves event values' => sub {
+    my $upper_game  = uc $game;
+    my $upper_event = uc $events[1];
+
     my @raw = (
         "ttl=60 type=txt owner=01.events.$game.example. event=\"$events[0]\"",
         "owner=02.events.$game.example. type=TXT event=$events[1]",
+        "ttl=30 TyPe=Txt owner=03.EVENTS.$upper_game.EXAMPLE. event=\"$events[0]\"",
         "owner=events.g1.id-other.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. type=TXT event=$events[1]",
         "owner=_goban type=TXT event=$events[1]",
         "ttl=60 type=a event=$events[0]",
         'type=txt note=ignored',
         "type=txt owner=01.events.$game.example. event=\"../$events[0]\"",
+        "type=TXT owner=04.events.$game.example. event=$upper_event",
+        "type=TXT owner=05.events.$game.example. event=events/$events[1]",
     );
 
     is_deeply [
@@ -80,6 +86,7 @@ subtest 'DNS record adapter extracts lower-case TXT event values' => sub {
     ], [
         $events[0],
         $events[1],
+        $events[0],
     ], 'DNS TXT normalizer extracts current-game event= values and ignores non-events';
 };
 

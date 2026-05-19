@@ -57,10 +57,13 @@ subtest 'DNS record store admits only current-game TXT event rows' => sub {
 
     _assert_runtime_admission($base, 'base TXT event rows');
 
+    my $upper_game   = uc $GAME;
+    my $upper_poison = uc $POISON_MOVE;
     my @noisy_records = (
         "ttl=3600 type=txt owner=02.events.$GAME.example. event=\"$MOVE_W\"",
         "ttl=1 type=TXT owner=01.events.$GAME.example. event=$MOVE_B",
         "ttl=10 type=TXT owner=01.duplicate.events.$GAME.example. event=$MOVE_B",
+        "ttl=11 TyPe=Txt owner=01.EVENTS.$upper_game.EXAMPLE. event=\"$MOVE_B\"",
         "ttl=20 type=A owner=03.events.$GAME.example. event=$POISON_MOVE",
         "ttl=30 type=CNAME owner=03.events.$GAME.example. target=shadow.example.",
         "ttl=40 type=TXT owner=03.events.$OTHER_GAME.example. event=$POISON_MOVE",
@@ -70,6 +73,8 @@ subtest 'DNS record store admits only current-game TXT event rows' => sub {
         "ttl=80 type=TXT owner=tmp.$GAME.example. event=$POISON_MOVE tmp=upload.part",
         "ttl=90 type=TXT owner=03.events.$GAME.example. sidecar=$ID_W.json",
         "ttl=100 type=TXT owner=04.events.$GAME.example. tmp=$POISON_MOVE",
+        "ttl=110 type=TXT owner=05.events.$GAME.example. event=$upper_poison",
+        "ttl=120 type=TXT owner=06.events.$GAME.example. event=events/$POISON_MOVE",
     );
     my $noisy = _new_store(records => \@noisy_records);
     return if !$noisy;

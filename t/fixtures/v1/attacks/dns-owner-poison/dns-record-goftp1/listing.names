@@ -4,3 +4,6 @@ ttl=5 type=TXT event=m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-
 ttl=30 type=A owner=events.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. address=192.0.2.10
 ttl=600 type=TXT owner=sidecar.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. sidecar=khjclcui7pejbv3m.sig
 ttl=2 type=TXT owner=01.duplicate.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. event="m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m"
+ttl=10 TyPe=Txt owner=01.EVENTS.G1.ID-REPLAY.S3.R-CHINESE-AREA-V1.K0.PB-ALICE.PW-BOB.EXAMPLE. event="m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m"
+ttl=20 type=TXT owner=03.events.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. event=M1.P000002.W.PLAY-BB.PA-KHJCLCUI7PEJBV3M.BY-BOB.N-CHAIN2.H-BIHB3RE4K9HLUCAT
+ttl=25 type=TXT owner=04.events.g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob.example. event=events/m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat

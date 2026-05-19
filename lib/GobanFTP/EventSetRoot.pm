@@ -129,6 +129,6 @@ __END__
 
 =head1 NAME
 
-GobanFTP::EventSetRoot - draft GOFTP/1 accepted event-set root
+GobanFTP::EventSetRoot - v1.0 frozen GOFTP/1 accepted event-set root
 
 =cut
