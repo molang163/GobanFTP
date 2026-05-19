@@ -363,10 +363,13 @@ percent-encoded WebDAV dot segments, encoded slash/backslash href rows, wrong
 or missing DNS owners, DNS TTL/order rows, non-TXT DNS rows, and Git
 commit/ref/object/path metadata stay outside event-set and replay truth. DNS
 owner labels are a current-game record scoping filter, not replay truth. The
-next proof slice should audit P14 release claims and fill remaining public FTP
-or signed/public-trust poison vector gaps while keeping `git-tree-goftp1` and
-`dns-record-goftp1` read-only and avoiding any claim of Git publish, live DNS,
-AXFR, DNSSEC trust, provider APIs, dynamic update, or DNS record publishing.
+signed-HMAC public-trust bridge vectors separately prove public advisory `k1.`
+key/trust rows cannot authorize `signed-hmac-goftp1` HMAC selectors or revoke
+an explicit HMAC selector. The next proof slice should audit P14 release claims
+and fill the remaining public FTP poison-vector gap while keeping
+`git-tree-goftp1` and `dns-record-goftp1` read-only and avoiding any claim of
+Git publish, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic update, or
+DNS record publishing.
 
 ## Release Gates
 

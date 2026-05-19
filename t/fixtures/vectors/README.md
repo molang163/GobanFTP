@@ -63,11 +63,14 @@ become an event-id mismatch unless a real hash collision exists.
 for valid, injected-event, missing, wrong, payload-mismatched,
 game-descriptor-mismatched, untrusted, and malformed event attestations. It
 also freezes lifecycle rows for trusted, rotated, revoked, and expired HMAC
-selectors. Rows name both the listing fixture and the public attestation
-fixture. The vector records the public trust selector, lifecycle status,
-accepted/rejected events, rejected diagnostics, replay diagnostics, raw input
-names, and rendered projection text, but not the HMAC secret used by the
-verifier test.
+selectors, plus public-trust bridge rows proving advisory `k1.` key/trust
+material cannot authorize `signed-hmac-goftp1` HMAC selectors or revoke an
+explicit fixture HMAC selector. Rows name both the listing fixture and the
+public attestation fixture. Public-trust bridge rows also bind the public key
+and trust TSV fixture text and its parsed advisory summary. The vector records
+the public trust selector, lifecycle status, accepted/rejected events, rejected
+diagnostics, replay diagnostics, raw input names, and rendered projection text,
+but not the HMAC secret used by the verifier test.
 
 `ruleset-seal.jsonl` freezes the `chinese-area-v1` ruleset seal, fixture digest
 manifest, and byte-level preimage hex for `GOFTP-RULESET-SEAL/1`.

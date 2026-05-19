@@ -202,6 +202,11 @@ metadata that points at `fixture-key-1`. The expected witness proves that a
 public trusted `k1.` row cannot authorize a `signed-hmac-goftp1` HMAC selector,
 public revoked or expired `k1.` rows cannot revoke the explicit
 `fixture-key-1` selector, and unsigned `local-goftp1` replay remains unchanged.
+It is also frozen in `t/fixtures/vectors/v1-signed-hmac-witness.jsonl` as
+public signed/auth golden-vector evidence: one row roots the rejected `k1.`
+selector case at the empty signed event set, and one row roots the explicit
+`fixture-key-1` case at the accepted three-event chain while binding the public
+key and trust TSV fixture text.
 
 Publish-failure specimens live under:
 

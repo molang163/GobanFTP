@@ -30,8 +30,10 @@ WebDAV metadata-poison, WebDAV href-traversal, DNS owner-poison, and Git-tree
 path/metadata-poison fixtures, including real fixture `input_names`, embedded
 evidence artifacts when poison lives outside the listing, and unchanged
 event-set preimage, root, replay, board, projection, and SGF truth. The next
-proof slice should continue the P14 claim audit and fill any remaining FTP or
-signed/public-trust public poison-vector gaps.
+signed-HMAC public-trust bridge is now represented in public signed/auth golden
+vectors as rejected `k1.` selector evidence and accepted explicit HMAC selector
+evidence. The next proof slice should continue the P14 claim audit and fill the
+remaining FTP public poison-vector gap.
 This is not Git publish, Git remote fetch, live DNS, DNS publish, hosted Web UI,
 interactive TUI, or a v1.0/P14 completion claim.
 
@@ -417,7 +419,10 @@ and `expired` reject inside the signed profile gate without changing unsigned
 replay. The signed-HMAC golden vectors now freeze lifecycle status,
 accepted/rejected sets, and `key.revoked` / `key.expired` rejected diagnostics.
 The `public-trust-bridge-poison` specimen proves public `GOFTP-TRUST/1` rows
-cannot authorize `k1.` HMAC selectors or revoke explicit HMAC selectors.
+cannot authorize `k1.` HMAC selectors or revoke explicit HMAC selectors. It is
+also frozen in signed-HMAC public golden vectors that bind the public key and
+trust TSV fixture text while keeping the verifier HMAC secret out of public
+vector data.
 
 ## P13: Source-Art, TUI, And Web Surfaces
 
@@ -481,10 +486,10 @@ It is a release-route checkpoint, not a v1.0 tag or P14 completion claim.
 The final artifact identity and tag preconditions are tracked in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
 The immediate follow-up is to continue the P14 claim audit around the read-only
-Git-tree and DNS-record runtime admissions and fill any remaining FTP or
-signed/public-trust public non-consensus poison-vector gaps, not to add Git
-publish, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic update, DNS
-publish, hosted Web UI, interactive TUI, or a v1.0/P14 completion claim.
+Git-tree and DNS-record runtime admissions and fill the remaining FTP public
+non-consensus poison-vector gap, not to add Git publish, live DNS, AXFR, DNSSEC
+trust, provider APIs, dynamic update, DNS publish, hosted Web UI, interactive
+TUI, or a v1.0/P14 completion claim.
 
 Acceptance:
 

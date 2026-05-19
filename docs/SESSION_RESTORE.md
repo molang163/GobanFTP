@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- test: freeze signed public trust vectors
 - test: add core poison public vectors
 - chore: enter v1.0 development
 - release: prepare v0.2 identity
@@ -35,6 +36,7 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 ## Recent Completed Work
 
 ```text
+HEAD test: freeze signed public trust vectors
 HEAD test: add core poison public vectors
 HEAD chore: enter v1.0 development
 HEAD release: prepare v0.2 identity
@@ -132,6 +134,13 @@ Key completed boundaries:
   metadata that points at HMAC selectors. The test proves those rows cannot
   authorize `k1.` HMAC selectors, cannot revoke `fixture-key-1`, and do not
   change unsigned `local-goftp1` replay.
+- P12e public-trust bridge golden vectors are frozen:
+  `t/fixtures/vectors/v1-signed-hmac-witness.jsonl` now binds the public key
+  and trust TSV fixture text for `public-trust-bridge-poison`, with one row
+  proving the trusted public `k1.` selector is rejected before HMAC verification
+  and one row proving public revoked/expired `k1.` rows cannot revoke the
+  explicit `fixture-key-1` HMAC selector. The fixture HMAC secret remains absent
+  from public vector data.
 - P13a source-art witness smoke is implemented: `oracle/goban.pl --smoke`
   still remains an executable source-art wrapper, but the smoke module now gets
   protocol proof fields from `GobanFTP::Witness`. The test proves visual board
@@ -258,29 +267,30 @@ Key completed boundaries:
 
 ## Last Verified
 
-Latest verification after clarifying the active P14 release plan and separating
-the `1.000_001` development freeze matrix from the reserved final `v1.0`
-identity:
+Latest verification after freezing signed-HMAC public-trust bridge golden
+vectors and narrowing the next P14 gap to FTP public poison-vector coverage:
 
 ```text
+prove -lr t/v1-signed-hmac-golden-vectors.t t/v1-signed-hmac.t t/auth-trust-report.t t/cli-auth-trust-report.t t/v1-golden-vectors.t t/showcase-demo.t
 git diff --check
 perl -MExtUtils::Manifest=fullcheck -e 'fullcheck()'
-git diff --name-only | sort
-git diff --name-only | rg '^(lib|script|oracle|t)/' && exit 1 || true
-prove -lr t/diagnostics-contract.t t/dependency-sync.t t/showcase-demo.t
 prove -lr t
 ```
 
 Result:
 
 ```text
-Changed files: Changes, README.md, docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md,
-docs/SESSION_RESTORE.md.
-Targeted: Files=3, Tests=21, all successful.
-Full: Files=73, Tests=993, all successful.
+Changed files: Changes, README.md, docs/ATTACKS.md, docs/ROADMAP.md,
+docs/SESSION_RESTORE.md, docs/V1_DOD.md, t/fixtures/vectors/README.md,
+t/fixtures/vectors/v1-signed-hmac-witness.jsonl,
+t/v1-signed-hmac-golden-vectors.t.
+Targeted: Files=6, Tests=185, all successful.
+Full: Files=73, Tests=1009, all successful.
 ```
 
-Earlier verification after expanding v1 replay-invariant behavior vectors:
+Earlier verification after clarifying the active P14 release plan and separating
+the `1.000_001` development freeze matrix from the reserved final `v1.0`
+identity:
 
 ```text
 git diff --check
@@ -415,7 +425,7 @@ after entering v1.0/P14 development:
   leaves event-set preimage, root, replay, board, projection text, and SGF
   truth unchanged
 - next proof slice should continue the P14 claim audit and fill any remaining
-  FTP or signed/public-trust public non-consensus poison-vector gaps
+  FTP public non-consensus poison-vector gap
 - continue the P14 claim audit for the admitted read boundaries now present at
   HEAD, especially `git-tree-goftp1` and `dns-record-goftp1`
 - that slice must not add or claim Git publish, live DNS, AXFR, DNSSEC trust,
