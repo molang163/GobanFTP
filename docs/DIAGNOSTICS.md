@@ -42,6 +42,8 @@ public_key_bytes
 profile_id
 profile_consensus_version
 adapter_id
+substrate_profile_id
+substrate_adapter_id
 ruleset_id
 ruleset_semver
 ruleset_seal_version
@@ -129,6 +131,11 @@ signed profile rejecting an event attestation. `diagnostic_count`,
 `diagnostic_codes`, and `diagnostic_classes` describe replay diagnostics after
 the accepted event set has been built. Both diagnostic families may emit stable
 `diagnostic ...` lines on stderr.
+
+When `signed-hmac-goftp1` is used as a read-only overlay, `profile_id` and
+`adapter_id` still name the signed-HMAC witness gate. `substrate_profile_id`
+and `substrate_adapter_id` name the declared base read normalizer that supplied
+candidate event basenames before the signed gate ran.
 
 The `ruleset_*` fields identify the replay rule contract used by the witness.
 They are not inputs to `event_set_root`; `compare-replay` compares them so two

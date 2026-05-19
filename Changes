@@ -11,6 +11,10 @@ Revision history for GobanFTP
     keygen`, `gobanftp v1 attest`, and
     `gobanftp v1 witness --trusted-hmac-key-file`, keeping HMAC secrets out of
     stdout, diagnostics, public attestations, filenames, and unsigned replay.
+  - Added a read-only signed-HMAC substrate overlay witness path, so
+    `signed-hmac-goftp1` can verify the same explicit HMAC attestations after
+    local, FTP, Git-tree, DNS-record, or WebDAV read normalization while keeping
+    publish authorization and production identity lifecycle out of scope.
   - Began v1.0/P14 development after skipping the public v0.2 / package 0.002
     release candidate.
   - Recorded a fresh clean-checkout `1.000_001` development-freeze matrix for

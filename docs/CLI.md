@@ -282,7 +282,7 @@ The fixture trust-report form reads:
 parse `attestations.tsv`, does not enforce signed-HMAC revocation, and does not
 use wall-clock time for expiry decisions.
 
-### `gobanftp v1 witness --profile <profile-id> --fixture <fixture-dir> [--attestations <jsonl>] [--trusted-hmac-key <id=key>] [--trusted-hmac-key-file <hmac-key-file>] [--trusted-hmac-status <id=status>] [--surface text|html|terminal]`
+### `gobanftp v1 witness --profile <profile-id> [--substrate-profile <profile-id>] --fixture <fixture-dir> [--attestations <jsonl>] [--trusted-hmac-key <id=key>] [--trusted-hmac-key-file <hmac-key-file>] [--trusted-hmac-status <id=status>] [--surface text|html|terminal]`
 
 Builds a read-only v1 witness from fixture files. The command reads:
 
@@ -290,6 +290,14 @@ Builds a read-only v1 witness from fixture files. The command reads:
 <fixture-dir>/game.name
 <fixture-dir>/<profile-id>/listing.names
 ```
+
+When `--profile signed-hmac-goftp1 --substrate-profile <profile-id>` is used,
+the command reads `<fixture-dir>/<substrate-profile>/listing.names`, runs that
+base profile's read normalizer, and then applies the explicit signed-HMAC
+acceptance gate to the normalized candidate event basenames. The overlay
+substrate must be one of the admitted read profiles:
+`local-goftp1`, `ftp-goftp1`, `git-tree-goftp1`, `dns-record-goftp1`, or
+`webdav-goftp1`.
 
 For `dns-record-goftp1`, `listing.names` is the local or otherwise declared
 record set admitted for the fixture witness. The CLI does not query live DNS,
@@ -308,6 +316,10 @@ with `k1.` are rejected for `--trusted-hmac-key` so fixture public-key trust
 rows cannot silently authorize HMAC attestations. `--trusted-hmac-key-file`
 reads the private-mode `GOFTP-HMAC-KEY/1` file written by `v1 keygen`;
 duplicate selectors across inline and file keys are rejected.
+
+The signed-HMAC overlay is read-only witness evidence. It does not write events,
+publish sidecar files, discover attestation files automatically, authorize a
+writer, define account identity binding, or provide transport authentication.
 
 `--trusted-hmac-status <id=status>` is an explicit signed-HMAC lifecycle input.
 It is separate from `GOFTP-TRUST/1` public key rows and applies only to a
@@ -339,6 +351,8 @@ gobanftp.v1.witness=ok
 profile_id=<profile-id>
 profile_consensus_version=GOFTP-PROFILE/<profile-id>/1
 adapter_id=<adapter-id>
+substrate_profile_id=<profile-id>
+substrate_adapter_id=<adapter-id>
 game_descriptor=<game-descriptor>
 ruleset_id=chinese-area-v1
 ruleset_semver=1.0.0

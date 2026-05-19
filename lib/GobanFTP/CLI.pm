@@ -935,6 +935,11 @@ sub _command_v1_witness {
             $opts{fixture} = $value;
             next;
         }
+        if ($name eq 'substrate-profile') {
+            die $usage if defined $opts{substrate_profile_id};
+            $opts{substrate_profile_id} = $value;
+            next;
+        }
         if ($name eq 'attestations') {
             $opts{attestations} = $value;
             next;
@@ -962,6 +967,12 @@ sub _command_v1_witness {
 
     die $usage if !defined($opts{profile_id}) || $opts{profile_id} eq '';
     die $usage if !defined($opts{fixture}) || $opts{fixture} eq '';
+    die $usage
+        if defined($opts{substrate_profile_id})
+            && (
+                $opts{profile_id} ne 'signed-hmac-goftp1'
+                || !_is_v1_compare_profile($opts{substrate_profile_id})
+            );
 
     my ($witness, $attestation_count, $trusted_key_ids, $trusted_secrets)
         = eval { _v1_witness_from_fixture(%opts) };
@@ -1230,7 +1241,8 @@ sub _v1_witness_from_fixture {
     my $profile_id = $opts{profile_id};
     my $fixture    = $opts{fixture};
     my $game_path  = File::Spec->catfile($fixture, 'game.name');
-    my $listing_path = File::Spec->catfile($fixture, $profile_id, 'listing.names');
+    my $listing_profile_id = $opts{substrate_profile_id} // $profile_id;
+    my $listing_path = File::Spec->catfile($fixture, $listing_profile_id, 'listing.names');
 
     my $game = _read_single_nonblank($game_path);
     my @raw_names = _read_nonblank_lines($listing_path);
@@ -1255,6 +1267,9 @@ sub _v1_witness_from_fixture {
         hmac_attestations       => \@attestations,
         trusted_hmac_keys       => \%trusted_hmac_keys,
         trusted_hmac_key_statuses => \%trusted_hmac_key_statuses,
+        defined($opts{substrate_profile_id}) ? (
+            substrate_profile_id => $opts{substrate_profile_id},
+        ) : (),
         defined($opts{surface}) ? (include_projection_text => 1) : (),
     );
 
@@ -1806,6 +1821,8 @@ sub _print_v1_witness {
         profile_id
         profile_consensus_version
         adapter_id
+        substrate_profile_id
+        substrate_adapter_id
         game_descriptor
         ruleset_id
         ruleset_semver
@@ -2139,7 +2156,7 @@ sub _v1_usage {
 }
 
 sub _v1_witness_usage_line {
-    return 'usage: v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-key-file hmac-key-file] [--trusted-hmac-status id=status] [--surface text|html|terminal]';
+    return 'usage: v1 witness --profile profile-id [--substrate-profile profile-id] --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-key-file hmac-key-file] [--trusted-hmac-status id=status] [--surface text|html|terminal]';
 }
 
 sub _result_exit {
@@ -2238,7 +2255,7 @@ commands:
   v1 keyid --fixture public-key-file
   v1 attest --profile signed-hmac-goftp1 --key hmac-key-file --out attestations.jsonl <game-root|game-descriptor>
   v1 trust-report --fixture fixture-dir
-  v1 witness --profile profile-id --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-key-file hmac-key-file] [--trusted-hmac-status id=status] [--surface text|html|terminal]
+  v1 witness --profile profile-id [--substrate-profile profile-id] --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-key-file hmac-key-file] [--trusted-hmac-status id=status] [--surface text|html|terminal]
   v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]
   v1 compare-replay --fixture fixture-dir [--profiles profile-id,...]
 USAGE

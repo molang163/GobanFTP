@@ -244,6 +244,10 @@ insert, or reject an individual event before the accepted set is known.
 `signed-hmac-goftp1` is implemented as the first witness gate for signed/auth
 acceptance. It supports explicit verifier trust sets and verifier-local
 `GOFTP-HMAC-KEY/1` key files for `v1 keygen`, `v1 attest`, and `v1 witness`.
+It can be run as a read-only overlay over a declared base substrate normalizer:
+local, FTP, Git-tree, DNS-record, or WebDAV listing rows first become candidate
+GOFTP event basenames, then the signed-HMAC gate accepts only events with valid
+attestations under the verifier-supplied HMAC trust input.
 It does not define production account identity binding, public-key signing
 suites, revocation publication, key loss recovery, automatic sidecar discovery,
 or publish authentication.

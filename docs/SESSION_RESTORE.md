@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- feat: add signed hmac substrate overlay
 - feat: add signed hmac operation layer
 - release: enter v1.0 final candidate identity
 - docs: record P14 claim-audit matrix
@@ -85,12 +86,20 @@ Current state after the v1.0 final-candidate identity switch:
   completion. It does not define account identity binding, public-key signing
   suites, revocation publication, key loss recovery, automatic sidecar
   discovery, or publish-time authorization.
+- P19 adds the read-only signed-HMAC substrate overlay:
+  `gobanftp v1 witness --profile signed-hmac-goftp1 --substrate-profile ...`
+  reads local, FTP, Git-tree, DNS-record, or WebDAV fixture listings through
+  their base normalizers, then applies explicit verifier-local HMAC
+  attestations/trust input. The overlay proves signed-accepted root/replay
+  invariance across admitted read substrates and still does not define
+  production identity lifecycle, automatic sidecar discovery, or publish auth.
 - Previous HEAD `test: add bad signature vector and dist hygiene gate` added
   the `bad-signature` public poison vector and dist manifest hygiene gate.
 
 ## Recent Completed Work
 
 ```text
+HEAD feat: add signed hmac substrate overlay
 HEAD release: enter v1.0 final candidate identity
 HEAD feat: add signed hmac operation layer
 HEAD docs: record P14 claim-audit matrix
@@ -367,6 +376,30 @@ Key completed boundaries:
 
 ## Last Verified
 
+Latest local verification after P19 signed-HMAC substrate overlay:
+
+```text
+perl -Ilib -c lib/GobanFTP/Witness.pm
+perl -Ilib -c lib/GobanFTP/CLI.pm
+prove -lr t/v1-signed-hmac-overlay.t
+prove -lr t/v1-signed-hmac-overlay.t t/v1-cli-witness.t t/diagnostics-contract.t t/p14-claim-audit.t
+prove -lr t/v1-signed-hmac.t t/profile-adapter.t t/witness-api.t t/v1-cross-substrate.t
+prove -lr t
+git diff --check
+perl -MExtUtils::Manifest=fullcheck -e 'fullcheck()'
+script/gobanftp v1 witness --profile signed-hmac-goftp1 --substrate-profile ftp-goftp1 --fixture t/fixtures/v1/cross-substrate/minimal --attestations t/fixtures/v1/signed-hmac/valid/signed-hmac-goftp1/attestations.jsonl --trusted-hmac-key 'fixture-key-1=gobanftp signed hmac fixture key 1'
+```
+
+Result:
+
+```text
+P19 local checks: PASS.
+Full prove: Files=79, Tests=1079, all successful.
+Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
+Overlay CLI smoke: PASS, signature.status=ok,
+event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461.
+```
+
 Latest verification after the successful `1.000_001` clean-checkout development
 freeze:
 
@@ -532,40 +565,20 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-after entering the v1.0/P14 final-candidate identity:
-- do not push or publish v0.2 artifacts; v0.2 was skipped as a public release
-- `git-tree-goftp1` runtime read admission is implemented as a read-only store
-- `dns-record-goftp1` runtime admission is read-only over local/declared record
-  files only; do not add or claim live DNS, AXFR, DNSSEC trust, provider API,
-  dynamic update, or record publish support
-- current golden-vector refresh has hardened existing witness vectors with raw
-  input/projection text and expanded compact replay-invariant behavior vectors
-- event-id collision is covered only as a synthetic DAG-boundary vector; do not
-  pretend a normal basename collision exists unless a real GOFTP/1 hash
-  collision passes filename verification
-- `t/fixtures/vectors/v1-non-consensus-poison.jsonl` now carries public
-  baseline/poison vectors for core/local `bad-mtime`, `bad-payload`,
-  `bad-list-order`, `poisoned-sidecar`, `projection-poison`, `tmp-poison`,
-  plus `webdav-metadata-poison`, `webdav-href-traversal`, `dns-owner-poison`,
-  `git-tree-path-metadata-poison`, and `ftp-listing-shadow-poison`, binding them
-  to real fixture listings and exact ignored-file evidence where needed, and
-  proving ignored evidence leaves event-set preimage, root, replay, board,
-  projection text, and SGF truth unchanged
-- the latest `1.000_001` development freeze matrix has passed at
-  `1f5f646921f675c93e25819cb3cf3652f5d6bebe`; do not tag or publish it as
-  v1.0
-- `t/p14-claim-audit.t` release-text boundary gate is included in the latest
-  development matrix and must stay in the development and final release matrices
-- current P17b work must harden and commit local `play --tui`, while still not
-  claiming hosted Web UI, production key lifecycle completion, publish auth
-  completion, cross-terminal TUI compatibility completion, or v1.0/P14
-  completion
-- after P17b and any chosen P18 auth work, rerun the final stable clean-checkout
-  matrix from the `1.000` final candidate and generate `GobanFTP-1.000.tar.gz`
-- that final slice must not add or claim Git publish, live DNS, AXFR, DNSSEC
-  trust, provider API, dynamic update, DNS record publishing, hosted Web UI,
-  production key lifecycle completion, publish auth completion, cross-terminal
-  TUI compatibility completion, or v1.0/P14 completion
+after P19 signed-HMAC substrate overlay:
+- keep `signed-hmac-goftp1` as a read-only witness gate over declared substrate
+  read normalizers; do not make it a storage backend or automatic sidecar
+  discovery path
+- `v1 witness --profile signed-hmac-goftp1 --substrate-profile ...` is the
+  current overlay CLI; it proves accepted signed root/replay invariance across
+  local, FTP, Git-tree, DNS-record, and WebDAV fixtures under explicit
+  verifier-local HMAC trust input
+- the overlay still does not provide production account identity binding,
+  production key lifecycle, publish authorization, hosted Web UI, cross-terminal
+  TUI compatibility, Git publish, live DNS, DNS publish, or v1.0/P14 completion
+- likely next v1.0-completeness slice is P20: decide and implement either
+  production key lifecycle / publish-auth fixture semantics, or the final
+  stable clean-checkout matrix if no more features are accepted before release
 - do not tag v1.0 until the final claim audit passes, the final stable
   clean-checkout matrix passes, and the external artifact record is attached
 - do not let display, source art, Web assets, terminal formatting, or interactive
@@ -601,6 +614,7 @@ t/fixtures/v1/signed-hmac/
 t/fixtures/vectors/v1-signed-hmac-witness.jsonl
 t/fixtures/vectors/v1-non-consensus-poison.jsonl
 t/v1-signed-hmac.t
+t/v1-signed-hmac-overlay.t
 t/auth-hmac-key.t
 t/cli-auth-hmac.t
 t/v1-signed-hmac-golden-vectors.t

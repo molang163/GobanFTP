@@ -61,8 +61,8 @@ subtest 'release-state guardrails are explicit' => sub {
         qr/This is not Git publish, Git remote fetch, live FTP, FTP auth, FTP integrity,\nFTP publish behavior, live DNS, DNS publish, hosted Web UI, production key\nlifecycle completion, publish auth completion, or a v1[.]0\/P14 completion claim[.]/,
         'roadmap keeps the current proof below forbidden release claims');
     _like_optional('docs/SESSION_RESTORE.md',
-        qr/do not tag or publish it as\n  v1[.]0/,
-        'restore memory blocks publishing the development matrix as v1.0');
+        qr/do not tag v1[.]0 until the final claim audit passes, the final stable\n  clean-checkout matrix passes, and the external artifact record is attached/,
+        'restore memory blocks tagging v1.0 before the final gates');
 };
 
 subtest 'claim-audit gate is part of the release matrix' => sub {
@@ -85,6 +85,8 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'FTP listing-shadow public poison-vector evidence is fixture/listing evidence',
         'signed-hmac-goftp1 has an explicit per-event HMAC acceptance gate',
         'v1 keygen and v1 attest provide verifier-local signed-HMAC operation support without changing unsigned replay',
+        'signed-HMAC cross-substrate overlay proves signed acceptance invariance across admitted read profiles with explicit verifier-local HMAC trust input',
+        'signed-HMAC overlay is read-only witness evidence and does not authorize publish',
         'public key and trust fixture reports are advisory outside signed profiles',
         'text, static HTML, and static terminal witness surfaces are read-only displays',
         'local play --tui keyboard/mouse input is implemented as a non-consensus input/display layer over existing publish callbacks',
@@ -107,6 +109,10 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'production key lifecycle is complete',
         'publish authentication policy is complete',
         'publish auth is complete',
+        'signed-HMAC overlay is production key lifecycle',
+        'signed-HMAC overlay implements publish authentication',
+        'HMAC attestations authorize publish or writer access',
+        'public GOFTP-TRUST k1 rows authorize signed-HMAC selectors',
         'production publish signing or authorization is implemented',
         'final scoring/result events are part of GOFTP/1',
         'source art, Web, TUI, C, or asm-like surfaces own replay truth',

@@ -595,6 +595,7 @@ t/v1-golden-vectors.t
 t/v1-profile-attack-fixtures.t
 t/v1-profile-publish-fixtures.t
 t/v1-signed-hmac-golden-vectors.t
+t/v1-signed-hmac-overlay.t
 t/v1-signed-hmac.t
 t/webdav-cli-parity.t
 t/witness-api.t

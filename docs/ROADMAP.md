@@ -17,10 +17,10 @@ read-only runtime store. DNS record admission is read-only over local or
 otherwise declared record files, with no live DNS, AXFR, DNSSEC trust, provider
 API, dynamic update, or publish path. `GOFTP/1` remains unchanged.
 
-The current route work is P18 signed-HMAC operation hardening, P14 claim audit,
-and final clean-gate preparation for the admitted read boundaries now present at
-HEAD, especially `git-tree-goftp1` and `dns-record-goftp1`. The witness vectors now
-carry self-contained input names, diagnostics, and rendered projection text,
+The current route work is signed-HMAC overlay hardening, P14 claim audit, and
+final clean-gate preparation for the admitted read boundaries now present at
+HEAD, especially `git-tree-goftp1` and `dns-record-goftp1`. The witness vectors
+now carry self-contained input names, diagnostics, and rendered projection text,
 and replay-invariant vectors now cover ordinary rule, DAG, ACK, terminal,
 malformed, and ack-assisted fork behavior. Event-id collision is now covered as
 a synthetic DAG-boundary vector, not as an ordinary basename collision claim.
@@ -35,9 +35,12 @@ SGF truth. The signed-HMAC public-trust bridge is now represented in public
 signed/auth golden vectors as rejected `k1.` selector evidence and accepted
 explicit HMAC selector evidence. Verifier-local `v1 keygen`, `v1 attest`, and
 `v1 witness --trusted-hmac-key-file` now exercise the signed-HMAC operation path
-without leaking HMAC secrets or changing unsigned replay. The FTP listing-shadow
-vector is fixture/listing evidence only. Local `play --tui` is a non-consensus
-input/display surface over the existing play publish path.
+without leaking HMAC secrets or changing unsigned replay. `signed-hmac-goftp1`
+can also run as a read-only overlay over the admitted local, FTP, Git-tree,
+DNS-record, and WebDAV read normalizers, proving the same signed-accepted root
+and replay under explicit verifier-local HMAC trust input. The FTP
+listing-shadow vector is fixture/listing evidence only. Local `play --tui` is a
+non-consensus input/display surface over the existing play publish path.
 This is not Git publish, Git remote fetch, live FTP, FTP auth, FTP integrity,
 FTP publish behavior, live DNS, DNS publish, hosted Web UI, production key
 lifecycle completion, publish auth completion, or a v1.0/P14 completion claim.
@@ -506,11 +509,11 @@ It is a release-route checkpoint, not a v1.0 tag or P14 completion claim.
 The final artifact identity and tag preconditions are tracked in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
 The `t/p14-claim-audit.t` gate guards current release-facing text against
-accidental over-claims. The immediate follow-up is P18 signed-HMAC operation
-hardening and final clean-gate preparation. No Git publish, no live DNS, no
-AXFR, no DNSSEC trust, no provider APIs, no dynamic update, no DNS publish, no
-hosted Web UI, no production key lifecycle completion, no publish auth
-completion, and no v1.0/P14 completion claim.
+accidental over-claims. The immediate follow-up is final clean-gate preparation
+over the signed-HMAC overlay and admitted read profiles. No Git publish, no live
+DNS, no AXFR, no DNSSEC trust, no provider APIs, no dynamic update, no DNS
+publish, no hosted Web UI, no production key lifecycle completion, no publish
+auth completion, and no v1.0/P14 completion claim.
 
 Acceptance:
 

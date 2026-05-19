@@ -146,6 +146,15 @@ unsigned replay and must not be described as production key lifecycle
 completion, public-key signing support, automatic sidecar discovery, or publish
 authentication.
 
+The signed-HMAC overlay must compose with every admitted read substrate. Given
+the same game descriptor, equivalent normalized event basenames, public
+attestations, and verifier-local HMAC trust input, local, FTP, Git-tree,
+DNS-record, and WebDAV listings must produce the same signed-accepted event
+set, signed `event_set_root`, replay, board projection, and SGF. If a substrate
+listing exposes an extra valid unsigned event without a valid HMAC attestation,
+the overlay must reject it with a signature diagnostic while preserving the
+signed baseline truth.
+
 A signed profile must reject:
 
 ```text
@@ -399,6 +408,7 @@ prove -lr t/v1-profile-attack-fixtures.t
 prove -lr t/v1-profile-publish-fixtures.t
 prove -lr t/v1-golden-vectors.t
 prove -lr t/v1-signed-hmac.t
+prove -lr t/v1-signed-hmac-overlay.t
 prove -lr t/v1-signed-hmac-golden-vectors.t
 prove -lr t/profile-registry.t t/profile-adapter.t t/witness-api.t
 prove -lr t/diagnostics-contract.t
@@ -438,7 +448,7 @@ script/gobanftp v1 witness --profile local-goftp1 --fixture t/fixtures/v1/cross-
 script/gobanftp v1 compare-roots --fixture t/fixtures/v1/cross-substrate/minimal
 script/gobanftp v1 compare-replay --fixture t/fixtures/v1/cross-substrate/minimal
 prove -lr t/v1-attack-fixtures.t
-prove -lr t/v1-signed-hmac.t t/v1-signed-hmac-golden-vectors.t
+prove -lr t/v1-signed-hmac.t t/v1-signed-hmac-overlay.t t/v1-signed-hmac-golden-vectors.t
 prove -lr t/auth-hmac-key.t t/cli-auth-hmac.t
 prove -lr t/ruleset-seal.t
 prove -lr t/p14-claim-audit.t

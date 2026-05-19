@@ -35,10 +35,14 @@ sub witness_for_listing {
     my $raw_names  = _array_ref($args{raw_names}, 'raw_names');
     my $schema     = _diagnostics_schema(%args);
     my $profile    = profile($profile_id);
+    my ($adapter_profile_id, $substrate_profile) = _adapter_profile_for_witness(
+        profile_id           => $profile_id,
+        substrate_profile_id => $args{substrate_profile_id},
+    );
     my $ruleset    = _ruleset_record_for_game($game);
 
     my @profile_names = profile_listing_names(
-        profile_id      => $profile_id,
+        profile_id      => $adapter_profile_id,
         game_descriptor => $game,
         raw_names       => $raw_names,
     );
@@ -92,6 +96,10 @@ sub witness_for_listing {
         profile_id                => $profile_id,
         profile_consensus_version => $profile->{consensus_version},
         adapter_id                => $profile->{adapter_id},
+        (defined $substrate_profile ? (
+            substrate_profile_id => $substrate_profile->{profile_id},
+            substrate_adapter_id => $substrate_profile->{adapter_id},
+        ) : ()),
         game_descriptor           => $game,
         %$ruleset,
         raw_count                 => scalar(@$raw_names),
@@ -118,6 +126,23 @@ sub witness_for_listing {
         if $args{include_projection_text};
 
     return $witness;
+}
+
+sub _adapter_profile_for_witness {
+    my (%args) = @_;
+
+    my $profile_id = $args{profile_id};
+    my $substrate_profile_id = $args{substrate_profile_id};
+    return ($profile_id, undef)
+        if !defined($substrate_profile_id) || $substrate_profile_id eq '';
+
+    croak 'substrate_profile_id requires signed-hmac-goftp1'
+        if !is_signed_hmac_profile($profile_id);
+    croak 'substrate_profile_id must not be a signed profile'
+        if is_signed_hmac_profile($substrate_profile_id);
+
+    my $substrate_profile = profile($substrate_profile_id);
+    return ($substrate_profile_id, $substrate_profile);
 }
 
 sub _diagnostics_schema {

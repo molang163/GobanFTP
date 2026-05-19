@@ -216,6 +216,7 @@ prove -lr t/v1-profile-attack-fixtures.t
 prove -lr t/v1-profile-publish-fixtures.t
 prove -lr t/v1-golden-vectors.t
 prove -lr t/v1-signed-hmac.t
+prove -lr t/v1-signed-hmac-overlay.t
 prove -lr t/v1-signed-hmac-golden-vectors.t
 prove -lr t/auth-hmac-key.t t/cli-auth-hmac.t
 prove -lr t/profile-registry.t t/profile-adapter.t t/witness-api.t
@@ -307,6 +308,8 @@ FTP listing-shadow public poison-vector evidence is fixture/listing evidence
 only, not live FTP, RETR, SIZE, MDTM, auth, integrity, or publish behavior
 signed-hmac-goftp1 has an explicit per-event HMAC acceptance gate
 v1 keygen and v1 attest provide verifier-local signed-HMAC operation support without changing unsigned replay
+signed-HMAC cross-substrate overlay proves signed acceptance invariance across admitted read profiles with explicit verifier-local HMAC trust input
+signed-HMAC overlay is read-only witness evidence and does not authorize publish
 public key and trust fixture reports are advisory outside signed profiles
 text, static HTML, and static terminal witness surfaces are read-only displays
 local play --tui keyboard/mouse input is implemented as a non-consensus input/display layer over existing publish callbacks
@@ -329,6 +332,10 @@ DNS dynamic update or DNS record publishing is implemented
 production key lifecycle is complete
 publish authentication policy is complete
 publish auth is complete
+signed-HMAC overlay is production key lifecycle
+signed-HMAC overlay implements publish authentication
+HMAC attestations authorize publish or writer access
+public GOFTP-TRUST k1 rows authorize signed-HMAC selectors
 production publish signing or authorization is implemented
 final scoring/result events are part of GOFTP/1
 source art, Web, TUI, C, or asm-like surfaces own replay truth
