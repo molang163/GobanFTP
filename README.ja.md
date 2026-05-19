@@ -2,28 +2,47 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
-本訳は `README.md` に従う。release claim は英語 README を正とする。
+これは日本語の入口です。リリース上の正式な主張とプロトコル境界は、英語版
+`README.md` を基準にします。
 
-敵対的なディレクトリ listing から復元される囲碁の対局。
+GobanFTP は、囲碁の一局を「信頼できない listing（名前一覧）」から復元する
+`GOFTP/1` の検証用の仕組みです。普通の対局アプリでも、ゲームサーバでも
+ありません。着手はファイル名です。replay はファイル本文ではなく名前を読みます。
+盤面と SGF は replay から再生成される projection（再生成表示）や witness
+（検証用の証跡）です。Web と Terminal は、それらを表示するための面です。
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
 ![Version 1.000](https://img.shields.io/badge/version-1.000-333333)
 ![License perl_5](https://img.shields.io/badge/license-perl__5-blue)
-![Showcase gate](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
+![Showcase check](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
-着手はファイル名である。Replay はファイル内容を読まない。
-
-basename を変えれば対局は変わる。bytes、mtime、順序、sidecar、projection
-を変えても、対局は変わらない。
+ファイルの中身を変えても、mtime を変えても、listing order を変えても、
+補足情報である sidecar や projection を足しても、replay は変わりません。
+変わるのは basename、つまりディレクトリやファイルの最後の名前の部分です。
 
 Current line: `v1.0/package 1.000` release source.
 
-[三分間の証明](#three-minute-proof) · [Terminal play](#terminal-play) ·
-[Static specimen](#static-witness-specimen) · [The contract](#the-contract)
+[3分で確認する](#three-minute-proof) · [端末で打つ](#terminal-play) ·
+[静的標本ページ](#static-witness-specimen) · [契約](#the-contract)
 
-`v1.0/P14` が固定する規則は一つだけである。同じ accepted event names は、
-同じ replay を生む。source-art、terminal play、static witness HTML、
-fixture evidence はすべて surface であり、truth を追加しない。
+はじめに、この README で使う言葉を置きます。
+
+- `basename`: path の最後の名前です。GobanFTP では game descriptor directory
+  basename と event basename が protocol packet になります。
+- `listing`: サーバや保存先から見える名前一覧です。GobanFTP はこの一覧を読みます。
+- `replay`: 名前から状態を再生し、検証する処理です。
+- `surface`: 表示や入力の面です。見せることはできますが、replay の入力にはなりません。
+- `fixture`: テストや説明のために固定された標本データです。live service の
+  実行結果ではありません。
+- `witness`: replay から得た検証用の証跡です。root、hash、status、diagnostic
+  などを外から読める形にします。
+- `projection`: replay から再生成できる表示物です。盤面、SGF、oracle transcript
+  などです。表示はできますが、決定はしません。
+- `sidecar`: 補足情報を置く場所です。説明はできますが、replay の判断には
+  入りません。
+- `event_set_root`: accepted event basenames の集合を比較するための root です。
+
+以降の例は、この読み方を前提にしています。
 
 ```text
 Names are packets.
@@ -33,9 +52,10 @@ SGF is witness.
 FTP is the altar, not the authority.
 ```
 
-奇妙な表面は意図されたものだ。Replay contract は交渉しない。
+source-art、terminal play、static witness HTML、fixture の証跡は補助的な表示です。
+replay の決定には使いません。
 
-ローカルの proof を実行する:
+ローカルで入口を確認するなら、まずこれです。
 
 ```sh
 perl Makefile.PL
@@ -43,54 +63,56 @@ make test
 prove -lr t/showcase-demo.t
 ```
 
-## First Look
+## まず見るもの
 
-これらは同じ境界を見せる表示である。Replay を決めるのは event basenames
-だけである。
+四つの画像は同じ境界を別の角度から見せています。どれもアプリケーション状態ではなく、
+event basenames から復元された状態の見え方です。
 
-### Protocol Object, Not App State
+### 1. アプリ状態ではなく、プロトコルオブジェクト
 
-![GobanFTP protocol object: game descriptor directory, event basenames, sidecar, projections, and tmp residue.](docs/assets/readme-01-protocol-object.png)
+![GobanFTP のプロトコルオブジェクト。game descriptor directory、event basenames、sidecar、projections、tmp residue が見える。](docs/assets/readme-01-protocol-object.png)
 
-game descriptor basename と direct `events/` basenames が packets である。
-`sidecar/`、`projections/`、`tmp/` は replay を決められない。
+一局はディレクトリ名と `events/` 直下の名前で表されます。`sidecar/` は補足、
+`projections/` は表示、`tmp/` は公開途中の residue です。replay が読むのは
+game descriptor directory basename と direct `events/` basenames だけです。
 
-### Race Becomes Fork
+### 2. race は fork として見える
 
-![GobanFTP race shrine replay output showing a visible fork diagnostic.](docs/assets/readme-04-race-fork.png)
+![GobanFTP race shrine の replay 出力。visible fork diagnostic が表示されている。](docs/assets/readme-04-race-fork.png)
 
-listing order は勝者を選ばない。Default conservative replay は fork で止まる。
-回復するには explicit ack-assisted recovery が必要である。
+二つの着手が同じ親から同時に出たとき、listing order に勝者を選ばせません。
+GobanFTP は race を fork として見せます。既定では保守的に replay し、明示的な
+ack-assisted recovery がない限り fork で止まります。
 
-### Terminal Play Locks Before Publish
+### 3. terminal play は公開前に lock する
 
-![GobanFTP terminal play surface with keyboard and optional SGR mouse two-step confirmation.](docs/assets/readme-02-tui.png)
+![GobanFTP の terminal play。keyboard と optional SGR mouse による二段確認がある。](docs/assets/readme-02-tui.png)
 
-`play --tui` は replay と publish callbacks の上にある local input/display
-layer である。Keyboard と、利用可能な場合の SGR mouse は、まず candidate
-を選択する。二度目の Enter/click が publish を確認し、publishing 中は input
-が lock される。
+`play --tui` はローカル端末の input/display layer です。keyboard と、対応端末での
+optional SGR mouse は、まず candidate を選びます。二度目の Enter/click で
+publish を確認します。publishing 中は input を lock します。
 
-### Static Specimen, Not Hosted UI
+### 4. 静的標本であって hosted UI ではない
 
-![GobanFTP static witness specimen showing a visual 9x9 board and proof panel.](docs/assets/readme-03-witness-specimen.png)
+![GobanFTP の static witness specimen。9x9 board と検証パネルが表示されている。](docs/assets/readme-03-witness-specimen.png)
 
-static witness specimen は直接開くファイルである。script なし、server なし、
-hosted Web UI なし。supplied witness fields と projection text を表示するだけで、
-protocol truth は event basenames に残る。
+`examples/static/witness-specimen.html` は直接開く static specimen です。script も
+server も network fetch もありません。static HTML は hosted Web UI では
+ありません。supplied witness fields と projection text を見せるだけで、protocol
+上の事実は event basenames に残ります。
 
 <a id="the-contract"></a>
 
-## The Contract
+## 契約
 
-`GOFTP/1` の authoritative inputs は二つだけである。
+`GOFTP/1` が入力として採用するものは二つだけです。
 
 ```text
 game descriptor directory basename
 direct child basenames under events/
 ```
 
-Core replay が無視するもの:
+中核の replay は次を無視します。
 
 ```text
 entry type
@@ -107,60 +129,56 @@ projections/**
 tmp/**
 ```
 
-`RETR`、`SIZE`、`MDTM`、HTTP resource bodies、cache validators、server
-metadata は replay の一部ではない。すべての projection が削除されても対局は
-生き残る。
+`RETR`、`SIZE`、`MDTM`、HTTP resource bodies、cache validators、server metadata
+は replay の一部ではありません。すべての projection を消しても、一局は残ります。
 
-event id は file contents ではなく、canonical filename context から導かれる。
-hash input は game descriptor basename と、末尾の `.h-<event_id>` を除いた
-event basename を bind する。visible event id は lowercase base32hex SHA-256
-の先頭 16 characters である。
+event id は file contents からではなく、canonical filename context から作られます。
+hash input は game descriptor basename と、末尾の `.h-<event_id>` を除いた event
+basename を bind します。見えている event id は lowercase base32hex SHA-256 の
+先頭 16 characters です。
 
-一つの進行は hash chain である。既知の play は DAG である。Network race は
-FTP ordering に隠されず、visible fork になる。Conservative replay は、
-explicit ack-assisted path が要求されない限り fork で止まる。
+一つの進行は hash chain です。既知の play 全体は DAG です。network race は FTP
+ordering に隠れず、visible fork になります。保守的な replay は、明示的な
+ack-assisted path がない限り fork で止まります。
 
-Protocol names は退屈でよい。
+protocol names は退屈でよいものです。
 
 ```text
 [a-z0-9._-]
 ```
 
-secret を filename に入れてはならない。Filenames は public である。
+secret を filename に置いてはいけません。filenames は public です。
 
 <a id="three-minute-proof"></a>
 
-## 三分間の証明
+## 3分で確認する
 
-local showcase gate を実行する:
+showcase の確認を実行します。
 
 ```sh
 prove -lr t/showcase-demo.t
 ```
 
 これは clean shrine、race shrine、source-art oracle smoke、unsigned
-`local-goftp1` v1 witness、static inspection surfaces を検査する。これらの
-surfaces は read-only inspection output である。static HTML は hosted Web UI
-ではなく、`--surface terminal` は local `play --tui` input surface ではない。
-Local terminal play は `gobanftp play --tui` で利用できるが、replay と publish
-callbacks の上の input/display layer にとどまる。Keyboard と SGR mouse input
-はまず candidate を選び、二度目の Enter/click で publish を確認し、publishing
-開始後は input を lock する。
+`local-goftp1` v1 witness、静的な表示出力を確認します。static HTML は hosted Web UI ではありません。`--surface terminal`
+は local `play --tui` input/display layer ではありません。
+local terminal play は `gobanftp play --tui` で使えますが、replay と publish
+callbacks の上にある input/display layer にとどまります。
 
-shrine を開く:
+clean shrine を開きます。
 
 ```text
 examples/fixtures/ftp-shrine/
 ```
 
-そして実行する:
+実行します。
 
 ```sh
 GOBANFTP_ROOT=examples/fixtures/ftp-shrine \
 perl -Ilib script/gobanftp play --once g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
 ```
 
-Expected clean shape, selected lines:
+主要な形はこうなります。
 
 ```text
 gobanftp.play=ok
@@ -179,20 +197,20 @@ worldline.status=main
 1 . . . . . . . . .
 ```
 
-race fixture を開く:
+次に race fixture を開きます。
 
 ```text
 examples/fixtures/ftp-race-shrine/
 ```
 
-実行する:
+実行します。
 
 ```sh
 GOBANFTP_ROOT=examples/fixtures/ftp-race-shrine \
 perl -Ilib script/gobanftp replay g1.id-ftp-race-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
 ```
 
-process は `3` で終了する。Expected race shape, selected lines:
+この fixture では exit code `3` が期待値です。fork が見つかったことを表します。
 
 ```text
 diagnostic ... code=fork parent_id=hihat4p8r6gaeuts
@@ -204,35 +222,66 @@ legal_moves=3
 canonical_ids=hihat4p8r6gaeuts
 ```
 
-これが要点である。race は visible のまま残る。listing order に勝者を選ばせない。
+この fixture では、race が fork として残ります。listing order は勝者を選びません。
 
 <a id="terminal-play"></a>
 
-## Terminal Play
+## 端末で打つ
 
-`gobanftp play --tui` は、同じ replay と publish callbacks の上で動く local
-play である。rules、roots、diagnostics、event acceptance を所有しない。
+`gobanftp play --tui` は、同じ replay と publish callbacks の上で動くローカル端末
+の input/display layer です。rules、roots、diagnostics、event acceptance を所有しません。
+
+サンプルを一時ディレクトリにコピーして試せます。
+
+```sh
+tmp="$(mktemp -d)"
+src="$(find examples/fixtures/ftp-shrine -maxdepth 1 -type d -name 'g1.id-ftp-shrine*' | head -n 1)"
+cp -R -- "$src" "$tmp/game"
+perl -Ilib script/gobanftp play --tui "$tmp/game"
+```
+
+状態は明示的に進みます。
 
 ```text
 select -> confirm -> publishing_locked -> published
 ```
 
-Keyboard が fallback path である。SGR mouse は terminal が対応する場合に使う。
-成功した publish は session を終了する。
+操作は次の通りです。
+
+```text
+arrow keys / hjkl  cursor move
+Enter              select; same point again confirms publish
+mouse click        SGR mouse capable terminals only; same point again confirms
+P                  pass
+R                  resign
+r                  refresh
+q                  quit
+```
+
+keyboard が fallback path です。SGR mouse は terminal が対応する場合だけ使います。
+一度 publish に成功すると session は終了します。
 
 <a id="static-witness-specimen"></a>
 
-## Static Witness Specimen
+## 静的標本ページ
 
-`examples/static/witness-specimen.html` は direct-open specimen である。script、
-network fetch、server process、hosted UI behavior はない。
+直接開けます。
 
-visual board は raw projection text の横に置かれた projection skin である。
-testify はできない。display だけができる。
+```text
+examples/static/witness-specimen.html
+```
 
-## The Shrine
+これは hosted UI ではありません。direct-open の specimen です。script、network
+fetch、server process、hosted Web UI behavior はありません。
 
-browsable specimen は screenshot ではない。Protocol object である。
+ページが見せるのは、supplied witness fields、visual board skin、raw projection
+text、SGF excerpt です。visual board は projection skin です。検証の根拠にはならず、
+表示だけを行います。
+
+## Shrine Fixture（標本）
+
+`ftp-shrine` は、repository 内でそのまま読める fixture です。live server ではなく、
+説明とテストのための標本です。
 
 ```text
 g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim/
@@ -247,17 +296,17 @@ g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim/
   tmp/
 ```
 
-tree はこう読む:
+読み方はこの通りです。
 
 ```text
 g1.../         names the game
 events/       names the moves and acknowledgements
-sidecar/      may explain, but cannot decide
-projections/  may display, but cannot testify
-tmp/          is publishing residue
+sidecar/      説明はできるが、決定はしない
+projections/  表示はできるが、証明はしない
+tmp/          publish 中に残るもの
 ```
 
-最初に読むとよい files:
+最初に見る file と directory です。
 
 ```text
 examples/fixtures/ftp-shrine/README.md
@@ -268,68 +317,68 @@ examples/fixtures/ftp-shrine/g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daem
 oracle/goban.pl
 ```
 
-`projections/oracle/listing.txt` は reader-facing transcript である。
-`NLST events/` が event basenames を見せる一方で、`RETR`、`SIZE`、`MDTM`
-は GOFTP/1 replay の外に残ることを示す。
+`projections/oracle/listing.txt` は reader-facing transcript です。`NLST events/`
+が event basenames を露出し、`RETR`、`SIZE`、`MDTM` は `GOFTP/1` replay の外に
+残ることを見せます。
 
-SGF は witness であり、source of truth ではない。
+SGF は witness です。正本ではありません。
 
-## What Runs Now
+## いま動く範囲
 
-v1.0/package 1.000 で実装済み:
+v1.0/package 1.000 で実装済みの範囲です。
 
-- Consensus core: filename grammar、event ids、`event_set_root`、DAG replay、
+- 中核: filename grammar、event ids、`event_set_root`、DAG replay、
   `chinese-area-v1` rules、SGF、ack-assisted fork recovery。
-- Stores: local、FTP、WebDAV、read-only Git tree、read-only DNS record-file
+- 保存先: local、FTP、WebDAV、read-only Git tree、read-only DNS record-file
   admission。
-- Surfaces: `play --tui`、witness text/html/terminal、projections、direct-open
+- 表示と入力: `play --tui`、witness text/html/terminal、projections、direct-open
   static specimen、executable source-art oracle smoke。
-- Profiles: unsigned `GOFTP/1`、declared substrate profiles、explicit
-  signed-HMAC witness/preflight gates。
-- Evidence: showcase gate、attack fixtures、cross-substrate golden vectors、
+- profiles: unsigned `GOFTP/1`、declared substrate profiles、explicit
+  signed-HMAC witness/preflight checks。
+- 検証材料: showcase check、attack fixtures、cross-substrate golden vectors、
   profile publish fixtures。
 
-v1.0/package 1.000 の boundary lines:
+v1.0/package 1.000 の範囲は次の通りです。
 
-- `git-tree-goftp1` は runtime で read-only である。publish commands は
-  storage boundary で失敗する。
-- `dns-record-goftp1` は local または otherwise declared record file inputs
-  の read-only normalization である。DNS admission は live DNS を query
-  せず、AXFR を実行せず、DNSSEC を trust せず、provider APIs を呼ばず、
-  records を publish しない。
+- `git-tree-goftp1` は runtime で read-only です。publish commands は storage
+  boundary で失敗します。
+- `dns-record-goftp1` はローカル、または明示的に指定された record file input の
+  read-only normalization です。live DNS を問い合わせず、AXFR を実行せず、
+  DNSSEC を信頼根拠として扱わず、provider APIs を呼ばず、records を publish しません。
 - TTL、answer order、cache age、DNSSEC status、authoritative server identity、
-  provider metadata は consensus の外に残る。
-- Static HTML witness output は hosted Web UI ではなく、`--surface terminal`
-  は local `play --tui` input surface ではない。
-- Verifier-local HMAC key files、explicit verifier-supplied lifecycle status、
+  provider metadata は consensus の外です。
+- static HTML の witness 出力は hosted Web UI ではありません。`--surface terminal`
+  は local `play --tui` input/display layer ではありません。
+- verifier-local HMAC key files、explicit verifier-supplied lifecycle status、
   fixture publish-token/preflight semantics は production key lifecycle、
-  production auth、real writer authorization ではない。
-- Final scoring/result events は `GOFTP/1` の外に残る。
+  production auth、real writer authorization ではありません。
+- final scoring/result events は `GOFTP/1` の外です。
 
-FTP listing-shadow public poison-vector coverage は fixture/listing evidence
-だけである。`RETR`、`SIZE`、`MDTM`、live FTP auth、live FTP integrity、
-production FTP deployment safety を claim しない。`ftp-goftp1` tmp+rename
-publish path は別に declared され、mock FTP tests と optional disposable
-live smoke coverage で扱われる。
+FTP listing-shadow public poison-vector coverage は fixture/listing 上の検証材料だけです。
+`RETR`、`SIZE`、`MDTM`、live FTP auth、live FTP integrity、production FTP deployment
+safety は扱いません。`ftp-goftp1` tmp+rename publish path は別に declared
+され、mock FTP tests と optional disposable live smoke coverage で扱われます。
 
-この release の signed/auth material は verifier-local fixture/preflight
-evidence である。production writer authorization でも production key
-lifecycle でもない。
+この release の signed-HMAC material は verifier-local fixture/preflight の検証材料
+です。production writer authorization でも production key lifecycle でもありません。
+`signed-hmac-goftp1` は明示的に選んだ profile の検査であり、unsigned `GOFTP/1`
+replay を置き換えるものではありません。
 
-Unsigned `GOFTP/1` は有効なまま変わらない。signed/auth profile は、その
-explicit profile が選ばれた場合にだけ events を reject できる。sidecar
-signatures は unsigned replay を変えない。
+Unsigned `GOFTP/1` は有効なままです。signed/auth profile は、その explicit profile
+が選ばれた場合だけ events を reject できます。sidecar signatures は unsigned replay
+を変えません。
 
-## Source Art Boundary
+## Source Art の境界
 
-`oracle/goban.pl` は Go board のように見えてよい。それでも実行できなければならない。
+`oracle/goban.pl` は囲碁盤のように見えます。それでも実行できる Perl であり、
+テスト対象 module を呼び出す wrapper です。
 
 ```sh
 perl -c oracle/goban.pl
 perl oracle/goban.pl --smoke
 ```
 
-Expected output includes:
+期待される出力には次が含まれます。
 
 ```text
 oracle/goban.pl syntax OK
@@ -337,12 +386,14 @@ gobanftp.oracle=ok
 rules.move=ok
 ```
 
-source art は tested modules に dispatch してよい。ただし protocol truth を
-所有してはならない。filenames、event ids、DAG replay、rule legality、storage
-behavior、SGF、diagnostics は drawing の外に残る。Whitespace、comments、POD、
-C hooks、asm-like surface は ritual surface であり、consensus input ではない。
+source art は表示用の wrapper です。filename grammar、event id、DAG replay、
+rule legality、storage behavior、SGF、diagnostics は通常の module 側にあります。
 
-## Run It
+```text
+source art / C / asm / Web UI / TUI -> cannot change truth
+```
+
+## 動かす
 
 Runtime requirements:
 
@@ -367,7 +418,7 @@ Inline
 Inline::C
 ```
 
-Normal gate:
+通常の確認:
 
 ```sh
 perl Makefile.PL
@@ -375,13 +426,13 @@ make
 make test
 ```
 
-Full local prove run:
+ローカルで全体を確認:
 
 ```sh
 prove -lr t
 ```
 
-disposable game を作る:
+一時的な game を作ります。
 
 ```sh
 tmp="$(mktemp -d)"
@@ -393,19 +444,19 @@ perl -Ilib script/gobanftp publish-move g1.id-demo.s9.r-chinese-area-v1.k7500.pb
 perl -Ilib script/gobanftp play --once g1.id-demo.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob
 ```
 
-authoritative packets を inspect する:
+採用される packet を見ます。
 
 ```sh
 find "$GOBANFTP_ROOT" -path '*/events/*' -exec basename {} \; | sort
 ```
 
-その names が game である。file contents ではない。
+この名前群が一局です。file contents ではありません。
 
-## Stores
+## 保存先
 
-Local が default store である。FTP、read-only Git tree、read-only DNS
-record-file admission、WebDAV は、event file contents、blob bytes、resource
-bodies、DNS transport metadata を読まずに同じ listing-first boundary で動く。
+既定の保存先は local filesystem です。FTP、read-only Git tree、read-only DNS
+record-file admission、WebDAV は、event file contents、blob bytes、resource bodies、
+DNS transport metadata を読まずに、同じ「名前一覧を先に読む」境界へ正規化されます。
 
 FTP mode:
 
@@ -451,60 +502,60 @@ GOBANFTP_DNS_RECORD_FILE
 GOBANFTP_DNS_OWNER_SUFFIX
 ```
 
-Git tree replay は `<treeish>:<game>/events` から direct child names を読む。
-blob bytes、commit metadata、refs、branches、tags、sidecars、projections、
-tmp entries は無視する。Git tree mode は今のところ read-only であり、publish
-commands は storage boundary で失敗する。
+Git tree replay は `<treeish>:<game>/events` から direct child names を読みます。
+blob bytes、commit metadata、refs、branches、tags、sidecars、projections、tmp
+entries は無視します。Git tree mode は read-only であり、publish commands は
+storage boundary で失敗します。
 
 DNS record admission は、runtime で `GOBANFTP_DNS_RECORD_FILE` として与えられた
-local または otherwise declared record-file presentation だけを読む。これは
-live DNS resolver、AXFR client、DNSSEC validator、provider API client、
-dynamic update client、publishing backend ではない。TTLs、record order、
-answer order、cache age、DNSSEC status、authoritative server identity、
-provider metadata は `event_set_root` の前に無視される。
+ローカル、または明示的に指定された record-file presentation だけを読みます。これは
+live DNS resolver、AXFR client、DNSSEC validator、provider API client、dynamic
+update client、publishing backend ではありません。TTLs、record order、answer
+order、cache age、DNSSEC status、authoritative server identity、provider metadata
+は `event_set_root` の前に無視されます。
 
 WebDAV replay は `PROPFIND Depth: 1` で `events/` を読み、direct href basenames
-だけを使う。Publishing は `tmp/` に zero-byte temporary resource を書き、
-`events/<event-name>` へ move し、fresh `PROPFIND` で visibility を確認する。
+だけを使います。publishing は `tmp/` に zero-byte temporary resource を書き、
+`events/<event-name>` へ move し、fresh `PROPFIND` で visibility を確認します。
 
-`ftp-goftp1` では、default publishing は `tmp/` の下に zero-byte temporary
-entry を upload し、`RNTO` で `events/<event-name>` へ rename し、listing で
-visibility を確認する。`GOBANFTP_FTP_PUBLISH_MODE=mkdir` は directory-shaped
-alternative として残る。
+`ftp-goftp1` の default publishing は、`tmp/` の下に zero-byte temporary entry を
+upload し、`RNTO` で `events/<event-name>` へ rename し、listing で visibility を
+確認します。`GOBANFTP_FTP_PUBLISH_MODE=mkdir` は directory-shaped alternative として
+残ります。
 
-Projection writes は今のところ local-only である。Nonlocal `project` と
-`sgf --write` は reject される。plain `sgf`、`verify`、`replay`、`play`、
-`watch` は nonlocal listings を読める。
+Projection writes は local-only です。nonlocal `project` と `sgf --write` は拒否
+されます。plain `sgf`、`verify`、`replay`、`play`、`watch` は nonlocal listings
+を読めます。
 
-## Proof Gates
+## Release Checks
 
-Main gates:
+主な確認コマンド:
 
 ```sh
 prove -lr t/showcase-demo.t
 prove -lr t
 ```
 
-current P14 release-gate evidence は `docs/P14_RELEASE_GATE.md` に記録されている。
-これは final release-source evidence を記録し、external artifact/tag record plan
-を指す。final tarball hash は source tree の外に属する。
+現在の P14 release 記録は `docs/P14_RELEASE_GATE.md` にあります。final release-source
+の確認内容を記録し、external artifact/tag record plan を指します。final tarball
+hash は source tree の外に置かれます。
 
 final artifact identity、version decision、tag preconditions は
-`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` で追跡される。
+`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` で追跡されます。
 
-Optional disposable live FTP smoke:
+optional disposable live FTP smoke:
 
 ```sh
 script/live-ftp-smoke
 ```
 
-## v1.0/P14 Shape
+## v1.0/P14 の形
 
-GobanFTP v1.0 は game server ではない。untrusted enumerable substrates から
-囲碁の対局を立ち上げる protocol-abuse proof machine である。
+GobanFTP v1.0 は game server ではありません。複数の「名前を列挙できる保存先」から、
+同じ event basenames を使って一局を replay する Perl 実装です。
 
-release proof は profile、adapter、attack、witness、auth、display gates の
-一致を要求する。
+release source の確認では、profile、adapter、attack fixture、witness 出力、
+signed-HMAC profile、表示出力を次の項目で比較します。
 
 ```text
 same event basenames
@@ -516,7 +567,7 @@ same SGF
 same diagnostic class for the same logical failure where observable
 ```
 
-Required invariants:
+必要な不変条件:
 
 ```text
 modify mtime       -> unchanged
@@ -528,12 +579,12 @@ bad signed profile -> rejected by that signed profile
 source art / C / asm / Web UI / TUI -> cannot change truth
 ```
 
-`v0.1` は GOFTP/1 consensus boundary を固定した。`v1.0/P14` はその境界を
-package 1.000 の cross-substrate proof source にする。
+`v0.1` は `GOFTP/1` consensus boundary を固定しました。`v1.0/P14` はその境界を
+package 1.000 で、複数の substrate にまたがる検証の出発点にします。
 
-## Documentation
+## 資料
 
-Fast paths:
+よく使う入口です。
 
 ```text
 Showcase:     docs/SHOWCASE.md
@@ -542,7 +593,7 @@ Profiles:     docs/PROFILES.md
 Grammar:      docs/GRAMMAR.md
 Attacks:      docs/ATTACKS.md
 v1.0 DoD:     docs/V1_DOD.md
-P14 gate:     docs/P14_RELEASE_GATE.md
+P14 release:  docs/P14_RELEASE_GATE.md
 P14 tag plan: docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md
 Algorithms:   docs/ALGORITHMS.md
 Rules:        docs/RULES.md
@@ -554,14 +605,14 @@ Roadmap:      docs/ROADMAP.md
 Decisions:    docs/DECISIONS.md
 ```
 
-Repository map:
+repository map:
 
 ```text
 .
 |-- README.md              English README
 |-- README.zh-CN.md        Simplified Chinese README
 |-- README.ja.md           this text
-|-- docs/                  protocol, roadmap, decisions, gates
+|-- docs/                  protocol, roadmap, decisions, release records
 |-- oracle/goban.pl        executable source-art smoke wrapper
 |-- lib/GobanFTP/          Perl implementation modules
 |-- script/gobanftp        CLI entry point
@@ -569,7 +620,7 @@ Repository map:
 `-- t/                     tests and attack galleries
 ```
 
-protocol behavior を変える前に読むこと:
+プロトコル挙動を変える前に読むもの:
 
 1. `docs/PROTOCOL.md`
 2. `docs/ARCHITECTURE.md`
@@ -578,4 +629,4 @@ protocol behavior を変える前に読むこと:
 5. `docs/ROADMAP.md`
 6. `docs/DECISIONS.md`
 
-別の protocol を発明する前に、既存の protocol を締める。
+新しい profile や rule を追加する前に、既存の protocol 文書を確認してください。
