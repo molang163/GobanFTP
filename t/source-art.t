@@ -14,24 +14,40 @@ use GobanFTP::Oracle::Smoke qw(smoke_report);
 my $root = "$FindBin::Bin/..";
 my $script = "$root/oracle/goban.pl";
 my $smoke_module = "$root/lib/GobanFTP/Oracle/Smoke.pm";
+my $source_art_doc = "$root/docs/SOURCE_ART.md";
 
 ok -f $script, 'source-art oracle exists';
+ok -f $source_art_doc, 'source-art boundary documentation exists';
 
 my $source = _slurp($script);
+my $doc = _slurp($source_art_doc);
+unlike $source, qr/[^\x00-\x7F]/, 'source-art wrapper stays ASCII';
+is_deeply [ _source_motifs($source) ], [qw(altar goban arch-gate)],
+    'source-art wrapper carries the altar, goban, and arch-gate motifs';
 like $source, qr/GobanFTP::Oracle::Smoke/, 'source-art wrapper delegates smoke scenario to a module';
-like $source, qr/^# arch-gate: non-consensus source-art threshold; not a protocol input\.$/m,
+like $source, qr/arch-gate\s*[-:]\s*(?:a\s+)?(?:non-consensus|easter egg).*?(?:not a protocol input|source-art only)/s,
     'source-art wrapper carries hidden arch-gate non-consensus marker';
-like $source, qr/^#\s+\/\\\n#\s+\/__\\\n#\s+\/_\/\\_\\$/m,
+like $source, qr/^(?:#\s*)?\s*\/\\\n(?:#\s*)?\s*\/__\\\n(?:#\s*)?\s*\/_\/\\_\\$/m,
     'source-art wrapper carries ASCII arch-gate threshold';
 unlike $source, qr/Arch Linux|archlinux|official|endorse|wordmark/i,
     'source-art wrapper does not claim Arch Linux branding or affiliation';
 my @gobanftp_uses = $source =~ /^\s*use\s+(GobanFTP::[A-Za-z0-9_:]+)\b/mg;
 is_deeply \@gobanftp_uses, ['GobanFTP::Oracle::Smoke'],
     'source-art wrapper only imports the smoke module';
+like $source, qr/^\s*use\s+GobanFTP::Oracle::Smoke\s+qw\(run_smoke\);$/m,
+    'source-art wrapper imports only the smoke runner';
 unlike $source, qr/^\s*use\s+GobanFTP::(?:DAG|EventID|Filename::Grammar|GameSpec|Projection|Replay|Rules|SGF|Store)\b/m,
     'source-art wrapper does not import protocol, replay, rules, SGF, projection, or store modules directly';
 unlike $source, qr/\b(?:event_id_for|parse_event|build\(|apply_move|GOFTP-EVENT|m1\.|a1\.|g1\.id-)\b/,
     'source-art wrapper does not embed protocol or rule implementation traces';
+
+like $doc, qr/`oracle\/goban\.pl` is currently the strong altar\/goban source wrapper\./,
+    'source-art documentation names the current oracle as the strong altar/goban wrapper';
+like $doc, qr/does not\s+make a release-status claim for source art, P14, or v1\.0\./,
+    'source-art documentation keeps release-status claims out of the wrapper boundary';
+unlike $doc,
+    qr/\b(?:source[- ]art|P14|v1\.0)\b[^\n.]{0,80}\bcomplete\b|\bcomplete\b[^\n.]{0,80}\b(?:source[- ]art|P14|v1\.0)\b/i,
+    'source-art documentation does not claim source art, P14, or v1.0 complete';
 
 my $smoke_source = _slurp($smoke_module);
 like $smoke_source, qr/GobanFTP::Witness/, 'smoke module delegates replay truth to Witness';
@@ -80,6 +96,10 @@ like $smoke_out, qr/^diagnostic_count=0$/m, 'smoke reports witness diagnostics c
 like $smoke_out, qr/^inline_c=(?:missing|skip|ok value=361)$/m, 'Inline::C smoke is optional';
 unlike $smoke_out, qr/arch-gate|\/__\\|\/_\/\\_\\/,
     'arch-gate source art is not emitted as witness truth';
+is_deeply [ grep { !/^[A-Za-z0-9_.]+=/ } grep { length } split /\n/, $smoke_out ], [],
+    'smoke output contains witness-style field lines, not decoration';
+unlike $smoke_out, qr/GOFTP\/1 ORACLE|source-art|wrapper|arch-gate|\/__\\|\/_\/\\_\\|\+--------\+/,
+    'decorative source-art motifs are not emitted as witness truth';
 
 my @module_report = smoke_report(visual_board => _alternate_visual_board());
 like join("\n", @module_report), qr/^gobanftp\.oracle=ok$/m,
@@ -103,7 +123,7 @@ my @truth_fields = qw(
 );
 for my $field (@truth_fields) {
     is _field(\@module_report, $field), _field(\@wrapper_report, $field),
-        "visual glyphs do not change $field";
+        "alternate visual glyphs do not change $field";
 }
 
 my @no_inline_report;
@@ -165,6 +185,23 @@ sub _alternate_visual_board {
         [qw(+ . . . . . . . +)],
         [qw(+ + + + + + + + +)],
     ];
+}
+
+sub _source_motifs {
+    my ($source) = @_;
+
+    my @motifs;
+    push @motifs, 'altar'
+        if $source =~ /^# \| GOFTP\/1 ORACLE\s+\|$/m
+        && $source =~ /^# \| file bytes are shadow :: this wrapper only lights the smoke test\s+\|$/m;
+    push @motifs, 'goban'
+        if $source =~ /^\s*my\s+\@ORACLE_GOBAN\s*=\s*\(/m
+        && $source =~ /^#\s+a\s+b\s+c\s+d\s+e\s+f\s+g\s+h\s+i\s*$/m;
+    push @motifs, 'arch-gate'
+        if $source =~ /arch-gate\s*[-:]\s*(?:a\s+)?(?:non-consensus|easter egg).*?(?:not a protocol input|source-art only)/s
+        && $source =~ /^(?:#\s*)?\s*\/\\\n(?:#\s*)?\s*\/__\\\n(?:#\s*)?\s*\/_\/\\_\\$/m;
+
+    return @motifs;
 }
 
 sub _executable_board_from {

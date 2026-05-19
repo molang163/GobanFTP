@@ -64,6 +64,18 @@ Core modules must remain easier to maintain than to admire. If a picture makes a
 function harder to audit, move the picture to `oracle/`, a fixture, or a
 projection.
 
+## Current Wrapper Boundary
+
+`oracle/goban.pl` is currently the strong altar/goban source wrapper. Its banner
+is the altar surface, its executable 9x9 array is the goban surface, and its
+small source-only arch-gate is a threshold marker. The wrapper delegates smoke
+truth to `GobanFTP::Oracle::Smoke`; it must not parse event names, compute event
+ids, choose replay, decide rules, hash SGF, normalize storage, or turn visual
+glyphs into witness fields.
+
+This boundary records the current source-art role of the wrapper. It does not
+make a release-status claim for source art, P14, or v1.0.
+
 ## Arch-Gate Easter Egg
 
 The arch-gate easter egg is allowed as a small hidden motif, not as branding.
@@ -102,7 +114,7 @@ in the shrine. It should not copy the official Arch Linux logo or wordmark, and
 it should not suggest that GobanFTP is affiliated with, endorsed by, or packaged
 by the Arch Linux project.
 
-The current placement is in `oracle/goban.pl` as a comment-only
+The current placement is in `oracle/goban.pl` as a source-only
 `arch-gate` threshold beside the smoke wrapper. `t/source-art.t` asserts that
 the motif exists, stays ASCII, the wrapper contains no obvious Arch Linux,
 official, or endorsement wording, and the motif is not emitted as witness truth.
