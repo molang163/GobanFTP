@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Perl ${{ matrix.perl }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        perl:
+          - '5.34'
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      GOBANFTP_RULES_DISABLE_C: '1'
+      GOBANFTP_RULES_ENGINE: perl
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
+
+      - name: Show Perl configuration
+        run: |
+          perl -V:version
+          perl -V:osname
+          perl -MConfig -e 'print "make=$Config{make}\n"'
+
+      - name: Install declared dependencies
+        run: cpanm --notest --installdeps .
+
+      - name: Configure
+        run: perl Makefile.PL
+
+      - name: Build
+        run: |
+          make_cmd="$(perl -MConfig -e 'print $Config{make}')"
+          "$make_cmd"
+
+      - name: Run MakeMaker test suite
+        run: |
+          make_cmd="$(perl -MConfig -e 'print $Config{make}')"
+          "$make_cmd" test
+
+      - name: Run test suite
+        run: prove -lr t
+
+      - name: Check whitespace
+        run: git diff --check
