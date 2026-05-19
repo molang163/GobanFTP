@@ -81,6 +81,7 @@ sub _secret_env_values {
         next if $name !~ /(?:PASSWORD|PASSWD|TOKEN|SECRET|KEY)/;
         my $value = $ENV{$name};
         next if !defined($value) || $value eq '';
+        next if length($value) < 8 && $value =~ /\A[A-Za-z0-9_]+\z/;
         push @values, $value if !$seen{$value}++;
     }
 

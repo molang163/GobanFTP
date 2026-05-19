@@ -271,6 +271,8 @@ subtest 'validation failures and forks use stable exit codes' => sub {
 };
 
 subtest 'usage storage and script help are stable' => sub {
+    local $ENV{GOBANFTP_TEST_SECRET} = 'root';
+
     my ($no_arg_exit, $no_arg_stdout, $no_arg_stderr) = _run_cli();
     is $no_arg_exit, 1, 'missing command exits usage';
     is $no_arg_stdout, '', 'missing command does not write usage to stdout';

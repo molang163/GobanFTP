@@ -400,7 +400,7 @@ subtest 'CLI storage errors redact FTP messages that echo credentials' => sub {
     $ENV{GOBANFTP_FTP_HOST} = 'mock.example';
     $ENV{GOBANFTP_FTP_USER} = 'alice';
     $ENV{GOBANFTP_FTP_PASSWORD} = 'env-secret';
-    $ENV{API_TOKEN} = 'abc';
+    $ENV{API_TOKEN} = 'abc12345';
     $ENV{GOBANFTP_FTP_CLASS} = 'LeakyFTP';
 
     my $game = 'g1.id-redact.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob';
@@ -409,7 +409,7 @@ subtest 'CLI storage errors redact FTP messages that echo credentials' => sub {
     is $exit, 4, 'login failure exits storage failure';
     is $stdout, '', 'storage failure writes no stdout';
     like $stderr, qr/^storage: FTP login failed:/m, 'storage failure is reported';
-    unlike $stderr, qr/env-secret|bearer-secret|cookie-secret|aws-secret|private-secret|pass-secret|\babc\b/,
+    unlike $stderr, qr/env-secret|bearer-secret|cookie-secret|aws-secret|private-secret|pass-secret|\babc12345\b/,
         'storage error is redacted before reaching stderr';
     like $stderr, qr/\[REDACTED\]/, 'redaction marker is visible';
 };
@@ -670,7 +670,7 @@ sub message {
     return join ' ',
         '530 PASS env-secret',
         'bare env-secret rejected',
-        'short abc rejected',
+        'token abc12345 rejected',
         'Authorization: Bearer bearer-secret',
         'Cookie: session=cookie-secret',
         'AWS_SECRET_ACCESS_KEY=aws-secret',
