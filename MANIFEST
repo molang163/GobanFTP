@@ -293,6 +293,7 @@ t/create-game.t
 t/dag.t
 t/dependency-sync.t
 t/diagnostics-contract.t
+t/dns-cli-parity.t
 t/e2e-ftp-mock.t
 t/e2e-local.t
 t/event-id.t
@@ -565,14 +566,13 @@ t/ruleset-seal.t
 t/sgf.t
 t/showcase-demo.t
 t/source-art.t
-t/store-dns-record.t
 t/store-contract.t
+t/store-dns-record.t
 t/store-ftp-mock.t
 t/store-ftp.t
 t/store-git-tree.t
 t/store-local.t
 t/store-webdav-mock.t
-t/dns-cli-parity.t
 t/surface-witness-view.t
 t/v1-attack-fixtures.t
 t/v1-cli-compare.t
