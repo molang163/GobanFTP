@@ -25,10 +25,11 @@ cover ordinary rule, DAG, ACK, terminal, malformed, and ack-assisted fork
 behavior. Event-id collision is now covered as a synthetic DAG-boundary vector,
 not as an ordinary basename collision claim. Public non-consensus poison
 vectors now bind baseline/poison witness pairs to core/local bad-mtime,
-bad-payload, bad-list-order, poisoned-sidecar, projection-poison, tmp-poison,
-WebDAV metadata-poison, WebDAV href-traversal, DNS owner-poison, and Git-tree
-path/metadata-poison fixtures, plus the FTP listing-shadow cross-substrate
-fixture, including real fixture `input_names`, embedded evidence artifacts when
+bad-payload, bad-list-order, bad-signature, poisoned-sidecar,
+projection-poison, tmp-poison, WebDAV metadata-poison, WebDAV href-traversal,
+DNS owner-poison, and Git-tree path/metadata-poison fixtures, plus the FTP
+listing-shadow cross-substrate fixture, including real fixture `input_names`,
+embedded evidence artifacts when
 poison lives outside the listing, and unchanged event-set preimage, root,
 replay, board, projection, and SGF truth. The signed-HMAC public-trust bridge
 is now represented in public signed/auth golden vectors as rejected `k1.`
@@ -331,7 +332,7 @@ Tasks:
   entries, and fork races
 - add metadata-spoof fixtures for reordered listings, forged timestamps, changed
   sizes, changed file bytes, changed entry types, stale caches, stale sidecars,
-  and stale projections
+  stale sidecar signatures, and stale projections
 - add profile-level witness attack fixtures for implemented substrates, starting
   with WebDAV metadata, body, locks, shadow collections, recursive hrefs,
   duplicates, and percent-decoding hazards

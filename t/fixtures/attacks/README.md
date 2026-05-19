@@ -43,8 +43,9 @@ specimen. `GOFTP/1` attack fixtures remain unsigned; sidecar signatures, if a
 fixture ever carries one, are ignored shadow input unless a separate signed
 profile says otherwise.
 
-The `bad-mtime`, `bad-payload`, `bad-list-order`, `poisoned-sidecar`,
-`projection-poison`, and `tmp-poison` specimens are also promoted into
+The `bad-mtime`, `bad-payload`, `bad-list-order`, `bad-signature`,
+`poisoned-sidecar`, `projection-poison`, and `tmp-poison` specimens are also
+promoted into
 `t/fixtures/vectors/v1-non-consensus-poison.jsonl` as public core/local
 baseline/poison golden vectors. Rows whose poison is not visible in
 `listing.names` bind the real ignored fixture files through
@@ -57,6 +58,7 @@ The v1 gate requires the gallery to contain at least:
 bad-mtime
 bad-payload
 bad-list-order
+bad-signature
 duplicate-event
 bad-event-id
 future-version

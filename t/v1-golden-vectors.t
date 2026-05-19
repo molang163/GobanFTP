@@ -245,6 +245,7 @@ for my $case (qw(
     core-bad-mtime-public-vector
     core-bad-payload-public-vector
     core-bad-list-order-public-vector
+    core-bad-signature-public-vector
     core-poisoned-sidecar-public-vector
     core-projection-poison-public-vector
     core-tmp-poison-public-vector

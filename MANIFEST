@@ -293,6 +293,7 @@ t/create-game.t
 t/dag.t
 t/dependency-sync.t
 t/diagnostics-contract.t
+t/dist-manifest-hygiene.t
 t/dns-cli-parity.t
 t/e2e-ftp-mock.t
 t/e2e-local.t
@@ -317,6 +318,10 @@ t/fixtures/attacks/bad-payload/event-bytes.txt
 t/fixtures/attacks/bad-payload/expected.verdict
 t/fixtures/attacks/bad-payload/game.name
 t/fixtures/attacks/bad-payload/listing.names
+t/fixtures/attacks/bad-signature/expected.verdict
+t/fixtures/attacks/bad-signature/game.name
+t/fixtures/attacks/bad-signature/listing.names
+t/fixtures/attacks/bad-signature/sidecar/khjclcui7pejbv3m.sig
 t/fixtures/attacks/dangling-ack/expected.verdict
 t/fixtures/attacks/dangling-ack/game.name
 t/fixtures/attacks/dangling-ack/listing.names

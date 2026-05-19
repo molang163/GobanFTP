@@ -3,6 +3,14 @@ Revision history for GobanFTP
 1.000_001  Not yet released
   - Began v1.0/P14 development after skipping the public v0.2 / package 0.002
     release candidate.
+  - Added a core `bad-signature` attack fixture and public non-consensus poison
+    vector proving unsigned `GOFTP/1` ignores invalid sidecar signatures while
+    preserving the same root, replay, board projection, and SGF truth.
+  - Added a dist manifest hygiene gate proving local restore memory, build
+    products, `MYMETA.*`, and stale distribution artifacts stay out of the
+    source manifest and release archive checks.
+  - Clarified that `unicode-name`, `path-traversal-name`, and `huge-directory`
+    are deferred boundary attack topics, not current v1.0 public vector claims.
   - Promoted `git-tree-goftp1` to read-only runtime admission through
     `GOBANFTP_STORE=git-tree`, enumerating direct Git tree children under
     `<game>/events` while keeping blob bytes, commit metadata, sidecars,

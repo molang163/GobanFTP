@@ -355,10 +355,11 @@ a synthetic DAG-boundary vector with no `event_set_root`, board, SGF, or replay
 status claim. The current non-consensus-poison vectors bind the WebDAV
 metadata-poison, WebDAV href-traversal, DNS owner-poison, Git-tree
 path/metadata-poison, FTP listing-shadow, and core/local bad-mtime,
-bad-payload, bad-list-order, poisoned-sidecar, projection-poison, and
-tmp-poison fixtures to real baseline/poison `input_names`. They prove mtime,
-file bytes, listing order, sidecar, projection, tmp, resource-body row fields,
-metadata, recursive hrefs, wrong-game hrefs, duplicate hrefs,
+bad-payload, bad-list-order, bad-signature, poisoned-sidecar,
+projection-poison, and tmp-poison fixtures to real baseline/poison
+`input_names`. They prove mtime, file bytes, listing order, sidecar signatures,
+sidecar, projection, tmp, resource-body row fields, metadata, recursive hrefs,
+wrong-game hrefs, duplicate hrefs,
 percent-encoding hazards, raw and percent-encoded WebDAV dot segments, encoded
 slash/backslash href rows, wrong or missing DNS owners, DNS TTL/order rows,
 non-TXT DNS rows, Git commit/ref/object/path metadata, and FTP sidecar, tmp,

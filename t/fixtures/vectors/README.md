@@ -38,18 +38,20 @@ real fixture listings. Evidence artifacts name ignored fixture files such as
 mtime tables, event bytes, sidecar JSON, projection files, or temporary publish
 debris, and embed their exact text when the poison is deliberately outside the
 listing names. Current rows promote
-core/local bad-mtime, bad-payload, bad-list-order, poisoned-sidecar,
-projection-poison, and tmp-poison specimens, plus the WebDAV metadata-poison,
-WebDAV href-traversal, DNS owner-poison, and Git-tree path/metadata-poison
-fixtures, and the FTP listing-shadow cross-substrate fixture. They prove
+core/local bad-mtime, bad-payload, bad-list-order, bad-signature,
+poisoned-sidecar, projection-poison, and tmp-poison specimens, plus the WebDAV
+metadata-poison, WebDAV href-traversal, DNS owner-poison, and Git-tree
+path/metadata-poison fixtures, and the FTP listing-shadow cross-substrate
+fixture. They prove
 accepted events, event-set preimage, event-set root, canonical ids, board hash,
 projection text, and SGF hashes stay identical when only ignored evidence
 changes. These rows prove the evidence stays outside truth; they do not make
-content, mtime, sidecar, projection, tmp, WebDAV dot segments, encoded
-slash/backslash href rows, TTL/order rows, Git commit/ref/object metadata, FTP
-sidecar/tmp/projection/recursive/list-order rows, or transport metadata replay
-inputs. DNS owner labels are used only for current-game record scoping, not as
-replay truth. These vectors do not claim Git publish or remote fetch support,
+content, mtime, sidecar, sidecar signature, projection, tmp, WebDAV dot
+segments, encoded slash/backslash href rows, TTL/order rows,
+Git commit/ref/object metadata, FTP sidecar/tmp/projection/recursive/list-order
+rows, or transport metadata replay inputs. DNS owner labels are used only for
+current-game record scoping, not as replay truth. These vectors do not claim
+Git publish or remote fetch support,
 live DNS, AXFR, DNSSEC trust, provider APIs, dynamic update, DNS record
 publishing, live FTP, or FTP publish behavior.
 

@@ -12,6 +12,7 @@ my @required_attacks = qw(
     bad-mtime
     bad-payload
     bad-list-order
+    bad-signature
     duplicate-event
     bad-event-id
     future-version

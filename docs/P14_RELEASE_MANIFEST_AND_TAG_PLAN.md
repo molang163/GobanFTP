@@ -188,6 +188,12 @@ non-fixture *.bak
 .gobanftp-tmp-*
 ```
 
+`META.json` and `META.yml` are excluded from the source `MANIFEST` and source
+commit when they are local generated residue. `make dist` may generate fresh
+CPAN metadata inside the distribution archive from `Makefile.PL`; that generated
+archive metadata is allowed. `MYMETA.*` remains local configure residue and
+must not appear in the archive.
+
 ## Development Freeze Matrix
 
 Run from a fresh clean checkout of the current `1.000_001` development
@@ -233,6 +239,13 @@ tar -tzf "$dist" | rg 't/fixtures/vectors/v1-non-consensus-poison\.jsonl'
 tar -tzf "$dist" | rg 't/fixtures/v1/cross-substrate/minimal/ftp-goftp1/listing\.names'
 tar -tzf "$dist" | rg 't/fixtures/attacks/tmp-poison/tmp/pending\.part'
 tar -xOzf "$dist" --wildcards '*/t/fixtures/vectors/v1-non-consensus-poison.jsonl' | rg 'ftp-listing-shadow-poison-public-vector'
+tar -xOzf "$dist" --wildcards '*/t/fixtures/vectors/v1-non-consensus-poison.jsonl' | rg 'core-bad-signature-public-vector'
+! tar -tzf "$dist" | rg '^[^/]+/docs/SESSION_RESTORE\.md$'
+! tar -tzf "$dist" | rg '^[^/]+/(?:blib|_Inline)(?:/|$)'
+! tar -tzf "$dist" | rg '^[^/]+/MYMETA\.(?:json|yml)$'
+! tar -tzf "$dist" | rg '^[^/]+/pm_to_blib$'
+! tar -tzf "$dist" | rg '^[^/]+/GobanFTP-[0-9][^/]*\.tar\.gz$'
+! tar -tzf "$dist" | rg '^[^/]+/GobanFTP-[0-9][^/]*/'
 
 GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make disttest
 make distcheck

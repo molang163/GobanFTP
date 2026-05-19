@@ -116,13 +116,14 @@ It does not change replay semantics, and it does not make signatures consensus
 input for unsigned `GOFTP/1`.
 
 The core/local specimens `bad-mtime`, `bad-payload`, `bad-list-order`,
-`poisoned-sidecar`, `projection-poison`, and `tmp-poison` are also promoted
-into `t/fixtures/vectors/v1-non-consensus-poison.jsonl` as public
-baseline/poison golden vectors. The mtime, file-byte, sidecar, projection, and
-tmp cases bind ignored fixture files through self-contained
-`poisoned.evidence_artifacts`; the listing-order case records the hostile
-`poisoned_order`. In every case the event-set preimage, root, replay, board,
-projection text, and SGF truth remain the clean three-event chain.
+`bad-signature`, `poisoned-sidecar`, `projection-poison`, and `tmp-poison` are
+also promoted into `t/fixtures/vectors/v1-non-consensus-poison.jsonl` as public
+baseline/poison golden vectors. The mtime, file-byte, sidecar-signature,
+sidecar, projection, and tmp cases bind ignored fixture files through
+self-contained `poisoned.evidence_artifacts`; the listing-order case records
+the hostile `poisoned_order`. In every case the event-set preimage, root,
+replay, board, projection text, and SGF truth remain the clean three-event
+chain.
 
 The v1 profile gallery gate is:
 
@@ -236,6 +237,7 @@ The v1 gallery must contain at least:
 bad-mtime
 bad-payload
 bad-list-order
+bad-signature
 duplicate-event
 bad-event-id
 future-version
@@ -362,6 +364,15 @@ near the game tree and look tempting to replay code.
 Expected outcome: temporary surfaces are ignored. Verdict status should be `ok`
 or `ignored`; `ignored_inputs` should include `tmp`.
 
+## Deferred Boundary Specimens
+
+The following names are attack topics, not required v1.0 gallery specimens. The
+current v1.0 gate does not claim dedicated fixture coverage for them unless
+their directories are added under `t/fixtures/attacks/` or
+`t/fixtures/v1/attacks/` and promoted into the relevant public vector set.
+Existing grammar, profile-normalization, and manifest hygiene tests still cover
+their underlying boundaries where noted.
+
 ### `unicode-name`
 
 Attack: a descriptor or event basename contains non-ASCII characters.
@@ -369,6 +380,7 @@ Attack: a descriptor or event basename contains non-ASCII characters.
 Expected outcome: filename parsing rejects the name with a stable charset or
 grammar diagnostic. Verdict status should be `validation`; the rejected name
 must not enter event id maps, DAG construction, rules replay, or projections.
+Dedicated public fixture/vector status: deferred.
 
 ### `path-traversal-name`
 
@@ -379,6 +391,7 @@ Expected outcome: path traversal is rejected before publish or excluded during
 listing normalization. Verdict status should be `validation` or `storage`,
 depending on the command boundary being tested. No file outside the fixture root
 may be read or written.
+Dedicated public fixture/vector status: deferred.
 
 ### `huge-directory`
 
@@ -390,6 +403,7 @@ replay candidates, reports stable diagnostics for direct malformed event names,
 and ignores non-authoritative surfaces. Verdict status depends on whether any
 direct malformed event is present, but memory and runtime should remain bounded
 for the documented fixture size.
+Dedicated public fixture/vector status: deferred.
 
 ### `fork-race`
 
