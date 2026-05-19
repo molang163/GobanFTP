@@ -2,183 +2,60 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
-これは日本語の入口です。リリース上の正式な主張とプロトコル境界は、英語版
-`README.md` を基準にします。
+GobanFTP は、囲碁の一局をディレクトリの名前一覧から再生する `GOFTP/1` の実験です。
 
-GobanFTP は、囲碁の一局を「信頼できない listing（名前一覧）」から復元する
-`GOFTP/1` の検証用の仕組みです。普通の対局アプリでも、ゲームサーバでも
-ありません。着手はファイル名です。replay はファイル本文ではなく名前を読みます。
-盤面と SGF は replay から再生成される projection（再生成表示）や witness
-（検証用の証跡）です。Web と Terminal は、それらを表示するための面です。
+着手は `events/` の下にある event filename です。replay はその名前を読みます。
+ファイル本文は読みません。
+
+そのため、次のものを変えても一局は変わりません。
+
+- file contents
+- mtime
+- listing order
+- sidecar
+- projection
+
+変わるべきものは event filename です。event filename を変えたら、一局は変わるか、
+その event が拒否されます。
+
+これは普通の囲碁サーバでも、本番用のセキュリティ機構でもありません。信頼しにくい
+保存先が同じ名前を列挙できるとき、一局を同じように replay できるかを見る小さな
+プロトコル実験です。
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
 ![Version 1.000](https://img.shields.io/badge/version-1.000-333333)
 ![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Showcase check](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
-ファイルの中身を変えても、mtime を変えても、listing order を変えても、
-補足情報である sidecar や projection を足しても、replay は変わりません。
-変わるのは basename、つまりディレクトリやファイルの最後の名前の部分です。
-
 Current line: `v1.0/package 1.000` release source.
 
 [3分で確認する](#three-minute-proof) · [端末で打つ](#terminal-play) ·
 [静的標本ページ](#static-witness-specimen) · [契約](#the-contract)
 
-はじめに、この README で使う言葉を置きます。
-
-- `basename`: path の最後の名前です。GobanFTP では game descriptor directory
-  basename と event basename が protocol packet になります。
-- `listing`: サーバや保存先から見える名前一覧です。GobanFTP はこの一覧を読みます。
-- `replay`: 名前から状態を再生し、検証する処理です。
-- `surface`: 表示や入力の面です。見せることはできますが、replay の入力にはなりません。
-- `fixture`: テストや説明のために固定された標本データです。live service の
-  実行結果ではありません。
-- `witness`: replay から得た検証用の証跡です。root、hash、status、diagnostic
-  などを外から読める形にします。
-- `projection`: replay から再生成できる表示物です。盤面、SGF、oracle transcript
-  などです。表示はできますが、決定はしません。
-- `sidecar`: 補足情報を置く場所です。説明はできますが、replay の判断には
-  入りません。
-- `event_set_root`: accepted event basenames の集合を比較するための root です。
-
-以降の例は、この読み方を前提にしています。
-
-```text
-Names are packets.
-The listing is the read.
-The board is projection.
-SGF is witness.
-FTP is the altar, not the authority.
-```
-
-source-art、terminal play、static witness HTML、fixture の証跡は補助的な表示です。
-replay の決定には使いません。
-
-ローカルで入口を確認するなら、まずこれです。
-
-```sh
-perl Makefile.PL
-make test
-prove -lr t/showcase-demo.t
-```
-
-## まず見るもの
-
-四つの画像は同じ境界を別の角度から見せています。どれもアプリケーション状態ではなく、
-event basenames から復元された状態の見え方です。
-
-### 1. アプリ状態ではなく、プロトコルオブジェクト
-
-![GobanFTP のプロトコルオブジェクト。game descriptor directory、event basenames、sidecar、projections、tmp residue が見える。](docs/assets/readme-01-protocol-object.png)
-
-一局はディレクトリ名と `events/` 直下の名前で表されます。`sidecar/` は補足、
-`projections/` は表示、`tmp/` は公開途中の residue です。replay が読むのは
-game descriptor directory basename と direct `events/` basenames だけです。
-
-### 2. race は fork として見える
-
-![GobanFTP race shrine の replay 出力。visible fork diagnostic が表示されている。](docs/assets/readme-04-race-fork.png)
-
-二つの着手が同じ親から同時に出たとき、listing order に勝者を選ばせません。
-GobanFTP は race を fork として見せます。既定では保守的に replay し、明示的な
-ack-assisted recovery がない限り fork で止まります。
-
-### 3. terminal play は公開前に lock する
-
-![GobanFTP の terminal play。keyboard と optional SGR mouse による二段確認がある。](docs/assets/readme-02-tui.png)
-
-`play --tui` はローカル端末の input/display layer です。keyboard と、対応端末での
-optional SGR mouse は、まず candidate を選びます。二度目の Enter/click で
-publish を確認します。publishing 中は input を lock します。
-
-### 4. 静的標本であって hosted UI ではない
-
-![GobanFTP の static witness specimen。9x9 board と検証パネルが表示されている。](docs/assets/readme-03-witness-specimen.png)
-
-`examples/static/witness-specimen.html` は直接開く static specimen です。script も
-server も network fetch もありません。static HTML は hosted Web UI では
-ありません。supplied witness fields と projection text を見せるだけで、protocol
-上の事実は event basenames に残ります。
-
-<a id="the-contract"></a>
-
-## 契約
-
-`GOFTP/1` が入力として採用するものは二つだけです。
-
-```text
-game descriptor directory basename
-direct child basenames under events/
-```
-
-中核の replay は次を無視します。
-
-```text
-entry type
-file bytes
-file size
-listing order
-server order
-FTP mtime
-WebDAV ETag
-WebDAV Last-Modified
-WebDAV locks
-sidecar/**
-projections/**
-tmp/**
-```
-
-`RETR`、`SIZE`、`MDTM`、HTTP resource bodies、cache validators、server metadata
-は replay の一部ではありません。すべての projection を消しても、一局は残ります。
-
-event id は file contents からではなく、canonical filename context から作られます。
-hash input は game descriptor basename と、末尾の `.h-<event_id>` を除いた event
-basename を bind します。見えている event id は lowercase base32hex SHA-256 の
-先頭 16 characters です。
-
-一つの進行は hash chain です。既知の play 全体は DAG です。network race は FTP
-ordering に隠れず、visible fork になります。保守的な replay は、明示的な
-ack-assisted path がない限り fork で止まります。
-
-protocol names は退屈でよいものです。
-
-```text
-[a-z0-9._-]
-```
-
-secret を filename に置いてはいけません。filenames は public です。
-
 <a id="three-minute-proof"></a>
 
 ## 3分で確認する
 
-showcase の確認を実行します。
+必要なものは Perl 5.34+ と `make` です。
 
 ```sh
+perl Makefile.PL
+make
+make test
 prove -lr t/showcase-demo.t
 ```
 
-これは clean shrine、race shrine、source-art oracle smoke、unsigned
-`local-goftp1` v1 witness、静的な表示出力を確認します。static HTML は hosted Web UI ではありません。`--surface terminal`
-は local `play --tui` input/display layer ではありません。
-local terminal play は `gobanftp play --tui` で使えますが、replay と publish
-callbacks の上にある input/display layer にとどまります。
+showcase test は、通常の一局、race/fork の標本、source-art oracle の smoke check、
+unsigned `local-goftp1` witness、静的な表示出力を確認します。
 
-clean shrine を開きます。
-
-```text
-examples/fixtures/ftp-shrine/
-```
-
-実行します。
+clean fixture を直接実行します。
 
 ```sh
 GOBANFTP_ROOT=examples/fixtures/ftp-shrine \
 perl -Ilib script/gobanftp play --once g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
 ```
 
-主要な形はこうなります。
+このような盤面が出ます。
 
 ```text
 gobanftp.play=ok
@@ -197,20 +74,15 @@ worldline.status=main
 1 . . . . . . . . .
 ```
 
-次に race fixture を開きます。
-
-```text
-examples/fixtures/ftp-race-shrine/
-```
-
-実行します。
+race fixture も実行します。
 
 ```sh
 GOBANFTP_ROOT=examples/fixtures/ftp-race-shrine \
 perl -Ilib script/gobanftp replay g1.id-ftp-race-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
 ```
 
-この fixture では exit code `3` が期待値です。fork が見つかったことを表します。
+この fixture では exit code `3` が期待値です。クラッシュではなく、race が fork
+として残ったという意味です。
 
 ```text
 diagnostic ... code=fork parent_id=hihat4p8r6gaeuts
@@ -222,22 +94,59 @@ legal_moves=3
 canonical_ids=hihat4p8r6gaeuts
 ```
 
-この fixture では、race が fork として残ります。listing order は勝者を選びません。
+## まず見るもの
+
+四つの画像は同じ一局を別の角度から見せています。replay の入力は、game directory
+の名前と `events/` 直下の event filenames だけです。
+
+### 1. 静的標本ページ
+
+![GobanFTP の static witness specimen。9x9 board と検証パネルが表示されている。](docs/assets/readme-03-witness-specimen.png)
+
+これは直接開ける HTML file です。script も server も network fetch もありません。
+static HTML は hosted Web UI ではありません。すでに生成された witness fields と
+board projection を表示するだけです。
+
+### 2. 一局はディレクトリとして見える
+
+![GobanFTP のプロトコルオブジェクト。game descriptor directory、event basenames、sidecar、projections、tmp residue が見える。](docs/assets/readme-01-protocol-object.png)
+
+外側のディレクトリ名が一局を表します。`events/` の下の名前が着手を表します。
+`sidecar/`、`projections/`、`tmp/` は説明、表示、公開途中の作業には使えますが、
+replay を決めません。
+
+### 3. race は fork として残る
+
+![GobanFTP race shrine の replay 出力。visible fork diagnostic が表示されている。](docs/assets/readme-04-race-fork.png)
+
+二つの着手が同じ親から同時に出たとき、listing order に勝者を選ばせません。
+GobanFTP は fork を表示し、既定の replay ではそこで止まります。
+
+### 4. terminal でも打てる
+
+![GobanFTP の terminal play。keyboard と optional SGR mouse による二段確認がある。](docs/assets/readme-02-tui.png)
+
+`play --tui` はローカル端末の input/display layer です。keyboard と、対応端末での
+SGR mouse は、まず candidate を選びます。二度目の Enter/click で publish を確認します。
+
+## 先に知る三つの言葉
+
+- event filename: `events/` の下にある、着手または確認を表す名前です。
+- replay: その名前から一局を検証し、盤面を再構成する処理です。
+- fork: 同じ親に複数の有効な子が出たときに残る、見える分岐です。
 
 <a id="terminal-play"></a>
 
 ## 端末で打つ
-
-`gobanftp play --tui` は、同じ replay と publish callbacks の上で動くローカル端末
-の input/display layer です。rules、roots、diagnostics、event acceptance を所有しません。
 
 サンプルを一時ディレクトリにコピーして試せます。
 
 ```sh
 tmp="$(mktemp -d)"
 src="$(find examples/fixtures/ftp-shrine -maxdepth 1 -type d -name 'g1.id-ftp-shrine*' | head -n 1)"
-cp -R -- "$src" "$tmp/game"
-perl -Ilib script/gobanftp play --tui "$tmp/game"
+cp -R -- "$src" "$tmp/"
+game="$tmp/$(basename "$src")"
+perl -Ilib script/gobanftp play --tui "$game"
 ```
 
 状態は明示的に進みます。
@@ -258,25 +167,56 @@ r                  refresh
 q                  quit
 ```
 
-keyboard が fallback path です。SGR mouse は terminal が対応する場合だけ使います。
-一度 publish に成功すると session は終了します。
+`play --tui` は rules、roots、diagnostics、event acceptance を所有しません。同じ
+replay と publish callbacks の上にある local input/display layer です。
 
 <a id="static-witness-specimen"></a>
 
 ## 静的標本ページ
 
-直接開けます。
+`examples/static/witness-specimen.html` は直接開く static specimen です。script も
+network fetch も server process も hosted UI behavior もありません。
+
+visual board は raw projection text の横に置かれた projection view です。すでに生成された
+fields を表示できますが、event を valid にすることはできません。
+
+<a id="the-contract"></a>
+
+## 契約
+
+`GOFTP/1` が replay 入力として採用するものは二つだけです。
+
+| Truth | Meaning |
+| --- | --- |
+| game descriptor directory basename | 一局、rules、players を表す |
+| direct child basenames under `events/` | 着手と確認を表す |
+
+それ以外は replay から見ると shadow です。
+
+| Shadow | Examples |
+| --- | --- |
+| file data | entry type、bytes、size |
+| server metadata | mtime、listing order、server order |
+| FTP metadata | `RETR`、`SIZE`、`MDTM` |
+| WebDAV metadata | ETag、Last-Modified、locks、resource bodies |
+| helper paths | `sidecar/**`、`projections/**`、`tmp/**` |
+| generated surfaces | SGF、static HTML、terminal output、source art |
+
+すべての projection を消しても、一局は replay できます。file contents、mtime、
+listing order を変えても replay は変わりません。event filename を変えたら、
+一局は変わるか、その event は拒否されます。
+
+event id は file contents からではなく、canonical filename context から作られます。
+既知の play 全体は DAG です。network race は FTP や WebDAV の ordering に隠れず、
+visible fork になります。
+
+protocol names は小さな public alphabet を使います。
 
 ```text
-examples/static/witness-specimen.html
+[a-z0-9._-]
 ```
 
-これは hosted UI ではありません。direct-open の specimen です。script、network
-fetch、server process、hosted Web UI behavior はありません。
-
-ページが見せるのは、supplied witness fields、visual board skin、raw projection
-text、SGF excerpt です。visual board は projection skin です。検証の根拠にはならず、
-表示だけを行います。
+secret を filename に置いてはいけません。filenames は public です。
 
 ## Shrine Fixture（標本）
 

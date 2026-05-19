@@ -2,144 +2,51 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
-A Go game reconstructed from enumerable names.
+A Go game where moves are filenames.
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
 ![Version 1.000](https://img.shields.io/badge/version-1.000-333333)
 ![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Showcase test](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
-GobanFTP stores a Go game as a directory-shaped protocol object. The game
-descriptor directory names the game, rules, and players. Moves and
-acknowledgements are event filenames under `events/`.
+GobanFTP is a `GOFTP/1` protocol experiment. A game is recovered from a game
+directory and the event filenames directly under `events/`. Replay lists names;
+it does not read file bodies.
 
-Replay reads those basenames. It ignores file bytes, file size, mtime, listing
-order, server order, sidecars, projections, and tmp entries.
+That means file contents, size, mtime, listing order, sidecars, projections,
+SGF, HTML, terminal output, and source art can help humans inspect the game, but
+they do not decide the game.
+
+It is not a normal Go server, a hosted Web UI, or a production security system.
+It is a small implementation of a stranger question: can one game survive across
+untrusted places that can enumerate the same names?
 
 Current line: `v1.0/package 1.000` release source.
 
 [Three-minute check](#three-minute-proof) · [Terminal play](#terminal-play) ·
 [Static specimen](#static-witness-specimen) · [The contract](#the-contract)
 
-Quick local check:
-
-```sh
-perl Makefile.PL
-make test
-prove -lr t/showcase-demo.t
-```
-
-## First Look
-
-These screenshots show the same object from four angles. The replay input is
-still the game descriptor basename plus direct event basenames.
-
-### Protocol Object
-
-![GobanFTP protocol object: game descriptor directory, event basenames, sidecar, projections, and tmp residue.](docs/assets/readme-01-protocol-object.png)
-
-The game is visible as a tree. `events/` contains the accepted names.
-`sidecar/`, `projections/`, and `tmp/` may help a reader or a publisher, but
-they do not decide replay.
-
-### Race Becomes Fork
-
-![GobanFTP race fixture replay output showing a visible fork diagnostic.](docs/assets/readme-04-race-fork.png)
-
-If two moves extend the same parent, listing order does not choose one. Default
-replay reports the fork and stops unless explicit ack-assisted recovery is
-requested.
-
-### Terminal Play
-
-![GobanFTP terminal play surface with keyboard and optional SGR mouse two-step confirmation.](docs/assets/readme-02-tui.png)
-
-`play --tui` is local input and display over the same replay and publish
-callbacks. Keyboard and SGR mouse, where available, select a candidate first. A
-second Enter or click confirms it. Input is locked while publishing.
-
-### Static Witness Specimen
-
-![GobanFTP static witness specimen showing a visual 9x9 board and witness fields.](docs/assets/readme-03-witness-specimen.png)
-
-The specimen is a direct-open HTML file. It has no script, no server, and no
-hosted Web UI behavior. It displays witness fields and projection text that were
-supplied to it.
-
-## The Contract
-
-`GOFTP/1` has two authoritative inputs:
-
-```text
-game descriptor directory basename
-direct child basenames under events/
-```
-
-Core replay ignores:
-
-```text
-entry type
-file bytes
-file size
-listing order
-server order
-FTP mtime
-WebDAV ETag
-WebDAV Last-Modified
-WebDAV locks
-sidecar/**
-projections/**
-tmp/**
-```
-
-`RETR`, `SIZE`, `MDTM`, HTTP resource bodies, cache validators, and server
-metadata are not replay inputs. The game can be replayed after deleting every
-projection.
-
-An event id is derived from canonical filename context, not from file contents.
-The hash input binds the game descriptor basename and the event basename without
-its final `.h-<event_id>` field. The visible event id is the first 16 characters
-of lowercase base32hex SHA-256.
-
-A line of play is a hash chain. All known play is a DAG. A network race becomes
-a visible fork; it is not hidden by FTP or WebDAV ordering. Conservative replay
-stops at the fork unless an explicit ack-assisted path is requested.
-
-Protocol names use a small public alphabet:
-
-```text
-[a-z0-9._-]
-```
-
-Do not put secrets in filenames.
-
 <a id="three-minute-proof"></a>
 
 ## Three-Minute Check
 
-Run the local showcase test:
+Requirements: Perl 5.34+ and `make`.
 
 ```sh
+perl Makefile.PL
+make
+make test
 prove -lr t/showcase-demo.t
 ```
 
-It checks the clean fixture, the race fixture, source-art smoke, the unsigned
-`local-goftp1` v1 witness, and static inspection views. Those views are
-read-only inspection output: static HTML is not hosted Web UI, and
+The showcase test checks a clean game, a race/fork game, the executable
+source-art smoke path, an unsigned `local-goftp1` witness, and static inspection
+views.
+
+Those views are read-only inspection output: static HTML is not hosted Web UI, and
 `--surface terminal` is not the local `play --tui` input surface.
 
-Local terminal play is available through `gobanftp play --tui`; it stays an
-input/display layer over replay and publish callbacks. Keyboard and SGR mouse
-input select a candidate first, require a second Enter or click to publish, and
-lock input once publishing starts.
-
-Open the clean fixture:
-
-```text
-examples/fixtures/ftp-shrine/
-```
-
-Then run:
+Run the clean fixture directly:
 
 ```sh
 GOBANFTP_ROOT=examples/fixtures/ftp-shrine \
@@ -165,20 +72,14 @@ worldline.status=main
 1 . . . . . . . . .
 ```
 
-Open the race fixture:
-
-```text
-examples/fixtures/ftp-race-shrine/
-```
-
-Run:
+Now open the race fixture:
 
 ```sh
 GOBANFTP_ROOT=examples/fixtures/ftp-race-shrine \
 perl -Ilib script/gobanftp replay g1.id-ftp-race-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
 ```
 
-Exit code `3` is expected for this fixture. Selected output:
+Exit code `3` is expected for this fixture. It means the race was kept visible:
 
 ```text
 diagnostic ... code=fork parent_id=hihat4p8r6gaeuts
@@ -190,19 +91,78 @@ legal_moves=3
 canonical_ids=hihat4p8r6gaeuts
 ```
 
-The fixture leaves the race visible. Listing order does not select a winner.
+## First Look
+
+These are views of the same object. The replay input remains the game directory
+basename plus the direct event filenames under `events/`.
+
+### Static Witness Specimen
+
+![GobanFTP static witness specimen showing a visual 9x9 board and witness fields.](docs/assets/readme-03-witness-specimen.png)
+
+This is a direct-open HTML file. It has no script, no server, and no network
+fetch. The static HTML is not hosted Web UI; it displays witness fields and a
+board projection that were already generated.
+
+### Protocol Object
+
+![GobanFTP protocol object: game descriptor directory, event basenames, sidecar, projections, and tmp residue.](docs/assets/readme-01-protocol-object.png)
+
+The game is visible as a tree. `events/` contains the accepted names.
+`sidecar/`, `projections/`, and `tmp/` may explain, display, or help publish,
+but they do not decide replay.
+
+### Race Becomes Fork
+
+![GobanFTP race fixture replay output showing a visible fork diagnostic.](docs/assets/readme-04-race-fork.png)
+
+If two moves extend the same parent, listing order does not choose one. Default
+replay reports the fork and stops unless explicit ack-assisted recovery is
+requested.
+
+### Terminal Play
+
+![GobanFTP terminal play surface with keyboard and optional SGR mouse two-step confirmation.](docs/assets/readme-02-tui.png)
+
+`play --tui` is local input and display over the same replay and publish
+callbacks. Keyboard and SGR mouse, where available, select a candidate first. A
+second Enter or click confirms it. Input is locked while publishing.
+
+## Three Words
+
+- `event filename`: a move or acknowledgement named under `events/`.
+- `replay`: rebuild the game from accepted names.
+- `fork`: a visible race where two valid children claim the same parent.
+
+<a id="terminal-play"></a>
 
 ## Terminal Play
 
-`gobanftp play --tui` is local play over the same replay and publish callbacks.
-It does not own rules, roots, diagnostics, or event acceptance.
+Try local terminal play with a disposable copy:
+
+```sh
+tmp="$(mktemp -d)"
+src="$(find examples/fixtures/ftp-shrine -maxdepth 1 -type d -name 'g1.id-ftp-shrine*' | head -n 1)"
+cp -R -- "$src" "$tmp/"
+game="$tmp/$(basename "$src")"
+perl -Ilib script/gobanftp play --tui "$game"
+```
+
+The publish path is deliberately two-step:
 
 ```text
 select -> confirm -> publishing_locked -> published
 ```
 
-Keyboard input is the fallback path. SGR mouse input is used where the terminal
-supports it. One successful publish ends the session.
+Arrow keys or `hjkl` move the cursor. `Enter` selects a point; pressing `Enter`
+again on the selected point confirms publish. SGR mouse clicks use the same
+select/confirm flow where the terminal supports them. One successful publish
+ends the session.
+
+The TUI does not own rules, roots, diagnostics, or event acceptance. It is only
+an input/display layer over replay and publish callbacks.
+
+<a id="static-witness-specimen"></a>
 
 ## Static Witness Specimen
 
@@ -211,6 +171,44 @@ script, no network fetch, no server process, and no hosted UI behavior.
 
 The visual board is a projection view beside raw projection text. It can display
 fields that were already generated; it cannot make an event valid.
+
+<a id="the-contract"></a>
+
+## The Contract
+
+`GOFTP/1` has two replay inputs:
+
+| Truth | Meaning |
+| --- | --- |
+| game descriptor directory basename | names the game, rules, and players |
+| direct child basenames under `events/` | names moves and acknowledgements |
+
+Replay ignores everything else:
+
+| Shadow | Examples |
+| --- | --- |
+| file data | entry type, bytes, size |
+| server metadata | mtime, listing order, server order |
+| FTP commands | `RETR`, `SIZE`, `MDTM` |
+| WebDAV metadata | ETag, Last-Modified, locks, resource bodies |
+| display and helper paths | `sidecar/**`, `projections/**`, `tmp/**` |
+| generated surfaces | SGF, static HTML, terminal output, source art |
+
+The game can be replayed after deleting every projection. Change file contents,
+mtime, or listing order and replay stays the same. Change an event filename and
+the game must change, or the event must be rejected.
+
+Event ids are derived from canonical filename context, not from file contents.
+All known play forms a DAG. A network race becomes a visible fork; it is not
+hidden by FTP or WebDAV ordering.
+
+Protocol names use a small public alphabet:
+
+```text
+[a-z0-9._-]
+```
+
+Do not put secrets in filenames.
 
 ## Fixture Layout
 
