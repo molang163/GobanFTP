@@ -27,6 +27,11 @@ like $html, qr/<h2 id="board-heading">projection[.]board<\/h2>/,
     'specimen includes a board projection section';
 like $html, qr/<h2 id="sgf-heading">projection[.]sgf_main<\/h2>/,
     'specimen includes a canonical SGF projection section';
+like $html,
+    qr/<pre>\(;GM\[1\]FF\[4\]CA\[UTF-8\]AP\[GobanFTP\]SZ\[3\]KM\[0\]PB\[alice\]PW\[bob\]RU\[chinese-area-v1\];B\[aa\];W\[bb\];B\[\]\)<\/pre>/,
+    'specimen SGF matches the displayed minimal witness root';
+unlike $html, qr/KM\[7[.]50\]|PB\[black\]|PW\[white\]/,
+    'specimen does not mix in unrelated SGF metadata';
 
 my @points = $html =~ /\bdata-point="([a-c][a-c])"/g;
 is_deeply \@points, [qw(aa ba ca ab bb cb ac bc cc)],

@@ -75,6 +75,9 @@ subtest 'DNS record adapter case-normalizes owner/type but preserves event value
         "type=txt owner=01.events.$game.example. event=\"../$events[0]\"",
         "type=TXT owner=04.events.$game.example. event=$upper_event",
         "type=TXT owner=05.events.$game.example. event=events/$events[1]",
+        "type=TXT owner=sidecar.$game.example. event=$events[1]",
+        "type=TXT owner=projections.$game.example. event=$events[1]",
+        "type=TXT owner=tmp.$game.example. event=$events[1]",
     );
 
     is_deeply [

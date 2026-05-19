@@ -10,5 +10,5 @@ canonical_ids=khjclcui7pejbv3m
 legal_ids=khjclcui7pejbv3m
 diagnostic_classes=
 rejected_classes=
-ignored_inputs=dns-wrong-game-owner,dns-missing-owner,dns-ttl,dns-answer-order,dns-sidecar,dns-non-txt,dns-duplicate-event,dns-owner-type-case,dns-event-case-fold,dns-event-path-prefix
-note=DNS records outside the declared game owner, event-value case folding, and event= path prefixes cannot smuggle event basenames into the profile witness
+ignored_inputs=dns-wrong-game-owner,dns-missing-owner,dns-ttl,dns-answer-order,dns-sidecar,dns-sidecar-event,dns-projection-owner,dns-tmp-owner,dns-non-txt,dns-duplicate-event,dns-owner-type-case,dns-event-case-fold,dns-event-path-prefix
+note=DNS records outside events.<game>, event-value case folding, and event= path prefixes cannot smuggle event basenames into the profile witness

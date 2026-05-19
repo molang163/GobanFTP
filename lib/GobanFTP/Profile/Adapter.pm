@@ -123,7 +123,24 @@ sub _dns_owner_matches_game {
     my ($owner, $game) = @_;
 
     my $game_label = lc $game;
-    return $owner =~ /(?:\A|[.])\Q$game_label\E(?:[.]|\z)/ ? 1 : 0;
+    my @labels = split /\./, $owner;
+    my @game_labels = split /\./, $game_label;
+
+    for my $i (0 .. $#labels) {
+        next if $labels[$i] ne 'events';
+        next if $i + @game_labels >= @labels;
+
+        my $matched = 1;
+        for my $j (0 .. $#game_labels) {
+            if (($labels[$i + 1 + $j] // '') ne $game_labels[$j]) {
+                $matched = 0;
+                last;
+            }
+        }
+        return 1 if $matched;
+    }
+
+    return 0;
 }
 
 sub _dns_exact_event_basename {

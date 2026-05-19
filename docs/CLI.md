@@ -671,12 +671,14 @@ prints another snapshot. `quit`, `exit`, and `q` exit without publishing.
 
 With `--tui`, `play` opens a local raw terminal board when both stdin and stdout
 are terminals. Arrow keys and `hjkl` move the cursor, Enter or an SGR mouse
-click publishes the selected point, `p` publishes pass, `R` publishes resign,
-`r` reloads, and `q` exits without publishing. A successful publish leaves the
-TUI immediately and prints the same event and snapshot lines as `play --move`,
-so a second click cannot publish another move from the same TUI session. The TUI
-does not write projections and does not own replay truth; it reloads the
-`events/` listing and uses the same publish validation path as `publish-move`.
+click selects the point, and the same Enter or click confirms publication. `p`
+selects pass, `R` selects resign, `r` reloads, and `q` exits without publishing.
+After confirmation, input is locked while the publish path runs. A successful
+publish leaves the TUI immediately and prints the same event and snapshot lines
+as `play --move`, so another click cannot publish a second move from the same
+TUI session. The TUI does not write projections and does not own replay truth;
+it reloads the `events/` listing and uses the same publish validation path as
+`publish-move`.
 
 Terminal compatibility is intentionally conservative: SGR mouse is enabled for
 terminals that support it, while arrow keys and `hjkl` remain the fallback in
