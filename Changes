@@ -38,6 +38,11 @@ Revision history for GobanFTP
     stable signature-class fields and redaction, and
     `v1-publish-auth.jsonl` freezes a mismatched `GOFTP-HMAC-PUBLISH/1` token
     denial while proving unsigned `GOFTP/1` witness truth stays unchanged.
+  - Recorded a P21c clean-checkout-style final-candidate rehearsal from a
+    temporary detached worktree at commit 7ae0e25, including claim audit,
+    profile/vector/auth matrices, dist, disttest, distcheck, and tarball
+    inclusion/exclusion checks. This remains rehearsal evidence only, not a
+    v1.0 tag, publication event, or final artifact record.
   - Began v1.0/P14 development after skipping the public v0.2 / package 0.002
     release candidate.
   - Recorded a fresh clean-checkout `1.000_001` development-freeze matrix for

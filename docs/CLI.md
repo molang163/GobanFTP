@@ -683,6 +683,8 @@ terminals that support it, while arrow keys and `hjkl` remain the fallback in
 xterm-like terminals, iTerm2, GNOME Terminal, Kitty, Alacritty, Windows
 Terminal, `tmux`, and `ssh` sessions. When stdin or stdout is not a terminal,
 `play --tui` refuses to start instead of silently falling back to a line parser.
+This is a supported fallback design, not a cross-terminal compatibility matrix
+or terminal certification claim.
 
 With `--move`, `play` publishes exactly one move through the same pipeline as
 `publish-move`, then renders the updated board. If a concurrent publish creates

@@ -211,12 +211,102 @@ final-release over-claims. It is not a refreshed full clean-checkout matrix, not
 a stable `v1.0` artifact check, and not a P14/v1.0 completion claim.
 The current development-freeze matrix above now includes this gate.
 
+## P21c Final-Candidate Rehearsal
+
+After the publish-auth mismatch public vector and diagnostics contract work, a
+clean-checkout-style rehearsal was run from a temporary detached worktree:
+
+```text
+Date: 2026-05-19
+Source commit: 7ae0e25e87144143ca1896bb929c576c4d9f3565
+Worktree: /tmp/gobanftp-p21c.cbdvWK/worktree
+Perl: v5.42.2
+Git tags present: v0.1 only; no v1.0 tag
+Matrix: PASS
+```
+
+Executed gates:
+
+```text
+perl -c oracle/goban.pl: PASS
+perl oracle/goban.pl --smoke: PASS, inline_c=skip
+perl Makefile.PL: PASS
+GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make test:
+  PASS, Files=83, Tests=1102
+GOBANFTP_RULES_ENGINE=shadow make test:
+  PASS, Files=83, Tests=1106
+prove -lr t:
+  PASS, Files=83, Tests=1106
+v1/profile/auth/diagnostics/claim target matrix:
+  PASS
+script/gobanftp v1 witness --profile local-goftp1 --fixture t/fixtures/v1/cross-substrate/minimal:
+  PASS, event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461
+script/gobanftp v1 compare-roots --fixture t/fixtures/v1/cross-substrate/minimal:
+  PASS, mismatch_count=0
+script/gobanftp v1 compare-replay --fixture t/fixtures/v1/cross-substrate/minimal:
+  PASS, mismatch_count=0
+make manifest plus MANIFEST/MANIFEST.SKIP diff gate:
+  PASS
+make dist:
+  PASS, GobanFTP-1.000.tar.gz
+GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make disttest:
+  PASS, Files=83, Tests=1102
+make distcheck:
+  PASS
+```
+
+Observed rehearsal artifact:
+
+```text
+GobanFTP-1.000.tar.gz
+sha256=f9c82ae19acb2df192aec5a13efc5865c6fc67f332334068e1302f507ae7ddd9
+size=374468 bytes
+tar entries=797
+top-level prefix=GobanFTP-1.000/
+MANIFEST_sha256=0b955be678b202ed0fa8f6b2633e0ce3fea79b72a1ad8c3b3462bed217d255ad
+MANIFEST_lines=607
+```
+
+Tarball inclusion checks confirmed:
+
+```text
+README.md
+Changes
+MANIFEST
+docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md
+docs/P14_RELEASE_GATE.md
+t/p14-claim-audit.t
+t/v1-publish-auth-golden-vectors.t
+t/fixtures/vectors/v1-publish-auth.jsonl
+```
+
+Tarball exclusion checks confirmed:
+
+```text
+docs/SESSION_RESTORE.md absent
+MYMETA.* absent
+pm_to_blib absent
+blib/ absent
+_Inline/ absent
+nested GobanFTP tarballs absent
+nested GobanFTP dist directories absent
+.git absent
+```
+
+Live FTP tests were skipped because `GOBANFTP_FTP_TEST=1` was not set. This
+rehearsal generated a real `GobanFTP-1.000.tar.gz` in the temporary worktree,
+but it is not a publication event, not an external artifact record, not a tag,
+not P14 completion, and not a final stable v1.0 release claim. Because this
+record is written after the run, any final release matrix must be rerun from the
+record commit or a later chosen tag target.
+
 ## Next Release-Route Step
 
 The `1.000_001` development freeze is recorded above. The source tree has now
 entered the `v1.0` / package `1.000` final-candidate identity without creating
-a tag or final artifact. Current HEAD has added local TUI input and
-verifier-local signed-HMAC keygen/attest operation work after that recorded
-development freeze. The next release-route step is to refresh the final claim
-audit from this identity, run the final stable clean-checkout matrix, and attach
-the external artifact record before any `v1.0` tag.
+a tag or final artifact. Current HEAD has since passed the P21c
+clean-checkout-style rehearsal above, but that rehearsal is historical evidence
+only because this report is written after the run. The next release-route step
+is to rerun the final stable clean-checkout matrix from the final chosen record
+commit, attach the external artifact record outside the tarball, and only then
+create any `v1.0` tag.

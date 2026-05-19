@@ -46,7 +46,7 @@ subtest 'release-state guardrails are explicit' => sub {
         'README separates static witness surfaces from hosted Web UI and local TUI input');
     _like('README.md', qr/DNS\s+admission does not query live DNS, run AXFR, trust DNSSEC, call provider APIs,\s+or publish records,/,
         'README keeps DNS admission read-only and non-live');
-    _like('README.md', qr/it does not claim live FTP, `RETR`, `SIZE`, `MDTM`, FTP auth, FTP integrity, or\nFTP publish behavior[.]/,
+    _like('README.md', qr/The FTP listing-shadow vector does not claim live FTP, `RETR`, `SIZE`, `MDTM`,\nFTP auth, FTP integrity, or FTP publish behavior[.]/,
         'README keeps FTP listing-shadow evidence fixture-bound');
     _like('docs/P14_RELEASE_GATE.md',
         qr/Status: dry-run, development-freeze, and final-candidate preparation evidence\nonly[.] This is not a v1[.]0 tag, not P14 completion, and not a release-ready\ndeclaration[.]/,
@@ -83,6 +83,9 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'event_set_root is stable across accepted event basenames',
         'local, FTP, Git-tree, DNS-record, and WebDAV runtime read paths are implemented',
         'FTP listing-shadow public poison-vector evidence is fixture/listing evidence',
+        'diagnostics registry is the v1 source for diagnostic code/class/required/optional/human meaning',
+        'storage diagnostic class is active for storage-boundary failures even when current CLI storage failures use exit 4 and storage: stderr',
+        'minimal JSON/JSONL evidence covers witness/schema/diagnostic records only, not complete JSON output for every command',
         'signed-hmac-goftp1 has an explicit per-event HMAC acceptance gate',
         'v1 keygen and v1 attest provide verifier-local signed-HMAC operation support without changing unsigned replay',
         'signed-HMAC cross-substrate overlay proves signed acceptance invariance across admitted read profiles with explicit verifier-local HMAC trust input',
@@ -97,6 +100,7 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'text, static HTML, and static terminal witness surfaces are read-only displays',
         'local play --tui keyboard/mouse input is implemented as a non-consensus input/display layer over existing publish callbacks',
         'source art is runnable and non-consensus',
+        'source art, Web, TUI, C, and asm-like surfaces do not own replay truth or diagnostics truth',
         'the arch-gate motif is comment-only source art, not witness output or protocol input',
         'P14/v1.0 final candidate is active',
         'v1.0 remains unreleased until the final release-freeze matrix passes',
@@ -129,6 +133,8 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'complete public attack coverage is implemented',
         'final scoring/result events are part of GOFTP/1',
         'source art, Web, TUI, C, or asm-like surfaces own replay truth',
+        'JSON output is complete for every command',
+        'Web, TUI, source art, C, or asm-like surfaces define diagnostic meaning',
         'the arch-gate motif claims Arch Linux affiliation, endorsement, package',
     ) {
         like $plan, qr/^\Q$forbidden\E/m, "forbidden claim recorded: $forbidden";
@@ -137,9 +143,9 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
 
 subtest 'forbidden claims appear only in guarded contexts' => sub {
     my @patterns = (
-        [qr/\bv1[.]0\s+(?:is\s+)?(?:complete|ready|released|tagged)\b/i,
+        [qr/\bv1[.]0\s+(?:is\s+)?(?:complete|ready|released|tagged|done(?! when)|final(?![- ]candidate)|frozen|shipped)\b/i,
             'v1.0 final state'],
-        [qr/\bP14\s+(?:is\s+)?(?:complete|ready)\b/i,
+        [qr/\bP14\s+(?:is\s+)?(?:complete|ready|done(?! when)|final(?![- ]candidate)|frozen|shipped)\b/i,
             'P14 final state'],
         [qr/\brelease-ready declaration\b/i,
             'release-ready declaration'],
@@ -149,16 +155,30 @@ subtest 'forbidden claims appear only in guarded contexts' => sub {
             'cross-terminal TUI compatibility completion'],
         [qr/\bGit publish(?: support)?\s+(?:is\s+)?(?:implemented|complete|ready)\b/i,
             'Git publish support'],
+        [qr/\bGit remote fetch\b.*\b(?:implemented|complete|ready|supported|shipped|landed|done)\b/i,
+            'Git remote fetch support'],
         [qr/\blive DNS\b.*\b(?:implemented|complete|ready|supported|admitted)\b/i,
             'live DNS support'],
+        [qr/\blive DNS resolver\b.*\b(?:implemented|complete|ready|supported|shipped|landed|done)\b/i,
+            'live DNS resolver support'],
         [qr/\bAXFR\b.*\b(?:implemented|complete|ready|supported)\b/i,
             'AXFR support'],
+        [qr/\bAXFR client\b.*\b(?:implemented|complete|ready|supported|shipped|landed|done)\b/i,
+            'AXFR client support'],
         [qr/\bDNSSEC\b.*\b(?:trust|support|supported|implemented|complete|ready)\b/i,
             'DNSSEC trust support'],
+        [qr/\bDNSSEC validator\b.*\b(?:implemented|complete|ready|supported|shipped|landed|done)\b/i,
+            'DNSSEC validator support'],
         [qr/\bprovider API(?:s)?\b.*\b(?:support|supported|implemented|complete|ready)\b/i,
             'provider API support'],
+        [qr/\bprovider API client\b.*\b(?:implemented|complete|ready|supported|shipped|landed|done)\b/i,
+            'provider API client support'],
         [qr/\bDNS(?: dynamic update| record publishing| publish(?:ing)?)\b.*\b(?:implemented|complete|ready|supported)\b/i,
             'DNS publish support'],
+        [qr/\bdynamic update client\b.*\b(?:implemented|complete|ready|supported|shipped|landed|done)\b/i,
+            'dynamic update client support'],
+        [qr/\bpublishing backend\b.*\b(?:implemented|complete|ready|supported|shipped|landed|done)\b/i,
+            'publishing backend support'],
         [qr/\bFTP auth\b.*\b(?:implemented|complete|ready|supported)\b/i,
             'FTP auth support'],
         [qr/\bFTP integrity\b.*\b(?:implemented|complete|ready|supported)\b/i,
@@ -167,16 +187,32 @@ subtest 'forbidden claims appear only in guarded contexts' => sub {
             'FTP publish support'],
         [qr/\bproduction key lifecycle\b.*\b(?:complete|implemented|ready|supported|shipped|landed|done)\b/i,
             'production key lifecycle completion'],
+        [qr/\bcomplete production key lifecycle\b/i,
+            'complete production key lifecycle'],
         [qr/\bpublish(?:ing)? auth(?:entication)?(?: policy)?\b.*\b(?:complete|implemented|ready|supported|shipped|landed|done)\b/i,
             'publish authentication policy completion'],
+        [qr/\bcomplete publish(?:ing)? auth(?:entication)?\b/i,
+            'complete publish authentication'],
         [qr/\bproduction publish signing or authorization\b.*\b(?:implemented|complete|ready|supported|shipped|landed|done)\b/i,
             'production publish signing or authorization'],
+        [qr/\bHMAC attestations\b.*\bauthorize\b.*\b(?:publish|writer access)\b/i,
+            'HMAC attestations authorize publish or writer access'],
+        [qr/\bGOFTP-HMAC-PUBLISH\/1\b.*\b(?:production|real writer|transport authentication)\b/i,
+            'GOFTP-HMAC-PUBLISH/1 production or real-writer auth'],
+        [qr/\b(?:rotated|revoked|expired)\b.*\b(?:can|may)\b.*\bpublish new material\b/i,
+            'non-trusted lifecycle publishes new material'],
         [qr/\b(?:complete )?signed\/auth diagnostics coverage\b.*\b(?:complete|implemented|ready|supported|shipped|landed|done)\b/i,
             'complete signed/auth diagnostics coverage'],
         [qr/\b(?:complete )?public attack coverage\b.*\b(?:complete|implemented|ready|supported|shipped|landed|done)\b/i,
             'complete public attack coverage'],
+        [qr/\b(?:complete )?JSON (?:output|schema)\b.*\b(?:complete|implemented|ready|supported|shipped|landed|done)\b/i,
+            'complete JSON output or schema'],
+        [qr/\bJSON output\b.*\bcomplete\b/i,
+            'JSON output completeness'],
         [qr/\b(?:source art|Web|TUI|Inline::C|asm-like)\b.*\bown(?:s)? (?:replay )?truth\b/i,
             'display or accelerator owns truth'],
+        [qr/\b(?:Web|TUI|source art|C|Inline::C|asm-like)\b.*\bdefine(?:s)? diagnostic meaning\b/i,
+            'display or accelerator defines diagnostic meaning'],
     );
 
     my @unguarded;
@@ -214,9 +250,13 @@ subtest 'claim guard helper distinguishes forbidden lists from positive claims' 
 
     my @wrapped = ('GobanFTP v1.0 is', 'ready.');
     my $wrapped_candidate = "$wrapped[0] $wrapped[1]";
-    like $wrapped_candidate, qr/\bv1[.]0\s+(?:is\s+)?(?:complete|ready|released|tagged)\b/i,
+    like $wrapped_candidate, qr/\bv1[.]0\s+(?:is\s+)?(?:complete|ready|released|tagged|done(?! when)|final(?![- ]candidate)|frozen|shipped)\b/i,
         'wrapped positive claim is still matched';
     ok !_guarded_context(\@wrapped, 0, $wrapped_candidate), 'wrapped positive claim is not guarded';
+
+    my @previous_future = ('Future work remains.', 'GobanFTP v1.0 is ready.');
+    ok !_guarded_context(\@previous_future, 1, $previous_future[1]),
+        'previous-line future context does not guard a positive claim';
 };
 
 done_testing;

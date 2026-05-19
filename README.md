@@ -235,8 +235,8 @@ fixture publish-token/preflight semantics remains release-route work; so do real
 writer authorization, final scoring/result events, final P14 release matrix,
 and the full `v1.0/P14` freeze. FTP listing-shadow public poison-vector coverage is
 frozen for the current fixture/listing boundary only.
-it does not claim live FTP, `RETR`, `SIZE`, `MDTM`, FTP auth, FTP integrity, or
-FTP publish behavior.
+The FTP listing-shadow vector does not claim live FTP, `RETR`, `SIZE`, `MDTM`,
+FTP auth, FTP integrity, or FTP publish behavior.
 Signed/auth mismatch rows are fixture and vector evidence only; they do not
 claim complete production key lifecycle, complete publish auth, or real writer
 authorization.

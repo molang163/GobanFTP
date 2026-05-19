@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- docs: record P21c release rehearsal
 - test: freeze publish auth mismatch vectors
 - feat: close diagnostics registry contract
 - feat: add hmac publish token semantics
@@ -53,6 +54,17 @@ Current state after the v1.0 final-candidate identity switch:
 - The source tree is now a `v1.0` / package `1.000` final candidate:
   `lib/GobanFTP.pm` declares `1.000`, `Changes` starts with
   `1.000  2026-05-19`, and no `v1.0` tag or final artifact is claimed yet.
+- P21c ran a clean-checkout-style final-candidate rehearsal from a temporary
+  detached worktree at commit `7ae0e25e87144143ca1896bb929c576c4d9f3565`.
+  Source-art smoke, MakeMaker, no-C and shadow `make test`, full `prove -lr t`,
+  P14 claim audit, v1/profile/auth/diagnostics/rules target gates, v1
+  witness/compare smoke, manifest, dist, no-C disttest, and distcheck all
+  passed. The rehearsal tarball was `GobanFTP-1.000.tar.gz` with
+  `sha256=f9c82ae19acb2df192aec5a13efc5865c6fc67f332334068e1302f507ae7ddd9`,
+  `size=374468`, `tar_entries=797`, and
+  `MANIFEST_sha256=0b955be678b202ed0fa8f6b2633e0ce3fea79b72a1ad8c3b3462bed217d255ad`.
+  This is rehearsal evidence only because this restore/gate record lands after
+  the run; it is not a v1.0 tag, publication event, or final artifact record.
 - A fresh clean-checkout matrix passed at commit
   `1f5f646921f675c93e25819cb3cf3652f5d6bebe`.
 - The development tarball was `GobanFTP-1.000_001.tar.gz` with
@@ -136,6 +148,7 @@ Current state after the v1.0 final-candidate identity switch:
 ## Recent Completed Work
 
 ```text
+HEAD docs: record P21c release rehearsal
 HEAD test: freeze publish auth mismatch vectors
 HEAD feat: close diagnostics registry contract
 HEAD test: harden publish auth preflight coverage
@@ -414,11 +427,89 @@ Key completed boundaries:
   source-checkout restore memory for unguarded final-release claims while
   allowing explicit forbidden-claim registries and negative/deferred contexts.
   It is included in the latest clean-checkout development matrix.
+- P21c claim-audit tightening keeps the FTP listing-shadow README boundary
+  explicit, records that the TUI terminal list is fallback design evidence
+  rather than compatibility certification, expands forbidden release-claim
+  scanning for publish/auth, hosted-Web, DNS, Git, JSON, and display-surface
+  overclaims, and verifies that prior-line future-work text cannot guard a
+  positive final-release claim.
 - Ruleset seal, v1 witness CLI, and v1 compare CLI are already implemented.
 
 ## Last Verified
 
-Latest local verification after P21b signed/auth mismatch vector closure:
+Latest local verification after P21c final-candidate rehearsal:
+
+```text
+temporary detached worktree:
+  /tmp/gobanftp-p21c.cbdvWK/worktree
+source commit:
+  7ae0e25e87144143ca1896bb929c576c4d9f3565
+Perl:
+  v5.42.2
+local tags:
+  v0.1 only; no v1.0 tag
+
+perl -c oracle/goban.pl
+perl oracle/goban.pl --smoke
+perl Makefile.PL
+GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make test
+GOBANFTP_RULES_ENGINE=shadow make test
+prove -lr t
+prove -lr t/v1-cross-substrate.t
+prove -lr t/v1-attack-fixtures.t
+prove -lr t/v1-profile-attack-fixtures.t
+prove -lr t/v1-profile-publish-fixtures.t
+prove -lr t/v1-publish-auth-golden-vectors.t
+prove -lr t/v1-golden-vectors.t
+prove -lr t/v1-signed-hmac.t
+prove -lr t/v1-signed-hmac-overlay.t
+prove -lr t/v1-signed-hmac-golden-vectors.t
+prove -lr t/auth-publish-token.t t/cli-auth-publish-token.t
+prove -lr t/publish-auth-preflight.t t/tui-play.t t/store-git-tree.t t/dns-cli-parity.t t/ftp-cli-parity.t t/webdav-cli-parity.t
+prove -lr t/profile-registry.t t/profile-adapter.t t/witness-api.t
+prove -lr t/diagnostics-contract.t
+prove -lr t/rules-flow.t t/rules-superko.t
+prove -lr t/p14-claim-audit.t
+script/gobanftp v1 witness --profile local-goftp1 --fixture t/fixtures/v1/cross-substrate/minimal
+script/gobanftp v1 compare-roots --fixture t/fixtures/v1/cross-substrate/minimal
+script/gobanftp v1 compare-replay --fixture t/fixtures/v1/cross-substrate/minimal
+make manifest
+make dist
+GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make disttest
+make distcheck
+tarball inclusion/exclusion checks
+```
+
+Result:
+
+```text
+P21c final-candidate rehearsal matrix: PASS.
+oracle/goban.pl smoke: PASS, inline_c=skip.
+No-C make test: Files=83, Tests=1102, all successful.
+Shadow make test: Files=83, Tests=1106, all successful.
+Full prove: Files=83, Tests=1106, all successful.
+All targeted v1/profile/auth/diagnostics/rules/P14 gates: PASS.
+v1 witness, compare-roots, and compare-replay fixture commands: PASS.
+minimal_event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461
+make manifest left MANIFEST and MANIFEST.SKIP unchanged.
+disttest no-C: Files=83, Tests=1102, all successful.
+make distcheck: PASS.
+dist=GobanFTP-1.000.tar.gz
+dist_sha256=f9c82ae19acb2df192aec5a13efc5865c6fc67f332334068e1302f507ae7ddd9
+dist_size_bytes=374468
+tar_entries=797
+MANIFEST_sha256=0b955be678b202ed0fa8f6b2633e0ce3fea79b72a1ad8c3b3462bed217d255ad
+tarball includes README.md, Changes, MANIFEST, P14 release docs,
+  t/p14-claim-audit.t, t/v1-publish-auth-golden-vectors.t, and
+  t/fixtures/vectors/v1-publish-auth.jsonl.
+tarball excludes SESSION_RESTORE, MYMETA, pm_to_blib, blib, _Inline,
+  nested dist tarballs, nested distdirs, and .git.
+Live FTP: skipped; GOBANFTP_FTP_TEST was not set.
+This is not the final stable matrix from the post-record commit and is not a
+tag or publication event.
+```
+
+Previous local verification after P21b signed/auth mismatch vector closure:
 
 ```text
 perl -Ilib -c t/diagnostics-contract.t
@@ -634,14 +725,15 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-after P21b signed/auth mismatch vector closure:
+after P21c final-candidate rehearsal:
 - keep `GOFTP-HMAC-PUBLISH/1` as verifier-local fixture publish-auth semantics;
   it is not real writer access, transport auth, or production key lifecycle
 - unsigned `GOFTP/1` and default `publish-move`, `publish-ack`, and `play`
   paths still do not read auth material
-- likely next v1.0-completeness slice is P21c: run a final release-claim audit
-  and clean-checkout-style matrix rehearsal, then decide whether any remaining
-  v1.0 route gap blocks the final artifact plan
+- likely next v1.0-completeness slice is P21d: rerun the final stable matrix
+  from the record commit if no more source/doc changes are needed, attach an
+  external artifact record outside the tarball, then make the tag/publication
+  decision
 - do not tag v1.0 until the final claim audit passes, the final stable
   clean-checkout matrix passes, and the external artifact record is attached
 - do not let display, source art, Web assets, terminal formatting, or interactive
