@@ -64,9 +64,9 @@ Core modules must remain easier to maintain than to admire. If a picture makes a
 function harder to audit, move the picture to `oracle/`, a fixture, or a
 projection.
 
-## Arch Gate Easter Egg
+## Arch-Gate Easter Egg
 
-The Arch easter egg is allowed as a small hidden motif, not as branding.
+The arch-gate easter egg is allowed as a small hidden motif, not as branding.
 
 Use it as an A-shaped mountain gate inside the ritual surface:
 
@@ -101,6 +101,14 @@ The easter egg should read as a small source-art threshold: an arch-shaped gate
 in the shrine. It should not copy the official Arch Linux logo or wordmark, and
 it should not suggest that GobanFTP is affiliated with, endorsed by, or packaged
 by the Arch Linux project.
+
+The current placement is in `oracle/goban.pl` as a comment-only
+`arch-gate` threshold beside the smoke wrapper. `t/source-art.t` asserts that
+the motif exists, stays ASCII, the wrapper contains no obvious Arch Linux,
+official, or endorsement wording, and the motif is not emitted as witness truth.
+The executable board glyphs still feed only
+`GobanFTP::Oracle::Smoke`, and the smoke truth fields remain invariant under
+alternate visual boards.
 
 ## ASCII And Runtime Rules
 
@@ -147,7 +155,7 @@ Before v1.0 release, source-art work should demonstrate:
 one strong altar/goban source wrapper
 one witness/root motif in generated projection or static viewer
 one terminal or Web observatory surface
-one hidden arch-gate easter egg
+one hidden arch-gate easter egg, currently placed in `oracle/goban.pl`
 tests proving source-art changes cannot alter protocol truth
 ```
 

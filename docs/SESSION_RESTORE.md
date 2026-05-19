@@ -14,7 +14,8 @@ Current HEAD expectation:
 
 ```text
 at or after:
-- WIP test: add bad signature public poison vector
+- WIP test: add source art arch gate
+- test: add bad signature vector and dist hygiene gate
 - docs: record P14 development freeze matrix
 - chore: normalize manifest order
 - docs: refresh P14 claim audit gates
@@ -40,31 +41,21 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 
 Current WIP after the P14 development-freeze matrix:
 
-- `bad-signature` is now a required core attack fixture under
-  `t/fixtures/attacks/bad-signature/`.
-- `t/fixtures/vectors/v1-non-consensus-poison.jsonl` now has
-  `core-bad-signature-public-vector`, binding the invalid `.sig` sidecar text
-  as non-consensus evidence while keeping the same three-event truth.
-- `t/dist-manifest-hygiene.t` checks source MANIFEST hygiene for local restore
-  memory, build trees, `MYMETA.*`, `pm_to_blib`, and stale distribution
-  artifacts.
-- `docs/ATTACKS.md` marks `unicode-name`, `path-traversal-name`, and
-  `huge-directory` as deferred boundary specimens instead of current v1.0
-  public vector claims.
-- `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` now adds tarball negative checks
-  for restore memory, build residue, `MYMETA.*`, `pm_to_blib`, nested tarballs,
-  and stale distribution directories, while allowing MakeMaker-generated
-  `META.json` and `META.yml` inside the archive.
-- Verification already run for this WIP:
-  `prove -lr t/dist-manifest-hygiene.t t/v1-attack-fixtures.t t/attack-fixtures.t t/v1-golden-vectors.t`,
-  `GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make disttest`,
-  `make distcheck`, `git diff --check`, and explicit tarball hygiene commands
-  for `GobanFTP-1.000_001.tar.gz`.
+- `oracle/goban.pl` now carries a comment-only ASCII `arch-gate` source-art
+  easter egg beside the smoke wrapper.
+- `t/source-art.t` now asserts the arch-gate marker exists, stays ASCII, the
+  wrapper contains no obvious Arch Linux, official, or endorsement wording, and
+  the motif is not emitted as witness truth.
+- `docs/SOURCE_ART.md`, `docs/ROADMAP.md`, and `Changes` record the arch-gate as
+  non-consensus source/display art.
+- Previous HEAD `test: add bad signature vector and dist hygiene gate` added
+  the `bad-signature` public poison vector and dist manifest hygiene gate.
 
 ## Recent Completed Work
 
 ```text
-WIP test: add bad signature public poison vector
+WIP test: add source art arch gate
+HEAD test: add bad signature vector and dist hygiene gate
 HEAD docs: record P14 development freeze matrix
 HEAD chore: normalize manifest order
 HEAD docs: refresh P14 claim audit gates

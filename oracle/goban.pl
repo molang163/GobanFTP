@@ -14,6 +14,11 @@ use GobanFTP::Oracle::Smoke qw(run_smoke);
 # | file bytes are shadow :: this wrapper only lights the smoke test         |
 # +-------------------------------------------------------------------------+
 #
+# arch-gate: non-consensus source-art threshold; not a protocol input.
+#              /\
+#             /__\
+#            /_/\_\
+#
 # The array below is executable source art. The Perl cells themselves form the
 # visual board passed to the smoke module. The glyphs are not protocol inputs:
 # naming, hashing, replay, and rule behavior still live in lib/GobanFTP/*.

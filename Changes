@@ -9,6 +9,10 @@ Revision history for GobanFTP
   - Added a dist manifest hygiene gate proving local restore memory, build
     products, `MYMETA.*`, and stale distribution artifacts stay out of the
     source manifest and release archive checks.
+  - Added a hidden ASCII arch-gate source-art easter egg to the smoke wrapper,
+    with tests asserting the current marker is comment-only, smoke output does
+    not emit it, and existing source-art invariance checks keep wrapper art
+    outside replay truth.
   - Clarified that `unicode-name`, `path-traversal-name`, and `huge-directory`
     are deferred boundary attack topics, not current v1.0 public vector claims.
   - Promoted `git-tree-goftp1` to read-only runtime admission through

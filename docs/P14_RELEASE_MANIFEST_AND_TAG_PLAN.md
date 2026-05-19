@@ -307,6 +307,7 @@ signed-hmac-goftp1 has an explicit per-event HMAC acceptance gate
 public key and trust fixture reports are advisory outside signed profiles
 text, static HTML, and static terminal witness surfaces are read-only displays
 source art is runnable and non-consensus
+the arch-gate motif is comment-only source art, not witness output or protocol input
 P14/v1.0 development is active
 v1.0 remains unreleased until the final release-freeze matrix passes
 ```
@@ -325,6 +326,8 @@ production key lifecycle is complete
 publish authentication policy is complete
 final scoring/result events are part of GOFTP/1
 source art, Web, TUI, C, or asm-like surfaces own replay truth
+the arch-gate motif claims Arch Linux affiliation, endorsement, package
+identity, project logo, protocol name, profile id, or release artifact identity
 ```
 
 Before tagging, scan README, Changes, docs/ROADMAP.md, docs/V1_DOD.md,

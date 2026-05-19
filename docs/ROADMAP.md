@@ -441,7 +441,8 @@ Tasks:
 - define and apply the source-art motif register in `docs/SOURCE_ART.md`,
   including altar, goban, hash seal, DAG tree, FTP gate, projection mirror,
   witness eye, root monolith, signature seal, observatory surfaces, and a small
-  arch-gate easter egg
+  arch-gate easter egg. The first arch-gate is now a comment-only,
+  non-consensus threshold in `oracle/goban.pl` with `t/source-art.t` coverage.
 - expose profile id, adapter id, `event_set_root`, replay status, fork status,
   and signature status in terminal output. The first static terminal
   observatory view is available through `v1 witness --surface terminal`;

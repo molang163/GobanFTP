@@ -19,6 +19,12 @@ ok -f $script, 'source-art oracle exists';
 
 my $source = _slurp($script);
 like $source, qr/GobanFTP::Oracle::Smoke/, 'source-art wrapper delegates smoke scenario to a module';
+like $source, qr/^# arch-gate: non-consensus source-art threshold; not a protocol input\.$/m,
+    'source-art wrapper carries hidden arch-gate non-consensus marker';
+like $source, qr/^#\s+\/\\\n#\s+\/__\\\n#\s+\/_\/\\_\\$/m,
+    'source-art wrapper carries ASCII arch-gate threshold';
+unlike $source, qr/Arch Linux|archlinux|official|endorse|wordmark/i,
+    'source-art wrapper does not claim Arch Linux branding or affiliation';
 my @gobanftp_uses = $source =~ /^\s*use\s+(GobanFTP::[A-Za-z0-9_:]+)\b/mg;
 is_deeply \@gobanftp_uses, ['GobanFTP::Oracle::Smoke'],
     'source-art wrapper only imports the smoke module';
@@ -72,6 +78,8 @@ like $smoke_out,
     'smoke reports witness variations SGF hash';
 like $smoke_out, qr/^diagnostic_count=0$/m, 'smoke reports witness diagnostics count';
 like $smoke_out, qr/^inline_c=(?:missing|skip|ok value=361)$/m, 'Inline::C smoke is optional';
+unlike $smoke_out, qr/arch-gate|\/__\\|\/_\/\\_\\/,
+    'arch-gate source art is not emitted as witness truth';
 
 my @module_report = smoke_report(visual_board => _alternate_visual_board());
 like join("\n", @module_report), qr/^gobanftp\.oracle=ok$/m,
