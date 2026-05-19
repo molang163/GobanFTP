@@ -146,6 +146,8 @@ subtest 'v1 compare-roots reports fixture profile mismatch' => sub {
 };
 
 subtest 'v1 compare commands support explicit profile subsets and usage failures' => sub {
+    local $ENV{GOBANFTP_TEST_SECRET} = 'root';
+
     my ($exit, $stdout, $stderr) = _run_cli(
         'v1', 'compare-roots',
         '--fixture', File::Spec->catdir($fixture_dir, 'minimal'),

@@ -40,7 +40,12 @@ subtest 'v1 keygen creates a verifier-local signed-HMAC key file' => sub {
     like $stdout, qr/^key_path=\Q$key_path\E$/m, 'keygen prints key path';
     unlike $stdout . $stderr, qr/secret_hex|GOFTP-HMAC-KEY/, 'keygen does not print key material';
     ok -f $key_path, 'key file exists';
-    is sprintf('%04o', ((stat $key_path)[2] & 07777)), '0600', 'key file is mode 0600';
+    if ($^O ne 'MSWin32') {
+        is sprintf('%04o', ((stat $key_path)[2] & 07777)), '0600', 'key file is mode 0600';
+    }
+    else {
+        pass 'Windows key file mode is not tested as a POSIX 0600 bitmask';
+    }
 
     my $key = read_hmac_key_file($key_path);
     like $key->{secret_hex}, qr/\A[0-9a-f]{64}\z/, 'key file stores private HMAC secret';

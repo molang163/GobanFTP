@@ -7,6 +7,7 @@ use warnings;
 use Carp qw(croak);
 use Exporter qw(import);
 use Fcntl qw(O_CREAT O_EXCL O_WRONLY);
+use MIME::Base64 qw(decode_base64);
 
 use GobanFTP::Auth::HMAC qw(key_id_for_secret);
 
@@ -99,7 +100,7 @@ sub read_hmac_key_file {
 
     my @stat = stat $path;
     croak "stat $path: $!" if !@stat;
-    croak 'mode.public' if ($stat[2] & 0077) != 0;
+    croak 'mode.public' if _posix_private_mode_is_enforced() && ($stat[2] & 0077) != 0;
 
     open my $fh, '<:encoding(UTF-8)', $path or croak "open $path: $!";
     local $/;
@@ -120,7 +121,8 @@ sub write_hmac_key_file {
     binmode $fh;
     print {$fh} $text;
     close $fh or croak "close $path: $!";
-    chmod 0600, $path or croak "chmod $path: $!";
+    my $chmod_ok = chmod 0600, $path;
+    croak "chmod $path: $!" if !$chmod_ok && _posix_private_mode_is_enforced();
 
     return 1;
 }
@@ -164,6 +166,8 @@ sub _secret_from_hex {
 sub _random_bytes {
     my ($length) = @_;
 
+    return _windows_random_bytes($length) if $^O eq 'MSWin32';
+
     open my $fh, '<:raw', '/dev/urandom'
         or croak 'csprng.unavailable';
 
@@ -176,6 +180,34 @@ sub _random_bytes {
 
     close $fh or croak 'csprng.close';
     return $bytes;
+}
+
+sub _windows_random_bytes {
+    my ($length) = @_;
+
+    for my $powershell (qw(powershell.exe pwsh.exe powershell pwsh)) {
+        my $command = join '; ',
+            '$bytes = New-Object byte[] ' . int($length),
+            '[System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)',
+            '[Convert]::ToBase64String($bytes)';
+
+        my $output = '';
+        if (open my $fh, '-|', $powershell, '-NoProfile', '-NonInteractive', '-Command', $command) {
+            local $/;
+            $output = <$fh> // '';
+            close $fh or next;
+
+            $output =~ s/\s+\z//;
+            my $bytes = eval { decode_base64($output) };
+            return $bytes if defined($bytes) && length($bytes) == $length;
+        }
+    }
+
+    croak 'csprng.unavailable';
+}
+
+sub _posix_private_mode_is_enforced {
+    return $^O ne 'MSWin32' ? 1 : 0;
 }
 
 1;

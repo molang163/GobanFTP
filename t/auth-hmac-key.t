@@ -46,18 +46,29 @@ subtest 'key files are exclusive and private' => sub {
     my $record = generate_hmac_key_record(secret_hex => '22' x 32);
 
     ok write_hmac_key_file($path, $record), 'key file is written';
-    my $mode = (stat $path)[2] & 07777;
-    is sprintf('%04o', $mode), '0600', 'key file mode is private';
+    my $posix_mode = $^O ne 'MSWin32';
+    if ($posix_mode) {
+        my $mode = (stat $path)[2] & 07777;
+        is sprintf('%04o', $mode), '0600', 'key file mode is private';
+    }
+    else {
+        pass 'Windows key file mode is not tested as a POSIX 0600 bitmask';
+    }
     is_deeply read_hmac_key_file($path), $record, 'key file parses back';
 
-    chmod 0644, $path or die "chmod $path: $!";
-    my $mode_error = do {
-        local $@;
-        eval { read_hmac_key_file($path) };
-        $@;
-    };
-    like $mode_error, qr/mode[.]public/, 'public key file mode is rejected';
-    chmod 0600, $path or die "chmod $path: $!";
+    if ($posix_mode) {
+        chmod 0644, $path or die "chmod $path: $!";
+        my $mode_error = do {
+            local $@;
+            eval { read_hmac_key_file($path) };
+            $@;
+        };
+        like $mode_error, qr/mode[.]public/, 'public key file mode is rejected';
+        chmod 0600, $path or die "chmod $path: $!";
+    }
+    else {
+        pass 'Windows key file reader does not enforce POSIX public mode bits';
+    }
 
     my $error = do {
         local $@;

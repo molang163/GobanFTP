@@ -8,4 +8,7 @@ use lib "$FindBin::Bin/../lib";
 
 use GobanFTP::CLI;
 
+binmode STDOUT, ':unix:utf8';
+binmode STDERR, ':unix:utf8';
+
 exit GobanFTP::CLI->run(@ARGV);

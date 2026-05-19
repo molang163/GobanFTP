@@ -8,6 +8,9 @@ use lib "$FindBin::Bin/../lib";
 
 use GobanFTP::Oracle::Smoke qw(run_smoke);
 
+binmode STDOUT, ':unix:utf8';
+binmode STDERR, ':unix:utf8';
+
 # +-------------------------------------------------------------------------+
 # | GOFTP/1 ORACLE                                                          |
 # | altar is source :: goban is lens :: gate is a reader-side spark          |

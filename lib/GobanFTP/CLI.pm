@@ -123,12 +123,14 @@ sub _run_checked_command {
 
     my $error = $@ || 'unknown error';
     chomp $error;
-    $error = redact_text(_clean_error($error));
+    $error = _clean_error($error);
 
     if ($error =~ /\Ausage:/) {
         print STDERR "$error\n";
         return _usage(*STDERR, EXIT_USAGE);
     }
+
+    $error = redact_text($error);
 
     if ($error =~ /\Astorage:/) {
         $error =~ s/\Astorage:\s*//;

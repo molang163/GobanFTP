@@ -1,8 +1,14 @@
+.gitattributes
+.github/workflows/ci.yml
 .gitignore
 Changes
 cpanfile
 docs/ALGORITHMS.md
 docs/ARCHITECTURE.md
+docs/assets/readme-01-protocol-object.png
+docs/assets/readme-02-tui.png
+docs/assets/readme-03-witness-specimen.png
+docs/assets/readme-04-race-fork.png
 docs/ATTACKS.md
 docs/BUILD.md
 docs/CLI.md
@@ -10,10 +16,6 @@ docs/DECISIONS.md
 docs/DIAGNOSTICS.md
 docs/GLOSSARY.md
 docs/GRAMMAR.md
-docs/assets/readme-01-protocol-object.png
-docs/assets/readme-02-tui.png
-docs/assets/readme-03-witness-specimen.png
-docs/assets/readme-04-race-fork.png
 docs/P14_RELEASE_GATE.md
 docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md
 docs/PROFILES.md
@@ -282,8 +284,8 @@ Makefile.PL
 MANIFEST			This list of files
 MANIFEST.SKIP
 oracle/goban.pl
-README.md
 README.ja.md
+README.md
 README.zh-CN.md
 script/gobanftp
 script/live-ftp-smoke
