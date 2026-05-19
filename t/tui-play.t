@@ -353,6 +353,8 @@ subtest 'CLI play --tui refuses non-terminal stdio before loading a store' => su
 subtest 'CLI play --tui has a real pty smoke path when script(1) is available' => sub {
     my $script_bin = _which('script');
     plan skip_all => 'script(1) is not available' if !defined $script_bin;
+    plan skip_all => 'script(1) does not support GNU -c command mode'
+        if !_script_supports_command($script_bin);
 
     my (undef, $quit_game) = _make_game_root();
     my ($quit_exit, $quit_stdout, $quit_stderr) = _run_pty_cli('q', 'play', '--tui', $quit_game);
@@ -495,6 +497,19 @@ sub _run_pty_cli {
     $stdout =~ s/\r\n/\n/g;
     $stderr =~ s/\r\n/\n/g;
     return ($exit, $stdout, $stderr);
+}
+
+sub _script_supports_command {
+    my ($script_bin) = @_;
+
+    my $err = gensym;
+    my $pid = open3(my $in, my $out, $err, $script_bin, '-q', '-e', '-c', 'true', File::Spec->devnull);
+    close $in or return 0;
+    my $stdout = do { local $/; <$out> // '' };
+    my $stderr = do { local $/; <$err> // '' };
+    waitpid $pid, 0;
+
+    return ($? >> 8) == 0 && $stderr !~ /illegal option|usage:/i ? 1 : 0;
 }
 
 sub _event_names {

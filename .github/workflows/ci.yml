@@ -26,10 +26,6 @@ jobs:
         perl:
           - '5.34'
 
-    defaults:
-      run:
-        shell: bash
-
     env:
       GOBANFTP_RULES_DISABLE_C: '1'
       GOBANFTP_RULES_ENGINE: perl
@@ -57,13 +53,11 @@ jobs:
 
       - name: Build
         run: |
-          make_cmd="$(perl -MConfig -e 'print $Config{make}')"
-          "$make_cmd"
+          perl -MConfig -e 'my $make = $Config{make}; system($make) == 0 or die "$make failed: $?"'
 
       - name: Run MakeMaker test suite
         run: |
-          make_cmd="$(perl -MConfig -e 'print $Config{make}')"
-          "$make_cmd" test
+          perl -MConfig -e 'my $make = $Config{make}; system($make, "test") == 0 or die "$make test failed: $?"'
 
       - name: Run test suite
         run: prove -lr t
