@@ -149,7 +149,7 @@ GOBANFTP_ROOT=examples/fixtures/ftp-shrine \
 perl -Ilib script/gobanftp play --once g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
 ```
 
-Expected shape:
+Expected clean shape, selected lines:
 
 ```text
 gobanftp.play=ok
@@ -168,7 +168,7 @@ worldline.status=main
 1 . . . . . . . . .
 ```
 
-Now open the race:
+Open the race fixture:
 
 ```text
 examples/fixtures/ftp-race-shrine/
@@ -181,16 +181,20 @@ GOBANFTP_ROOT=examples/fixtures/ftp-race-shrine \
 perl -Ilib script/gobanftp replay g1.id-ftp-race-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim
 ```
 
-The process exits `3`. Output includes:
+The process exits `3`. Expected race shape, selected lines:
 
 ```text
 diagnostic ... code=fork parent_id=hihat4p8r6gaeuts
 gobanftp.replay=fork
+events=4
+event_set_count=4
 canonical_moves=1
 legal_moves=3
+canonical_ids=hihat4p8r6gaeuts
 ```
 
-That is the point: the race remains visible.
+That is the point: the race remains visible. No listing order gets to choose a
+winner.
 
 ## Terminal Play
 
