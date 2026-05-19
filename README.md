@@ -1,5 +1,7 @@
 # GobanFTP
 
+[English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
+
 A Go game recovered from hostile directory listings.
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
@@ -544,6 +546,8 @@ Repository map:
 ```text
 .
 |-- README.md              this text
+|-- README.zh-CN.md        Simplified Chinese README
+|-- README.ja.md           Japanese README
 |-- docs/                  protocol, roadmap, decisions, gates
 |-- oracle/goban.pl        executable source-art smoke wrapper
 |-- lib/GobanFTP/          Perl implementation modules

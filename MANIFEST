@@ -283,6 +283,8 @@ MANIFEST			This list of files
 MANIFEST.SKIP
 oracle/goban.pl
 README.md
+README.ja.md
+README.zh-CN.md
 script/gobanftp
 script/live-ftp-smoke
 t/00-load.t
@@ -569,6 +571,7 @@ t/projection-rebuild.t
 t/publish-ack.t
 t/publish-auth-preflight.t
 t/publish-move.t
+t/readme-localization.t
 t/replay-ack-assisted.t
 t/replay-input-boundary.t
 t/replay-projection-contract.t
