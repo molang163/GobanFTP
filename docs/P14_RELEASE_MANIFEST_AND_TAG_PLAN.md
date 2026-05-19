@@ -258,7 +258,7 @@ For the final stable v1.0 identity, first switch to the reserved `v1.0` /
 identity in the final release record.
 
 The latest `1.000_001` development freeze result for candidate commit
-`e1c8b4036ce9bf2260455b0aa0834df544393845` is recorded in
+`1f5f646921f675c93e25819cb3cf3652f5d6bebe` is recorded in
 `docs/P14_RELEASE_GATE.md`. A passing development freeze matrix is not the
 final stable v1.0 release record; the final route still requires the reserved
 `v1.0` / `1.000` identity, a fresh final matrix, and an external artifact

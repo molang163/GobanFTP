@@ -143,36 +143,36 @@ publication event.
 
 ## Current Development Freeze Clean-Checkout Check
 
-After the source-art arch-gate, bad-signature poison vector, and distribution
-hygiene gate landed, the development freeze matrix from
+After the P14 claim-audit gate landed, the development freeze matrix from
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` passed again from a fresh clean
 checkout:
 
 ```text
 Date: 2026-05-19
-Candidate commit: e1c8b4036ce9bf2260455b0aa0834df544393845
+Candidate commit: 1f5f646921f675c93e25819cb3cf3652f5d6bebe
 Documentation record commit: post-run record, not tested tarball source
-Worktree: /tmp/gobanftp-p14-current.kfuVD5/worktree (removed)
-Logs: /tmp/gobanftp-p14-current.kfuVD5/logs
+Worktree: /tmp/gobanftp-p14-claim-matrix.xQjVL4/worktree (removed)
+Logs: /tmp/gobanftp-p14-claim-matrix.xQjVL4/logs
 Perl: v5.42.2
 Matrix: PASS
 Dist: GobanFTP-1.000_001.tar.gz
-sha256=6b88fb2118dd6776f71319e69c3643ee72891a80152aee5e6f10cc5d8e9251bd
-size=323764 bytes
-tar entries=783
-MANIFEST sha256=8ee3efb34417baa521a1f620e8761fe56cc266d346cd2324fe431457f9646bc2
+sha256=45347dff8f9ac649ec194ab729172df25fa675556fadcb83f0964dc8d18c7e00
+size=328408 bytes
+tar entries=784
+MANIFEST sha256=e8efd1d7c7e5ea51cd35575875606b5d4559a6e2f7c4884828ea4688da599ba5
 minimal event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461
+P14 claim audit: PASS, Files=1, Tests=12
 Live FTP: skipped; GOBANFTP_FTP_TEST was not set
 Inline::C: source-art optional path reported inline_c=skip
 ```
 
 The tarball inclusion checks confirmed the P14 release-plan docs, public
 non-consensus poison vector file, minimal FTP listing fixture, intentional
-`tmp-poison/tmp/pending.part` specimen, `ftp-listing-shadow-poison-public-vector`,
-`core-bad-signature-public-vector`, and the comment-only `arch-gate` source-art
-marker. The archive exclusion checks confirmed the restore memory, local build
-trees, `_Inline/`, `MYMETA.*`, `pm_to_blib`, nested tarballs, and stale dist
-directories were absent.
+`tmp-poison/tmp/pending.part` specimen, `t/p14-claim-audit.t`,
+`ftp-listing-shadow-poison-public-vector`, `core-bad-signature-public-vector`,
+and the comment-only `arch-gate` source-art marker. The archive exclusion checks
+confirmed the restore memory, local build trees, `_Inline/`, `MYMETA.*`,
+`pm_to_blib`, nested tarballs, and stale dist directories were absent.
 
 This was the `1.000_001` development freeze matrix, not the reserved stable
 `v1.0` / package `1.000` release matrix. Because this documentation record is
@@ -180,17 +180,17 @@ written after the run, it is not inside the tested tarball and is not the tested
 tarball source unless the matrix is rerun from this record commit.
 
 The earlier clean-checkout matrix at
-`a7631497ac990e9622102176e322d449f125aaed` remains historical development
+`e1c8b4036ce9bf2260455b0aa0834df544393845` remains historical development
 evidence; the record above is the current HEAD evidence.
 
 ## Post-Matrix Claim-Audit Targeted Check
 
-After the current development-freeze matrix above, a targeted release-text
-claim-audit gate was added:
+Before the refreshed full development-freeze matrix above, the release-text
+claim-audit gate was first checked as a targeted post-matrix gate:
 
 ```text
 Date: 2026-05-19
-Source state: this documentation commit, after adding t/p14-claim-audit.t
+Source state: 1f5f646921f675c93e25819cb3cf3652f5d6bebe
 Command: prove -lr t/p14-claim-audit.t
 Result: PASS
 Scope: release-text claim-boundary check only
@@ -200,6 +200,7 @@ This targeted check guards README, Changes, V1 DoD, roadmap, P14 gate,
 release-manifest/tag plan, and source-checkout restore memory against accidental
 final-release over-claims. It is not a refreshed full clean-checkout matrix, not
 a stable `v1.0` artifact check, and not a P14/v1.0 completion claim.
+The current development-freeze matrix above now includes this gate.
 
 ## Next Release-Route Step
 

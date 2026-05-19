@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- docs: record P14 claim-audit matrix
 - test: add P14 claim audit gate
 - docs: record current P14 development matrix
 - test: add source art arch gate
@@ -44,16 +45,16 @@ Confirm the latest commit with `git log --oneline -5` when resuming.
 Current state after the latest P14 development-freeze matrix:
 
 - A fresh clean-checkout matrix passed at commit
-  `e1c8b4036ce9bf2260455b0aa0834df544393845`.
+  `1f5f646921f675c93e25819cb3cf3652f5d6bebe`.
 - The development tarball was `GobanFTP-1.000_001.tar.gz` with
-  `sha256=6b88fb2118dd6776f71319e69c3643ee72891a80152aee5e6f10cc5d8e9251bd`,
-  `size=323764`, `tar_entries=783`, and
-  `MANIFEST_sha256=8ee3efb34417baa521a1f620e8761fe56cc266d346cd2324fe431457f9646bc2`.
+  `sha256=45347dff8f9ac649ec194ab729172df25fa675556fadcb83f0964dc8d18c7e00`,
+  `size=328408`, `tar_entries=784`, and
+  `MANIFEST_sha256=e8efd1d7c7e5ea51cd35575875606b5d4559a6e2f7c4884828ea4688da599ba5`.
 - This is still `1.000_001` development-freeze evidence only: no v1.0 tag, P14
   completion, publication event, or final stable v1.0 artifact is claimed.
 - `t/p14-claim-audit.t` now guards release-facing text against accidental
-  final-release over-claims. It is a targeted documentation/claim-boundary gate,
-  not a refreshed full clean-checkout matrix or P14/v1.0 completion claim.
+  final-release over-claims and is included in the latest full development
+  matrix. Passing it is still not a P14/v1.0 completion claim.
 - `oracle/goban.pl` now carries a comment-only ASCII `arch-gate` source-art
   easter egg beside the smoke wrapper.
 - `t/source-art.t` now asserts the arch-gate marker exists, stays ASCII, the
@@ -67,6 +68,7 @@ Current state after the latest P14 development-freeze matrix:
 ## Recent Completed Work
 
 ```text
+HEAD docs: record P14 claim-audit matrix
 HEAD test: add P14 claim audit gate
 HEAD docs: record current P14 development matrix
 HEAD test: add source art arch gate
@@ -320,22 +322,21 @@ Key completed boundaries:
 - `MANIFEST` ordering was normalized after the first clean-checkout matrix run
   found that `make manifest` would otherwise leave a tracked diff.
 - The latest clean-checkout `1.000_001` development freeze matrix passed at
-  `e1c8b4036ce9bf2260455b0aa0834df544393845` and generated
+  `1f5f646921f675c93e25819cb3cf3652f5d6bebe` and generated
   `GobanFTP-1.000_001.tar.gz`
-  (`sha256=6b88fb2118dd6776f71319e69c3643ee72891a80152aee5e6f10cc5d8e9251bd`,
-  `size=323764`, `tar_entries=783`,
-  `MANIFEST_sha256=8ee3efb34417baa521a1f620e8761fe56cc266d346cd2324fe431457f9646bc2`).
+  (`sha256=45347dff8f9ac649ec194ab729172df25fa675556fadcb83f0964dc8d18c7e00`,
+  `size=328408`, `tar_entries=784`,
+  `MANIFEST_sha256=e8efd1d7c7e5ea51cd35575875606b5d4559a6e2f7c4884828ea4688da599ba5`).
   It includes the source-art arch-gate, bad-signature public poison vector, and
-  distribution hygiene checks. This is development-freeze evidence only: no
-  v1.0 tag, P14 completion, publication event, or final stable v1.0 artifact is
-  claimed. This restore-file record is post-run documentation, not the tested
-  tarball source unless the matrix is rerun from this record commit.
+  P14 claim-audit gate. This is development-freeze evidence only: no v1.0 tag,
+  P14 completion, publication event, or final stable v1.0 artifact is claimed.
+  This restore-file record is post-run documentation, not the tested tarball
+  source unless the matrix is rerun from this record commit.
 - `t/p14-claim-audit.t` is now an executable release-text boundary gate. It
   scans README, Changes, roadmap, V1 DoD, P14 gate, P14 manifest/tag plan, and
   source-checkout restore memory for unguarded final-release claims while
   allowing explicit forbidden-claim registries and negative/deferred contexts.
-  It has been added to the development and final release matrices, but the
-  previous `e1c8b4...` clean-checkout matrix did not include it.
+  It is included in the latest clean-checkout development matrix.
 - Ruleset seal, v1 witness CLI, and v1 compare CLI are already implemented.
 
 ## Last Verified
@@ -345,49 +346,44 @@ freeze:
 
 ```text
 clean worktree matrix from docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md
-candidate commit e1c8b4036ce9bf2260455b0aa0834df544393845
-worktree /tmp/gobanftp-p14-current.kfuVD5/worktree, removed after the run
-logs /tmp/gobanftp-p14-current.kfuVD5/logs
+candidate commit 1f5f646921f675c93e25819cb3cf3652f5d6bebe
+worktree /tmp/gobanftp-p14-claim-matrix.xQjVL4/worktree, removed after the run
+logs /tmp/gobanftp-p14-claim-matrix.xQjVL4/logs
 ```
 
 Result:
 
 ```text
-Post-matrix targeted claim-audit gate:
-  prove -lr t/p14-claim-audit.t
-  Files=1, Tests=12, all successful.
-  This is not a refreshed full clean-checkout matrix.
-
 Matrix: PASS.
 perl -c oracle/goban.pl: PASS.
 perl oracle/goban.pl --smoke: PASS, source-art inline_c=skip.
 GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make test:
-  Files=74, Tests=1030, all successful.
+  Files=75, Tests=1042, all successful.
 GOBANFTP_RULES_ENGINE=shadow make test:
-  Files=74, Tests=1034, all successful.
+  Files=75, Tests=1046, all successful.
 prove -lr t:
-  Files=74, Tests=1034, all successful.
+  Files=75, Tests=1046, all successful.
 Targeted v1/profile/rules gates:
   v1-cross-substrate 1/7, v1-attack-fixtures 1/30,
   v1-profile-attack-fixtures 1/10, v1-profile-publish-fixtures 1/9,
   v1-golden-vectors 1/130, v1-signed-hmac 1/14,
   v1-signed-hmac-golden-vectors 1/29, profile/witness 3/67,
-  diagnostics 1/4, rules-flow+superko 2/7, source/surface 4/167.
+  diagnostics 1/4, rules-flow+superko 2/7, p14-claim-audit 1/12.
 v1 witness, compare-roots, and compare-replay fixture commands: PASS.
 make manifest plus MANIFEST/MANIFEST.SKIP diff gate: PASS.
 make dist: PASS, GobanFTP-1.000_001.tar.gz.
 tarball evidence checks: P14 docs, non-consensus poison vector, minimal FTP
   listing fixture, tmp-poison pending.part, and
   ftp-listing-shadow-poison-public-vector, core-bad-signature-public-vector,
-  and arch-gate marker present.
+  t/p14-claim-audit.t, and arch-gate marker present.
 tarball hygiene checks: SESSION_RESTORE, build trees, _Inline, MYMETA,
   pm_to_blib, nested tarballs, and stale distdirs absent.
-disttest no-C: Files=74, Tests=1030, all successful.
+disttest no-C: Files=75, Tests=1042, all successful.
 make distcheck: PASS.
-dist_sha256=6b88fb2118dd6776f71319e69c3643ee72891a80152aee5e6f10cc5d8e9251bd
-dist_size_bytes=323764
-tar_entries=783
-MANIFEST_sha256=8ee3efb34417baa521a1f620e8761fe56cc266d346cd2324fe431457f9646bc2
+dist_sha256=45347dff8f9ac649ec194ab729172df25fa675556fadcb83f0964dc8d18c7e00
+dist_size_bytes=328408
+tar_entries=784
+MANIFEST_sha256=e8efd1d7c7e5ea51cd35575875606b5d4559a6e2f7c4884828ea4688da599ba5
 minimal_event_set_root=599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461
 Live FTP: skipped; GOBANFTP_FTP_TEST was not set.
 This is not the final stable v1.0 matrix.
@@ -530,11 +526,10 @@ after entering v1.0/P14 development:
   proving ignored evidence leaves event-set preimage, root, replay, board,
   projection text, and SGF truth unchanged
 - the latest `1.000_001` development freeze matrix has passed at
-  `e1c8b4036ce9bf2260455b0aa0834df544393845`; do not tag or publish it as
+  `1f5f646921f675c93e25819cb3cf3652f5d6bebe`; do not tag or publish it as
   v1.0
-- the targeted `t/p14-claim-audit.t` release-text boundary gate is added; keep
-  it in the development and final release matrices, but do not treat it as a
-  refreshed full clean-checkout matrix by itself
+- `t/p14-claim-audit.t` release-text boundary gate is included in the latest
+  development matrix and must stay in the development and final release matrices
 - next choose either continued `1.000_001` development or the separate final
   stable v1.0 route
 - that slice must not add or claim Git publish, live DNS, AXFR, DNSSEC trust,
@@ -604,6 +599,6 @@ When resuming:
    maintainer guide supplied in the session context.
 2. Read this file.
 3. Run `git status --short`.
-4. Confirm HEAD includes `docs: record current P14 development matrix`.
+4. Confirm HEAD includes `docs: record P14 claim-audit matrix`.
 5. If the user asks to continue, review the next step first, then choose one
    small executable step.
