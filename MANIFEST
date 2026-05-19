@@ -269,6 +269,7 @@ lib/GobanFTP/Store/GitTree.pm
 lib/GobanFTP/Store/Local.pm
 lib/GobanFTP/Store/WebDAV.pm
 lib/GobanFTP/Surface/WitnessView.pm
+lib/GobanFTP/TUI/Play.pm
 lib/GobanFTP/Witness.pm
 LICENSE
 Makefile.PL
@@ -580,6 +581,7 @@ t/store-git-tree.t
 t/store-local.t
 t/store-webdav-mock.t
 t/surface-witness-view.t
+t/tui-play.t
 t/v1-attack-fixtures.t
 t/v1-cli-compare.t
 t/v1-cli-witness-surface-golden.t

@@ -17,29 +17,28 @@ read-only runtime store. DNS record admission is read-only over local or
 otherwise declared record files, with no live DNS, AXFR, DNSSEC trust, provider
 API, dynamic update, or publish path. `GOFTP/1` remains unchanged.
 
-The current route work is golden-vector expansion and P14 claim audit for the
-admitted read boundaries now present at HEAD, especially `git-tree-goftp1` and
-`dns-record-goftp1`. The witness vectors now carry self-contained input names,
-diagnostics, and rendered projection text, and replay-invariant vectors now
-cover ordinary rule, DAG, ACK, terminal, malformed, and ack-assisted fork
-behavior. Event-id collision is now covered as a synthetic DAG-boundary vector,
-not as an ordinary basename collision claim. Public non-consensus poison
-vectors now bind baseline/poison witness pairs to core/local bad-mtime,
-bad-payload, bad-list-order, bad-signature, poisoned-sidecar,
-projection-poison, tmp-poison, WebDAV metadata-poison, WebDAV href-traversal,
-DNS owner-poison, and Git-tree path/metadata-poison fixtures, plus the FTP
-listing-shadow cross-substrate fixture, including real fixture `input_names`,
-embedded evidence artifacts when
-poison lives outside the listing, and unchanged event-set preimage, root,
-replay, board, projection, and SGF truth. The signed-HMAC public-trust bridge
-is now represented in public signed/auth golden vectors as rejected `k1.`
-selector evidence and accepted explicit HMAC selector evidence. The next proof
-slice should continue the P14 claim audit for admitted read boundaries and
-final clean-gate preparation. The FTP listing-shadow vector is fixture/listing
-evidence only.
+The current route work is P17 TUI hardening, P14 claim audit, and final
+clean-gate preparation for the admitted read boundaries now present at HEAD,
+especially `git-tree-goftp1` and `dns-record-goftp1`. The witness vectors now
+carry self-contained input names, diagnostics, and rendered projection text,
+and replay-invariant vectors now cover ordinary rule, DAG, ACK, terminal,
+malformed, and ack-assisted fork behavior. Event-id collision is now covered as
+a synthetic DAG-boundary vector, not as an ordinary basename collision claim.
+Public non-consensus poison vectors now bind baseline/poison witness pairs to
+core/local bad-mtime, bad-payload, bad-list-order, bad-signature,
+poisoned-sidecar, projection-poison, tmp-poison, WebDAV metadata-poison, WebDAV
+href-traversal, DNS owner-poison, and Git-tree path/metadata-poison fixtures,
+plus the FTP listing-shadow cross-substrate fixture, including real fixture
+`input_names`, embedded evidence artifacts when poison lives outside the
+listing, and unchanged event-set preimage, root, replay, board, projection, and
+SGF truth. The signed-HMAC public-trust bridge is now represented in public
+signed/auth golden vectors as rejected `k1.` selector evidence and accepted
+explicit HMAC selector evidence. The FTP listing-shadow vector is
+fixture/listing evidence only. Local `play --tui` is a non-consensus
+input/display surface over the existing play publish path.
 This is not Git publish, Git remote fetch, live FTP, FTP auth, FTP integrity,
-FTP publish behavior, live DNS, DNS publish, hosted Web UI, interactive TUI, or
-a v1.0/P14 completion claim.
+FTP publish behavior, live DNS, DNS publish, hosted Web UI, production key
+lifecycle completion, publish auth completion, or a v1.0/P14 completion claim.
 
 ## Cross-Cutting Acceptance: Elegance Without Obscurity
 
@@ -447,13 +446,18 @@ Tasks:
   and signature status in terminal output. The first static terminal
   observatory view is available through `v1 witness --surface terminal`;
   it is a stdout inspection panel, not an interactive TUI.
+- expose local interactive terminal play through `gobanftp play --tui`. It
+  accepts keyboard and SGR mouse input, renders a readable board/status view,
+  publishes through the existing `play` path, exits after one successful
+  publish, and does not own replay truth.
 - add a Web-facing inspection surface or static export for witnesses,
   projections, profiles, diagnostics, and attack fixtures. The first reusable
   surface renderer now formats supplied witness fields and projection text
   without reading storage or recomputing truth, and `v1 witness --surface`
   exposes it as a read-only text/static HTML/terminal CLI view. The minimal
   surface smoke freezes text, HTML, and terminal output digests without
-  claiming a full Web or interactive TUI surface.
+  claiming a hosted Web UI. The local `play --tui` path is covered by TUI play
+  tests and still cannot own truth.
 - keep all TUI and Web output derived from replay results, witness outputs, or
   projections
 - preserve the rule that changing source art, terminal formatting, Web assets,
@@ -491,10 +495,10 @@ It is a release-route checkpoint, not a v1.0 tag or P14 completion claim.
 The final artifact identity and tag preconditions are tracked in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
 The `t/p14-claim-audit.t` gate guards current release-facing text against
-accidental over-claims. The immediate follow-up is to continue final clean-gate
-preparation, not to add Git publish, live DNS, AXFR, DNSSEC trust, provider
-APIs, dynamic update, DNS publish, hosted Web UI, interactive TUI, or a
-v1.0/P14 completion claim.
+accidental over-claims. The immediate follow-up is P17b TUI hardening and final
+clean-gate preparation, not Git publish, live DNS, AXFR, DNSSEC trust, provider
+APIs, dynamic update, DNS publish, hosted Web UI, production key lifecycle
+completion, publish auth completion, or a v1.0/P14 completion claim.
 
 Acceptance:
 

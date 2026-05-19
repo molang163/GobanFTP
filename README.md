@@ -82,7 +82,10 @@ prove -lr t/showcase-demo.t
 It checks the clean shrine, the race shrine, the source-art oracle smoke, the
 unsigned `local-goftp1` v1 witness, and the text, static HTML, and static
 terminal witness surfaces that expose the same root. Those surfaces are
-read-only inspection output, not hosted Web UI or interactive TUI.
+read-only inspection output: static HTML is not hosted Web UI, and
+`--surface terminal` is not the local `play --tui` input surface. Local terminal
+play is available through `gobanftp play --tui`; it remains an input/display
+layer over replay and publish callbacks.
 
 Open the shrine:
 

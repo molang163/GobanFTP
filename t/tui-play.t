@@ -1,0 +1,367 @@
+use v5.34;
+use strict;
+use warnings;
+
+use FindBin;
+use File::Path qw(make_path);
+use File::Spec;
+use File::Temp qw(tempdir);
+use IPC::Open3 qw(open3);
+use Symbol qw(gensym);
+use Test::More;
+
+use lib "$FindBin::Bin/../lib";
+
+use GobanFTP::Board;
+use GobanFTP::CLI;
+use GobanFTP::TUI::Play qw(
+    apply_tui_event
+    board_layout
+    feed_tui_input
+    hit_test_board
+    new_input_state
+    point_for_cursor
+    render_play_frame
+    run_play_tui
+);
+
+my $root = "$FindBin::Bin/..";
+my $module_path = "$root/lib/GobanFTP/TUI/Play.pm";
+my $GAME = 'g1.id-tuitest.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob';
+
+subtest 'TUI adapter has no consensus imports' => sub {
+    my $source = _slurp($module_path);
+    my @gobanftp_uses = $source =~ /^\s*use\s+(GobanFTP::[A-Za-z0-9_:]+)\b/mg;
+
+    is_deeply \@gobanftp_uses, [], 'TUI imports no GobanFTP consensus modules';
+    unlike $source,
+        qr/\b(?:replay|witness_for_listing|event_set_root_result|render_projection|publish_event_name|normalize_listing)\b/,
+        'TUI source does not name consensus or store mutation entry points';
+};
+
+subtest 'keyboard and SGR mouse input are parsed incrementally' => sub {
+    my $state = new_input_state();
+
+    is_deeply [feed_tui_input($state, "\e[")], [], 'partial CSI waits';
+    my @right = feed_tui_input($state, 'C');
+    is_deeply \@right, [{ type => 'move_cursor', dx => 1, dy => 0 }],
+        'split right arrow is parsed';
+
+    my @plain = feed_tui_input($state, "j\npRq");
+    is_deeply [map { $_->{type} } @plain], [qw(move_cursor submit action action quit)],
+        'plain keys become cursor, submit, action, and quit events';
+    is $plain[0]{dy}, 1, 'j moves down';
+    is $plain[2]{action}, 'pass', 'p maps to pass';
+    is $plain[3]{action}, 'resign', 'R maps to resign';
+
+    my $mouse_state = new_input_state();
+    is_deeply [feed_tui_input($mouse_state, "\e[<0;")], [], 'partial mouse sequence waits';
+    my @mouse = feed_tui_input($mouse_state, '5;7M');
+    is_deeply \@mouse, [{ type => 'mouse_press', button => 0, col => 5, row => 7 }],
+        'split SGR mouse press is parsed';
+    is_deeply [feed_tui_input(new_input_state(), "\e[<0;5;7m")], [],
+        'mouse release is ignored';
+
+    my $broken = new_input_state();
+    is_deeply [feed_tui_input($broken, "\e[<0;")], [], 'broken mouse prefix initially waits';
+    is_deeply [feed_tui_input($broken, 'q')], [{ type => 'quit' }],
+        'plain command after broken mouse prefix is recovered';
+};
+
+subtest 'layout maps terminal coordinates to board points' => sub {
+    my $layout = board_layout(
+        size           => 9,
+        first_cell_row => 10,
+        first_cell_col => 3,
+        cell_step      => 3,
+    );
+
+    is hit_test_board($layout, 3, 10), 'aa', 'upper-left point is aa';
+    is hit_test_board($layout, 27, 10), 'ia', 'upper-right point is ia';
+    is hit_test_board($layout, 27, 18), 'ii', 'lower-right point is ii';
+    is hit_test_board($layout, 1, 10), undef, 'row label is not a point';
+    is hit_test_board($layout, 30, 18), undef, 'outside board is not a point';
+    is point_for_cursor([0, 1], 9), 'ba', 'cursor row and column use filename point order';
+};
+
+subtest 'event reducer produces one canonical action intent' => sub {
+    my $cursor = [0, 0];
+    my $decision = apply_tui_event(
+        event  => { type => 'move_cursor', dx => 1, dy => 0 },
+        cursor => $cursor,
+        size   => 9,
+    );
+    is_deeply $decision, { type => 'cursor', cursor => [0, 1] },
+        'right movement clamps into a new cursor';
+
+    $decision = apply_tui_event(
+        event  => { type => 'submit' },
+        cursor => $decision->{cursor},
+        size   => 9,
+    );
+    is_deeply $decision, { type => 'action', action => 'ba', cursor => [0, 1] },
+        'submit publishes the selected point';
+
+    my $layout = board_layout(size => 9, first_cell_row => 10, first_cell_col => 3);
+    $decision = apply_tui_event(
+        event  => { type => 'mouse_press', col => 6, row => 11 },
+        cursor => [0, 0],
+        size   => 9,
+        layout => $layout,
+    );
+    is_deeply $decision, { type => 'action', action => 'bb', cursor => [1, 1] },
+        'mouse click publishes the hit-tested point and moves the cursor there';
+};
+
+subtest 'renderer exposes board state without deriving truth' => sub {
+    my $board = GobanFTP::Board->new(9);
+    $board->set(0, 0, 1);
+    $board->set(1, 0, 2);
+
+    my ($frame, $layout) = render_play_frame(
+        context => _fake_context($board),
+        cursor  => [0, 1],
+        message => "candidate\nrejected",
+        ansi    => 0,
+    );
+
+    like $frame, qr/\AGOBANFTP-PLAY-TUI\/1\n/, 'frame has a version header';
+    like $frame, qr/^truth=event-filenames$/m, 'frame names the truth boundary';
+    like $frame, qr/^now=Black to play: alice$/m, 'frame includes a readable turn line';
+    like $frame, qr/^verdict=No fork detected$/m, 'frame includes a readable safety line';
+    like $frame, qr/^action=Click a point or press Enter to publish ba$/m,
+        'frame includes a readable input line';
+    like $frame, qr/^status=ok events=1 accepted=1 canonical=1$/m,
+        'frame summarizes supplied replay and event-set fields';
+    like $frame, qr/^turn=black\(alice\) cursor=ba$/m, 'frame displays the selected point';
+    like $frame, qr/^message=candidate rejected$/m, 'message is single-line sanitized';
+    like $frame, qr/^9 B  W  \.  \.  \.  \.  \.  \.  \.$/m, 'board stones are rendered';
+    is $layout->{first_cell_row} > 1, 1, 'renderer returns a terminal hit-test layout';
+};
+
+subtest 'scripted TUI run locks after one publish' => sub {
+    my $board = GobanFTP::Board->new(9);
+    my $context = _fake_context($board);
+    my (@actions, $loads, $stdout);
+    open my $out_fh, '>', \$stdout or die "open scalar stdout: $!";
+
+    my $session = run_play_tui(
+        load_context => sub {
+            $loads++;
+            return $context;
+        },
+        publish_action => sub {
+            my ($action) = @_;
+            push @actions, $action;
+            return {
+                exit       => 0,
+                stage      => 'published',
+                context    => $context,
+                event_name => 'm1.t-root.by-alice.x-ba.h-deadbeefdeadbeef',
+                event_id   => 'deadbeefdeadbeef',
+            };
+        },
+        output_fh => $out_fh,
+        script    => "\e[C\rq",
+        ansi      => 0,
+    );
+
+    is_deeply \@actions, ['ba'], 'right arrow plus Enter publishes exactly one selected point';
+    is $session->{stage}, 'published', 'published move ends the TUI session';
+    is $session->{publish}{event_id}, 'deadbeefdeadbeef', 'publish result is returned to CLI';
+    ok $loads >= 2, 'cursor movement redraws from the supplied loader';
+    like $stdout, qr/GOBANFTP-PLAY-TUI\/1/, 'scripted session renders frames';
+};
+
+subtest 'scripted mouse click publishes through the same one-shot lock' => sub {
+    my $board = GobanFTP::Board->new(9);
+    my $context = _fake_context($board);
+    my (@actions, $stdout);
+    open my $out_fh, '>', \$stdout or die "open scalar stdout: $!";
+
+    my (undef, $layout) = render_play_frame(
+        context => $context,
+        cursor  => [0, 0],
+        ansi    => 0,
+    );
+    my $col = $layout->{first_cell_col} + $layout->{cell_step};
+    my $row = $layout->{first_cell_row} + 1;
+
+    my $session = run_play_tui(
+        load_context => sub {
+            return $context;
+        },
+        publish_action => sub {
+            my ($action) = @_;
+            push @actions, $action;
+            return {
+                exit       => 0,
+                stage      => 'published',
+                context    => $context,
+                event_name => 'm1.t-root.by-alice.x-bb.h-feedfacefeedface',
+                event_id   => 'feedfacefeedface',
+            };
+        },
+        output_fh => $out_fh,
+        script    => "\e[<0;$col;${row}M\e[<0;3;10M",
+        ansi      => 0,
+    );
+
+    is_deeply \@actions, ['bb'], 'mouse click publishes exactly one hit-tested point';
+    is $session->{stage}, 'published', 'mouse publish ends the TUI session';
+    is $session->{publish}{event_id}, 'feedfacefeedface', 'mouse publish result is returned';
+};
+
+subtest 'CLI play --tui refuses non-terminal stdio before loading a store' => sub {
+    my (undef, $game_root) = _make_game_root();
+    my ($exit, $stdout, $stderr) = _run_cli('play', '--tui', $game_root);
+
+    is $exit, 4, 'non-terminal TUI exits as storage/environment failure';
+    is $stdout, '', 'non-terminal TUI writes no snapshot';
+    like $stderr, qr/^storage: play --tui requires an interactive terminal$/m,
+        'non-terminal TUI has a clear diagnostic';
+};
+
+subtest 'CLI play --tui has a real pty smoke path when script(1) is available' => sub {
+    my $script_bin = _which('script');
+    plan skip_all => 'script(1) is not available' if !defined $script_bin;
+
+    my (undef, $quit_game) = _make_game_root();
+    my ($quit_exit, $quit_stdout, $quit_stderr) = _run_pty_cli('q', 'play', '--tui', $quit_game);
+    is $quit_exit, 0, 'pty q exits successfully';
+    like $quit_stdout, qr/GOBANFTP-PLAY-TUI\/1/, 'pty q renders the TUI frame';
+    like $quit_stdout, qr/\e\[ [?]1006l\e\[ [?]1000l\e\[ [?]25h\e\[ [?]1049l/x,
+        'pty q restores mouse, cursor, and alternate screen modes';
+    is_deeply [_event_names($quit_game)], [], 'pty q publishes no event';
+    is $quit_stderr, '', 'pty q has no stderr';
+
+    my (undef, $keyboard_game) = _make_game_root();
+    my ($key_exit, $key_stdout, $key_stderr) = _run_pty_cli("\e[C\r", 'play', '--tui', $keyboard_game);
+    is $key_exit, 0, 'pty keyboard publish exits successfully';
+    like $key_stdout, qr/event=m1[.].*play-ba/, 'pty keyboard publishes the selected ba point';
+    is scalar(_event_names($keyboard_game)), 1, 'pty keyboard publishes exactly one event';
+    is $key_stderr, '', 'pty keyboard publish has no stderr';
+
+    my (undef, $mouse_game) = _make_game_root();
+    my ($mouse_exit, $mouse_stdout, $mouse_stderr) =
+        _run_pty_cli("\e[<0;6;14M\e[<0;9;15M", 'play', '--tui', $mouse_game);
+    is $mouse_exit, 0, 'pty mouse publish exits successfully';
+    like $mouse_stdout, qr/event=m1[.].*play-bb/, 'pty mouse publishes the hit-tested bb point';
+    is scalar(_event_names($mouse_game)), 1, 'pty mouse publishes exactly one event';
+    is $mouse_stderr, '', 'pty mouse publish has no stderr';
+};
+
+done_testing;
+
+sub _fake_context {
+    my ($board) = @_;
+
+    return {
+        game_descriptor => $GAME,
+        events          => ['m1.t-root.by-alice.x-aa.h-deadbeefdeadbeef'],
+        event_set       => {
+            event_set_root => 'root-sha256',
+            event_count    => 1,
+        },
+        replay_result => {
+            final_state => {
+                board      => $board,
+                next_color => 'b',
+                terminal   => 0,
+            },
+            game => {
+                black => 'alice',
+                white => 'bob',
+            },
+            diagnostics   => [],
+            canonical_ids => ['deadbeefdeadbeef'],
+        },
+    };
+}
+
+sub _make_game_root {
+    my $root = tempdir(CLEANUP => 1);
+    my $game_root = File::Spec->catdir($root, $GAME);
+    make_path(File::Spec->catdir($game_root, 'events'));
+    make_path(File::Spec->catdir($game_root, 'tmp'));
+    make_path(File::Spec->catdir($game_root, 'sidecar'));
+    return ($root, $game_root);
+}
+
+sub _run_cli {
+    my (@args) = @_;
+
+    my ($stdout, $stderr) = ('', '');
+    open my $in_fh, '<', \my $stdin or die "open stdin scalar: $!";
+    open my $out_fh, '>', \$stdout or die "open stdout scalar: $!";
+    open my $err_fh, '>', \$stderr or die "open stderr scalar: $!";
+
+    my $exit;
+    {
+        local *STDIN  = $in_fh;
+        local *STDOUT = $out_fh;
+        local *STDERR = $err_fh;
+        $exit = GobanFTP::CLI->run(@args);
+    }
+
+    return ($exit, $stdout, $stderr);
+}
+
+sub _run_pty_cli {
+    my ($stdin, @args) = @_;
+
+    my $script_bin = _which('script') // die 'script(1) missing';
+    my $cmd = join ' ', map { _shell_quote($_) }
+        ($^X, '-Ilib', File::Spec->catfile($root, 'script', 'gobanftp'), @args);
+
+    my $err = gensym;
+    my $pid = open3(my $in, my $out, $err, $script_bin, '-q', '-e', '-c', $cmd, '/dev/null');
+    print {$in} $stdin;
+    close $in or die "close pty stdin: $!";
+
+    my $stdout = do { local $/; <$out> // '' };
+    my $stderr = do { local $/; <$err> // '' };
+    waitpid $pid, 0;
+    my $exit = $? >> 8;
+
+    $stdout =~ s/\r\n/\n/g;
+    $stderr =~ s/\r\n/\n/g;
+    return ($exit, $stdout, $stderr);
+}
+
+sub _event_names {
+    my ($game_root) = @_;
+
+    my $dir = File::Spec->catdir($game_root, 'events');
+    opendir my $dh, $dir or die "opendir $dir: $!";
+    my @names = sort grep { $_ ne '.' && $_ ne '..' } readdir $dh;
+    closedir $dh or die "closedir $dir: $!";
+
+    return @names;
+}
+
+sub _which {
+    my ($name) = @_;
+
+    for my $dir (File::Spec->path) {
+        my $path = File::Spec->catfile($dir, $name);
+        return $path if -x $path && !-d $path;
+    }
+    return undef;
+}
+
+sub _shell_quote {
+    my ($value) = @_;
+    $value //= '';
+    $value =~ s/'/'\\''/g;
+    return "'$value'";
+}
+
+sub _slurp {
+    my ($path) = @_;
+
+    open my $fh, '<:encoding(UTF-8)', $path or die "open $path: $!";
+    my $text = do { local $/; <$fh> };
+    close $fh or die "close $path: $!";
+    return $text // '';
+}

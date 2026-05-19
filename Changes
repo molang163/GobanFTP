@@ -4,6 +4,9 @@ Revision history for GobanFTP
   - Entered the v1.0 / package 1.000 final-candidate identity after the
     refreshed `1.000_001` development-freeze matrix passed; this is not a tag,
     publication event, P14 completion claim, or release-ready declaration.
+  - Added local `gobanftp play --tui` terminal play as a non-consensus
+    input/display surface over the existing play publish path, with keyboard,
+    SGR mouse, one-publish lockout, and pty smoke coverage.
   - Began v1.0/P14 development after skipping the public v0.2 / package 0.002
     release candidate.
   - Recorded a fresh clean-checkout `1.000_001` development-freeze matrix for

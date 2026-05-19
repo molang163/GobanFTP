@@ -15,6 +15,7 @@ my @release_files = (
     ['docs/V1_DOD.md',                                 0],
     ['docs/P14_RELEASE_GATE.md',                       0],
     ['docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md',      0],
+    ['docs/CLI.md',                                    0],
     ['docs/SESSION_RESTORE.md',                        1],
     ['lib/GobanFTP.pm',                                0],
 );
@@ -38,8 +39,9 @@ subtest 'release-state guardrails are explicit' => sub {
         'module declares the final-candidate package version');
     _like('README.md', qr/^Current line: `v1[.]0\/P14` final candidate[.]$/m,
         'README names the current line as final candidate');
-    _like('README.md', qr/read-only inspection output, not hosted Web UI or interactive TUI[.]/,
-        'README keeps static surfaces below hosted Web UI and interactive TUI');
+    _like('README.md',
+        qr/static HTML is not hosted Web UI, and\n`--surface terminal` is not the local `play --tui` input surface[.]/,
+        'README separates static witness surfaces from hosted Web UI and local TUI input');
     _like('README.md', qr/DNS\s+admission does not query live DNS, run AXFR, trust DNSSEC, call provider APIs,\s+or publish records,/,
         'README keeps DNS admission read-only and non-live');
     _like('README.md', qr/it does not claim live FTP, `RETR`, `SIZE`, `MDTM`, FTP auth, FTP integrity, or\nFTP publish behavior[.]/,
@@ -54,7 +56,7 @@ subtest 'release-state guardrails are explicit' => sub {
         qr/v1[.]0 may not be tagged until these gates pass from a clean checkout:/,
         'V1 DoD keeps tagging behind the clean checkout gate');
     _like('docs/ROADMAP.md',
-        qr/This is not Git publish, Git remote fetch, live FTP, FTP auth, FTP integrity,\nFTP publish behavior, live DNS, DNS publish, hosted Web UI, interactive TUI, or\na v1[.]0\/P14 completion claim[.]/,
+        qr/This is not Git publish, Git remote fetch, live FTP, FTP auth, FTP integrity,\nFTP publish behavior, live DNS, DNS publish, hosted Web UI, production key\nlifecycle completion, publish auth completion, or a v1[.]0\/P14 completion claim[.]/,
         'roadmap keeps the current proof below forbidden release claims');
     _like_optional('docs/SESSION_RESTORE.md',
         qr/do not tag or publish it as\n  v1[.]0/,
@@ -82,6 +84,7 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'signed-hmac-goftp1 has an explicit per-event HMAC acceptance gate',
         'public key and trust fixture reports are advisory outside signed profiles',
         'text, static HTML, and static terminal witness surfaces are read-only displays',
+        'local play --tui keyboard/mouse input is implemented as a non-consensus input/display layer over existing publish callbacks',
         'source art is runnable and non-consensus',
         'the arch-gate motif is comment-only source art, not witness output or protocol input',
         'P14/v1.0 final candidate is active',
@@ -94,7 +97,7 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'v1.0 is complete',
         'P14 is complete',
         'hosted Web UI is complete',
-        'interactive mouse/keyboard TUI is complete',
+        'cross-terminal TUI compatibility matrix is complete',
         'Git publish support is implemented',
         'live DNS / AXFR / DNSSEC trust / provider API support is implemented',
         'DNS dynamic update or DNS record publishing is implemented',
@@ -118,8 +121,8 @@ subtest 'forbidden claims appear only in guarded contexts' => sub {
             'release-ready declaration'],
         [qr/\bhosted Web UI\s+(?:is\s+)?(?:complete|implemented|ready|shipped)\b/i,
             'hosted Web UI completion'],
-        [qr/\binteractive(?: mouse\/keyboard)? TUI\s+(?:is\s+)?(?:complete|implemented|ready|shipped)\b/i,
-            'interactive TUI completion'],
+        [qr/\bcross-terminal TUI compatibility matrix\s+(?:is\s+)?(?:complete|implemented|ready|shipped)\b/i,
+            'cross-terminal TUI compatibility completion'],
         [qr/\bGit publish(?: support)?\s+(?:is\s+)?(?:implemented|complete|ready)\b/i,
             'Git publish support'],
         [qr/\blive DNS\b.*\b(?:implemented|complete|ready|supported|admitted)\b/i,

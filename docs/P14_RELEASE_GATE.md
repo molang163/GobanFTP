@@ -19,7 +19,9 @@ coverage, skipped gates, generated artifacts, and known release-route gaps.
 
 The dry run uses existing commands only. It does not add a second witness
 assembler, does not change `GOFTP/1`, does not publish artifacts, and does not
-turn static witness surfaces into hosted Web UI or interactive TUI.
+turn static witness surfaces into hosted Web UI. Current HEAD also has a
+separate local `play --tui` input/display surface; it remains outside replay
+truth and outside this historical dry-run evidence.
 
 ## Result Summary
 
@@ -124,7 +126,9 @@ publication event.
 - v1.0 was not tagged.
 - No release artifacts were published.
 - Full hosted Web UI remains deferred.
-- Interactive mouse/keyboard TUI remains deferred.
+- At the dry-run commits, interactive mouse/keyboard TUI was deferred. Current
+  HEAD adds local `play --tui`; the final gate must run its TUI tests and smoke
+  path.
 - At the dry-run commits, Git-like and DNS-like profiles were
   fixture/read-normalizer proof surfaces. Current HEAD has since added
   read-only Git-tree and DNS-record runtime admission, so this dry run is
@@ -137,7 +141,7 @@ publication event.
 - P14 is not complete.
 - v1.0 is not ready or tagged.
 - Static HTML witness output is not hosted Web UI.
-- `--surface terminal` is not an interactive TUI.
+- `--surface terminal` is not the local `play --tui` input surface.
 - `make dist` success in a dry run is not a publication event.
 - `make dist` success in the `1.000_001` development freeze is not a final
   stable v1.0 publication event.

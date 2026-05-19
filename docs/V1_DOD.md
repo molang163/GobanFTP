@@ -416,7 +416,7 @@ support is only fixture/read-normalizer evidence is not enough once runtime read
 paths are admitted, but runtime read admission still does not imply publish
 support, live FTP, FTP auth, FTP integrity, live DNS, AXFR, DNSSEC trust,
 provider API support, dynamic update, DNS record publishing, hosted Web UI,
-interactive TUI, or v1.0 completion.
+cross-terminal TUI compatibility completion, or v1.0 completion.
 
 The final release identity, artifact hash, and tag preconditions are planned in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`. A v1.0 tag is blocked until the

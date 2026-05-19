@@ -27,6 +27,7 @@ use GobanFTP::Surface::WitnessView qw(
     render_witness_terminal
     render_witness_text
 );
+use GobanFTP::TUI::Play qw(run_play_tui);
 use GobanFTP::Witness qw(witness_for_listing);
 
 use constant {
@@ -364,13 +365,17 @@ sub _command_publish_ack {
 
 sub _command_play {
     my (@argv) = @_;
-    my $usage = "usage: play [--once] [--move move|--ack event-id] [--nonce n] <game-root|game-descriptor>";
+    my $usage = "usage: play [--once|--tui] [--move move|--ack event-id] [--nonce n] <game-root|game-descriptor>";
 
     my %opts;
     while (@argv && $argv[0] =~ /\A--/) {
         my $option = shift @argv;
         if ($option eq '--once') {
             $opts{once} = 1;
+            next;
+        }
+        if ($option eq '--tui') {
+            $opts{tui} = 1;
             next;
         }
         if ($option eq '--move') {
@@ -407,12 +412,20 @@ sub _command_play {
     }
 
     die $usage if @argv != 1 || (defined($opts{move}) && defined($opts{ack}));
+    die $usage if $opts{tui} && ($opts{once} || defined($opts{move}) || defined($opts{ack}));
     die $usage
         if defined($opts{nonce}) && $opts{nonce} !~ /\A[a-z0-9_-]{1,16}\z/;
     die $usage
         if defined($opts{ack}) && $opts{ack} !~ /\A[0-9a-v]{16}\z/;
 
     my ($game_arg) = @argv;
+
+    if ($opts{tui}) {
+        return _command_play_tui(
+            $game_arg,
+            defined($opts{nonce}) ? (nonce => $opts{nonce}) : (),
+        );
+    }
 
     if (defined $opts{move}) {
         my ($action, $action_error) = normalize_action($opts{move});
@@ -517,6 +530,49 @@ sub _command_play {
         _print_diagnostics($context->{replay_result});
         return $exit if $exit != EXIT_SUCCESS || _terminal_replay($context->{replay_result});
     }
+}
+
+sub _command_play_tui {
+    my ($game_arg, %opts) = @_;
+
+    die "storage: play --tui requires an interactive terminal"
+        if !-t STDIN || !-t STDOUT;
+
+    my $session = run_play_tui(
+        load_context => sub {
+            return _load_context($game_arg);
+        },
+        publish_action => sub {
+            my ($raw_action) = @_;
+            my ($action, $action_error) = normalize_action($raw_action);
+            return {
+                exit  => EXIT_VALIDATION,
+                stage => 'input',
+                error => $action_error,
+            } if defined $action_error;
+
+            my $context = _load_context($game_arg);
+            return _publish_action_result(
+                command => 'play',
+                context => $context,
+                action  => $action,
+                defined($opts{nonce}) ? (nonce => $opts{nonce}) : (),
+            );
+        },
+    );
+
+    my $publish = ref($session) eq 'HASH' ? $session->{publish} : undef;
+    return $session->{exit} // EXIT_SUCCESS if ref($publish) ne 'HASH';
+
+    if (($publish->{stage} // '') ne 'published') {
+        _print_publish_result('play', $publish);
+        return $publish->{exit} // EXIT_VALIDATION;
+    }
+
+    _print_event_result($publish);
+    my $exit = _print_terminal_snapshot('play', $publish->{context});
+    _print_diagnostics($publish->{context}{replay_result});
+    return $exit;
 }
 
 sub _command_watch {
@@ -1904,7 +1960,7 @@ commands:
   project <game-root|game-descriptor>
   publish-move [--nonce n] <game-root|game-descriptor> <aa|play-aa|pass|resign>
   publish-ack [--nonce n] <game-root|game-descriptor> <event-id>
-  play [--once] [--move move|--ack event-id] [--nonce n] <game-root|game-descriptor>
+  play [--once|--tui] [--move move|--ack event-id] [--nonce n] <game-root|game-descriptor>
   watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>
   v1 keyid --fixture public-key-file
   v1 trust-report --fixture fixture-dir

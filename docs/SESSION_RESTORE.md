@@ -67,6 +67,13 @@ Current state after the v1.0 final-candidate identity switch:
   the motif is not emitted as witness truth.
 - `docs/SOURCE_ART.md`, `docs/ROADMAP.md`, and `Changes` record the arch-gate as
   non-consensus source/display art.
+- P17 adds local `gobanftp play --tui` as a separate terminal input/display
+  surface. It uses keyboard and SGR mouse input, publishes through the existing
+  play path, exits after one successful publish, and does not own replay truth.
+- The P17b worktree adds readable TUI status lines, malformed escape recovery,
+  pty smoke coverage for `q`, keyboard publish, and mouse publish, and
+  release-text updates separating local TUI input from hosted Web UI and
+  cross-terminal compatibility completion claims.
 - Previous HEAD `test: add bad signature vector and dist hygiene gate` added
   the `bad-signature` public poison vector and dist manifest hygiene gate.
 
@@ -206,19 +213,20 @@ Key completed boundaries:
 - P13d minimal witness surface smoke is frozen: the minimal `local-goftp1`
   `v1 witness --surface text|html` outputs now have digest and byte-length
   coverage, visible `event_set_root`, and canonical projection-section checks.
-  This is a static inspection-surface gate, not a full Web or TUI release.
+  This is a static inspection-surface gate, not a hosted Web UI or local TUI
+  input release.
 - P13e terminal witness observatory is implemented:
   `v1 witness --surface terminal` renders a deterministic ASCII/stdout status
   panel from the existing `GobanFTP::Witness` result and opt-in projection
   text. It freezes the minimal terminal digest, preserves fork and validation
   exit behavior, redacts signed-HMAC secrets, and remains a static terminal
-  inspection surface rather than an interactive TUI.
+  inspection surface rather than the local `play --tui` input surface.
 - P13f showcase surface smoke is implemented:
   `t/showcase-demo.t` now runs the shrine replay, race fork, source-art oracle,
   default unsigned `local-goftp1` witness, and the text/static HTML/static
   terminal witness surfaces. The surface checks prove the public demonstration
-  path exposes the same `event_set_root` without adding hosted Web UI,
-  interactive TUI, or another witness assembler.
+  path exposes the same `event_set_root` without adding hosted Web UI, local
+  TUI input, or another witness assembler.
 - WebDAV publish failure now has a fixture and CLI parity gate proving
   existing-final idempotence, delayed `MOVE` visibility, hard `HTTP 423 Locked`
   failure, bounded retries, zero-byte temporary resources, tmp debris exclusion,
@@ -536,11 +544,16 @@ after entering the v1.0/P14 final-candidate identity:
   v1.0
 - `t/p14-claim-audit.t` release-text boundary gate is included in the latest
   development matrix and must stay in the development and final release matrices
-- next run the final stable clean-checkout matrix from the `1.000` final
-  candidate and generate `GobanFTP-1.000.tar.gz`
-- that slice must not add or claim Git publish, live DNS, AXFR, DNSSEC trust,
-  provider API, dynamic update, DNS record publishing, hosted Web UI,
-  interactive TUI, or v1.0/P14 completion
+- current P17b work must harden and commit local `play --tui`, while still not
+  claiming hosted Web UI, production key lifecycle completion, publish auth
+  completion, cross-terminal TUI compatibility completion, or v1.0/P14
+  completion
+- after P17b and any chosen P18 auth work, rerun the final stable clean-checkout
+  matrix from the `1.000` final candidate and generate `GobanFTP-1.000.tar.gz`
+- that final slice must not add or claim Git publish, live DNS, AXFR, DNSSEC
+  trust, provider API, dynamic update, DNS record publishing, hosted Web UI,
+  production key lifecycle completion, publish auth completion, cross-terminal
+  TUI compatibility completion, or v1.0/P14 completion
 - do not tag v1.0 until the final claim audit passes, the final stable
   clean-checkout matrix passes, and the external artifact record is attached
 - do not let display, source art, Web assets, terminal formatting, or interactive
@@ -567,6 +580,7 @@ lib/GobanFTP/Witness.pm
 lib/GobanFTP/CLI.pm
 lib/GobanFTP/Oracle/Smoke.pm
 lib/GobanFTP/Surface/WitnessView.pm
+lib/GobanFTP/TUI/Play.pm
 oracle/goban.pl
 lib/GobanFTP/Diagnostics.pm
 t/fixtures/auth/
@@ -582,6 +596,7 @@ t/v1-cli-witness-surface.t
 t/source-art.t
 t/p14-claim-audit.t
 t/surface-witness-view.t
+t/tui-play.t
 t/cli-auth-trust-report.t
 t/diagnostics-contract.t
 docs/PROFILES.md

@@ -527,7 +527,7 @@ fork.
 Unknown, non-move, or non-legal targets are rejected without publishing and
 reported as `diagnostic code=ack_target_invalid ...`.
 
-### `gobanftp play [--once] [--move <move>|--ack <event-id>] [--nonce <n>] <game-root|game-descriptor>`
+### `gobanftp play [--once|--tui] [--move <move>|--ack <event-id>] [--nonce <n>] <game-root|game-descriptor>`
 
 Renders a terminal snapshot of the current canonical board. The snapshot is
 derived from the configured store's `events/` listing and replay result only.
@@ -550,6 +550,21 @@ q
 
 Bare points are normalized to `play-<point>`. `refresh` reloads the listing and
 prints another snapshot. `quit`, `exit`, and `q` exit without publishing.
+
+With `--tui`, `play` opens a local raw terminal board when both stdin and stdout
+are terminals. Arrow keys and `hjkl` move the cursor, Enter or an SGR mouse
+click publishes the selected point, `p` publishes pass, `R` publishes resign,
+`r` reloads, and `q` exits without publishing. A successful publish leaves the
+TUI immediately and prints the same event and snapshot lines as `play --move`,
+so a second click cannot publish another move from the same TUI session. The TUI
+does not write projections and does not own replay truth; it reloads the
+`events/` listing and uses the same publish validation path as `publish-move`.
+
+Terminal compatibility is intentionally conservative: SGR mouse is enabled for
+terminals that support it, while arrow keys and `hjkl` remain the fallback in
+xterm-like terminals, iTerm2, GNOME Terminal, Kitty, Alacritty, Windows
+Terminal, `tmux`, and `ssh` sessions. When stdin or stdout is not a terminal,
+`play --tui` refuses to start instead of silently falling back to a line parser.
 
 With `--move`, `play` publishes exactly one move through the same pipeline as
 `publish-move`, then renders the updated board. If a concurrent publish creates

@@ -307,6 +307,7 @@ only, not live FTP, RETR, SIZE, MDTM, auth, integrity, or publish behavior
 signed-hmac-goftp1 has an explicit per-event HMAC acceptance gate
 public key and trust fixture reports are advisory outside signed profiles
 text, static HTML, and static terminal witness surfaces are read-only displays
+local play --tui keyboard/mouse input is implemented as a non-consensus input/display layer over existing publish callbacks
 source art is runnable and non-consensus
 the arch-gate motif is comment-only source art, not witness output or protocol input
 P14/v1.0 final candidate is active
@@ -319,7 +320,7 @@ Forbidden final-release claims unless additional code and gates land first:
 v1.0 is complete
 P14 is complete
 hosted Web UI is complete
-interactive mouse/keyboard TUI is complete
+cross-terminal TUI compatibility matrix is complete
 Git publish support is implemented
 live DNS / AXFR / DNSSEC trust / provider API support is implemented
 DNS dynamic update or DNS record publishing is implemented
@@ -331,9 +332,10 @@ the arch-gate motif claims Arch Linux affiliation, endorsement, package
 identity, project logo, protocol name, profile id, or release artifact identity
 ```
 
-Before tagging, scan README, Changes, docs/ROADMAP.md, docs/V1_DOD.md,
-docs/P14_RELEASE_GATE.md, docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md,
-docs/SESSION_RESTORE.md, tag text, and the external artifact record for these
+Before tagging, scan README, Changes, docs/CLI.md, docs/ROADMAP.md,
+docs/V1_DOD.md, docs/P14_RELEASE_GATE.md,
+docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md, docs/SESSION_RESTORE.md, tag text,
+and the external artifact record for these
 forbidden claims. A forbidden claim is a release blocker even if the tests pass.
 The `t/p14-claim-audit.t` gate guards the current source-tree release text
 against accidental over-claims; passing it is not a P14/v1.0 completion claim.

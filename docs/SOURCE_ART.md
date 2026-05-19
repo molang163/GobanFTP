@@ -156,8 +156,9 @@ inspection, while exit codes and diagnostics still come from the witness and
 profile gates.
 
 The minimal surface smoke freezes text, static HTML, and terminal observatory
-output digests as reader-facing proof artifacts. It is not a hosted Web UI or
-interactive TUI and does not add any input to replay.
+output digests as reader-facing proof artifacts. It is not a hosted Web UI and
+is separate from the local `play --tui` input surface; neither surface adds any
+input to replay truth.
 
 ## v1.0 Surface Gate
 

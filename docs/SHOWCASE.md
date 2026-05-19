@@ -142,8 +142,9 @@ prove -lr t/showcase-demo.t
 It runs the public local command surface: shrine replay, race replay, source-art
 oracle smoke, the unsigned `local-goftp1` v1 witness, and the text, static HTML,
 and static terminal witness surfaces. Those surfaces show the same
-`event_set_root` through reader-facing output; they are not hosted Web UI,
-interactive TUI, or new consensus inputs.
+`event_set_root` through reader-facing output; they are not hosted Web UI and
+are separate from the local `play --tui` input surface. None of these displays
+adds a new consensus input.
 
 ## Boundaries
 
