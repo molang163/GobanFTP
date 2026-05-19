@@ -39,8 +39,8 @@ subtest 'release-state guardrails are explicit' => sub {
         'Changes keeps the final package version and date');
     _like('lib/GobanFTP.pm', qr/^our \$VERSION = '1[.]000';$/m,
         'module declares the final package version');
-    _like('README.md', qr/^Current line: `v1[.]0\/package 1[.]000` release source[.]$/m,
-        'README names the current line as final release source');
+    _like('README.md', qr/^Current release: `v1[.]0\/package 1[.]000`[.]$/m,
+        'README names the current release');
     _like('README.md',
         qr/static HTML is not hosted Web UI, and\n`--surface terminal` is not the local `play --tui` input surface[.]/,
         'README separates static witness surfaces from hosted Web UI and local TUI input');

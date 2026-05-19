@@ -21,7 +21,7 @@ It is not a normal Go server, a hosted Web UI, or a production security system.
 It is a small implementation of a stranger question: can one game survive across
 untrusted places that can enumerate the same names?
 
-Current line: `v1.0/package 1.000` release source.
+Current release: `v1.0/package 1.000`.
 
 [Three-minute check](#three-minute-proof) · [Terminal play](#terminal-play) ·
 [Static specimen](#static-witness-specimen) · [The contract](#the-contract)
@@ -39,9 +39,9 @@ make test
 prove -lr t/showcase-demo.t
 ```
 
-The showcase test checks a clean game, a race/fork game, the executable
-source-art smoke path, an unsigned `local-goftp1` witness, and static inspection
-views.
+The showcase test checks a few core behaviors: a clean game replays, a race
+becomes a visible fork, and display surfaces, file bodies, and metadata do not
+silently decide the game.
 
 Those views are read-only inspection output: static HTML is not hosted Web UI, and
 `--surface terminal` is not the local `play --tui` input surface.
@@ -91,6 +91,14 @@ legal_moves=3
 canonical_ids=hihat4p8r6gaeuts
 ```
 
+## Five Terms
+
+- `event filename`: a move or acknowledgement named under `events/`.
+- `replay`: rebuild the game from accepted names.
+- `fork`: a visible race where two valid children claim the same parent.
+- `projection`: generated display, such as board text, SGF, or HTML.
+- `witness`: proof material for humans or tests; not the game truth itself.
+
 ## First Look
 
 These are views of the same object. The replay input remains the game directory
@@ -128,12 +136,6 @@ requested.
 callbacks. Keyboard and SGR mouse, where available, select a candidate first. A
 second Enter or click confirms it. Input is locked while publishing.
 
-## Three Words
-
-- `event filename`: a move or acknowledgement named under `events/`.
-- `replay`: rebuild the game from accepted names.
-- `fork`: a visible race where two valid children claim the same parent.
-
 <a id="terminal-play"></a>
 
 ## Terminal Play
@@ -154,10 +156,10 @@ The publish path is deliberately two-step:
 select -> confirm -> publishing_locked -> published
 ```
 
-Arrow keys or `hjkl` move the cursor. `Enter` selects a point; pressing `Enter`
-again on the selected point confirms publish. SGR mouse clicks use the same
-select/confirm flow where the terminal supports them. One successful publish
-ends the session.
+Arrow keys or `hjkl` (Vim-style) move the cursor. `Enter` selects a point;
+pressing `Enter` again on the selected point confirms publish. SGR mouse clicks
+use the same select/confirm flow where the terminal supports them. One
+successful publish ends the session.
 
 The TUI does not own rules, roots, diagnostics, or event acceptance. It is only
 an input/display layer over replay and publish callbacks.
@@ -493,7 +495,7 @@ This license covers the repository contents. It does not grant permission to
 access, test, or publish to third-party FTP, WebDAV, DNS, Git, or other systems
 without authorization, and it is not a production security certification.
 
-## v1.0/P14 Scope
+## Release Invariants
 
 GobanFTP v1.0 is not a game server. It is a Perl implementation of a small
 filename protocol for replaying Go from accepted event basenames across several

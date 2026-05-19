@@ -27,7 +27,7 @@ GobanFTP は、囲碁の一局をディレクトリの名前一覧から再生�
 ![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Showcase check](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
-Current line: `v1.0/package 1.000` release source.
+現在のリリース: `v1.0/package 1.000`.
 
 [3分で確認する](#three-minute-proof) · [端末で打つ](#terminal-play) ·
 [静的標本ページ](#static-witness-specimen) · [契約](#the-contract)
@@ -45,8 +45,8 @@ make test
 prove -lr t/showcase-demo.t
 ```
 
-showcase test は、通常の一局、race/fork の標本、source-art oracle の smoke check、
-unsigned `local-goftp1` witness、静的な表示出力を確認します。
+showcase test は、通常の一局を replay できること、race が見える fork として残ること、
+表示層、file body、metadata が一局を勝手に決めないことを確認します。
 
 clean fixture を直接実行します。
 
@@ -94,6 +94,14 @@ legal_moves=3
 canonical_ids=hihat4p8r6gaeuts
 ```
 
+## 先に知る五つの言葉
+
+- event filename: `events/` の下にある、着手または確認を表す名前です。
+- replay: その名前から一局を検証し、盤面を再構成する処理です。
+- fork: 同じ親に複数の有効な子が出たときに残る、見える分岐です。
+- projection: replay の結果から生成される表示です。盤面 text、SGF、HTML などです。
+- witness: 人や test が確認するための証拠です。一局の truth そのものではありません。
+
 ## まず見るもの
 
 四つの画像は同じ一局を別の角度から見せています。replay の入力は、game directory
@@ -129,12 +137,6 @@ GobanFTP は fork を表示し、既定の replay ではそこで止まります
 `play --tui` はローカル端末の input/display layer です。keyboard と、対応端末での
 SGR mouse は、まず candidate を選びます。二度目の Enter/click で publish を確認します。
 
-## 先に知る三つの言葉
-
-- event filename: `events/` の下にある、着手または確認を表す名前です。
-- replay: その名前から一局を検証し、盤面を再構成する処理です。
-- fork: 同じ親に複数の有効な子が出たときに残る、見える分岐です。
-
 <a id="terminal-play"></a>
 
 ## 端末で打つ
@@ -158,7 +160,7 @@ select -> confirm -> publishing_locked -> published
 操作は次の通りです。
 
 ```text
-arrow keys / hjkl  cursor move
+arrow keys / hjkl  cursor move (Vim style)
 Enter              select; same point again confirms publish
 mouse click        SGR mouse capable terminals only; same point again confirms
 P                  pass
@@ -330,7 +332,7 @@ source art は表示用の wrapper です。filename grammar、event id、DAG re
 rule legality、storage behavior、SGF、diagnostics は通常の module 側にあります。
 
 ```text
-source art / C / asm / Web UI / TUI -> cannot change truth
+source art / C / asm / Web UI / TUI -> replay の真実を変えられません
 ```
 
 ## 動かす
@@ -397,6 +399,8 @@ find "$GOBANFTP_ROOT" -path '*/events/*' -exec basename {} \; | sort
 既定の保存先は local filesystem です。FTP、read-only Git tree、read-only DNS
 record-file admission、WebDAV は、event file contents、blob bytes、resource bodies、
 DNS transport metadata を読まずに、同じ「名前一覧を先に読む」境界へ正規化されます。
+共通する規則は単純です。replay は列挙できる名前だけを読み、file contents や remote
+metadata は読みません。
 
 FTP mode:
 
@@ -501,7 +505,7 @@ Copyright 2026 GobanFTP contributors.
 Git、その他の system へアクセス、テスト、publish する許可ではなく、production
 security certification でもありません。
 
-## v1.0/P14 の形
+## Release Invariants
 
 GobanFTP v1.0 は game server ではありません。複数の「名前を列挙できる保存先」から、
 同じ event basenames を使って一局を replay する Perl 実装です。
@@ -528,7 +532,7 @@ modify LIST order  -> unchanged
 add sidecar        -> unchanged
 change basename    -> changed
 bad signed profile -> rejected by that signed profile
-source art / C / asm / Web UI / TUI -> cannot change truth
+source art / C / asm / Web UI / TUI -> replay の真実を変えられません
 ```
 
 `v0.1` は `GOFTP/1` consensus boundary を固定しました。`v1.0/P14` はその境界を

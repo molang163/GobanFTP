@@ -4,13 +4,13 @@
 
 GobanFTP 把一盘围棋存在目录列表里。
 
-每一步棋都是 `events/` 下面的一个事件文件名。回放时只读取这些名字，不读取文件内容。
+每一步棋都是 `events/` 下面的一个事件文件名（event filename）。回放时只读取这些名字，不读取文件内容。
 
 所以：
 
 - 改文件内容，棋局不变
 - 改 mtime，棋局不变
-- 打乱 listing 顺序，棋局不变
+- 打乱目录返回顺序（listing order），棋局不变
 - 改 event 文件名，棋局必须改变，或者被拒绝
 
 它不是在线围棋服务器，也不是生产级 FTP 安全方案。它是一个 `GOFTP/1` 协议实验：看看一盘棋能不能只靠公开、可列举的名字复原。
@@ -20,7 +20,7 @@ GobanFTP 把一盘围棋存在目录列表里。
 ![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Showcase check](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
-Current line: `v1.0/package 1.000` release source.
+当前版本：`v1.0/package 1.000`。
 
 [三分钟跑起来](#three-minute-proof) · [终端下棋](#terminal-play) ·
 [静态标本页](#static-witness-specimen) · [协议契约](#the-contract)
@@ -41,7 +41,7 @@ make test
 prove -lr t/showcase-demo.t
 ```
 
-这条检查会覆盖：一个正常棋局、一个 race/fork 样本、代码画 oracle 的 smoke 检查、未签名的 `local-goftp1` witness，以及静态检查输出。
+这条检查会验证几件事：正常棋局能回放；并发冲突会显示成 fork；展示层、文件内容和元数据不会偷偷改变棋局。
 
 直接跑示例棋局：
 
@@ -88,6 +88,14 @@ legal_moves=3
 canonical_ids=hihat4p8r6gaeuts
 ```
 
+## 先懂五个词
+
+- event 文件名：`events/` 下面代表一步棋或确认的一段文件名。
+- 回放（replay）：从这些文件名重新验证并算出棋盘。
+- fork：两个合法分支抢同一个父节点时留下的可见分叉。
+- projection：从 replay 结果生成的展示，比如棋盘文本、SGF、HTML。
+- witness：给人或测试看的证明材料，不是棋局真相本身。
+
 ## 先看四张图
 
 这四张图看的是同一个东西：一盘棋由 game directory 的名字和 `events/` 下面的直接文件名决定。
@@ -116,12 +124,6 @@ canonical_ids=hihat4p8r6gaeuts
 
 `play --tui` 是本地终端界面。它支持键盘，也支持部分终端里的 SGR mouse。第一次选择，第二次确认；开始发布后输入会被锁住。
 
-## 先懂三个词
-
-- event 文件名：`events/` 下面代表一步棋或确认的一段文件名。
-- 回放（replay）：从这些文件名重新验证并算出棋盘。
-- fork：两个合法分支抢同一个父节点时留下的可见分叉。
-
 <a id="terminal-play"></a>
 
 ## 终端下棋
@@ -136,7 +138,7 @@ game="$tmp/$(basename "$src")"
 perl -Ilib script/gobanftp play --tui "$game"
 ```
 
-控制方式：方向键或 `hjkl` 移动光标；`Enter` 选择，已选中同一点时确认发布；支持 SGR mouse 时，鼠标点击也走同样的两步确认。`P` 选择 `pass`，`R` 选择 `resign`，`r` 刷新，`q` 退出。
+控制方式：方向键或 `hjkl`（Vim 风格）移动光标；`Enter` 选择，已选中同一点时确认发布；支持 SGR mouse 时，鼠标点击也走同样的两步确认。`P` 选择 `pass`，`R` 选择 `resign`，`r` 刷新，`q` 退出。
 
 ```text
 select -> confirm -> publishing_locked -> published
@@ -154,7 +156,7 @@ select -> confirm -> publishing_locked -> published
 examples/static/witness-specimen.html
 ```
 
-这个页面适合用来解释项目，因为它把棋盘 projection、event/root 证明面板和原始 projection 文本摆在一起。
+这个页面适合用来解释项目，因为它把棋盘投影、event/root 证明面板和原始投影文本摆在一起。
 
 它只是展示层。棋盘皮肤不参与验证；验证材料来自 event 文件名 replay 后得到的 witness。
 
@@ -223,7 +225,7 @@ examples/fixtures/ftp-shrine/g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daem
 oracle/goban.pl
 ```
 
-SGF 是 witness，不是 source of truth。
+SGF 是见证输出，不是棋局正本。
 
 `projections/oracle/listing.txt` 是给读者看的 transcript。它展示
 `NLST events/` 如何暴露 event basenames，也明确 `RETR`、`SIZE`、`MDTM`
@@ -272,7 +274,7 @@ gobanftp.oracle=ok
 rules.move=ok
 ```
 
-source art / C / asm / Web UI / TUI -> cannot change truth
+代码画 / C / asm / Web UI / TUI -> 不能改变协议真相
 
 空白、注释、POD、C hook、asm-like surface、网页和终端界面都不能改变 event id、DAG replay、规则合法性、SGF 或 diagnostics。
 
@@ -338,6 +340,7 @@ find "$GOBANFTP_ROOT" -path '*/events/*' -exec basename {} \; | sort
 ## 存储后端 / Stores
 
 默认 store 是本地目录。FTP、WebDAV、read-only Git tree 和 read-only DNS record-file 都被规整到同一条 listing-first 边界。
+这些后端的共同点是：replay 只读取可枚举的名字，不读取文件内容或远端元数据。
 
 FTP mode:
 
@@ -428,7 +431,7 @@ P14 release 记录在 `docs/P14_RELEASE_GATE.md`。
 
 最终 artifact identity、version decision 和 tag preconditions 记录在 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`。
 
-## v1.0/P14 范围
+## 发布不变量 / Release Invariants
 
 GobanFTP v1.0 不是围棋服务器。它实现的是一个小型 filename protocol，用来从若干可枚举的存储表面重放同一盘棋。
 
@@ -444,7 +447,7 @@ modify LIST order  -> unchanged
 add sidecar        -> unchanged
 change basename    -> changed
 bad signed profile -> rejected by that signed profile
-source art / C / asm / Web UI / TUI -> cannot change truth
+代码画 / C / asm / Web UI / TUI -> 不能改变协议真相
 ```
 
 `v0.1` 冻结 `GOFTP/1` consensus boundary。`v1.0/P14` 在 package 1.000 中把这条边界应用到 local、FTP、WebDAV、read-only Git tree 和 read-only DNS record-file。

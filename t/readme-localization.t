@@ -36,7 +36,7 @@ for my $rel (@readmes) {
         like $text{$rel}, qr/\Q$link\E/, "$rel has language link $label";
     }
 
-    like $text{$rel}, qr/Current line: `v1[.]0\/package 1[.]000` release source[.]/,
+    like $text{$rel}, _release_line_pattern($rel),
         "$rel keeps the v1.0/package release line";
     like $text{$rel}, qr/license-Apache--2[.]0-blue/,
         "$rel keeps the Apache-2.0 license badge";
@@ -57,7 +57,7 @@ for my $rel (@readmes) {
     like $text{$rel}, qr/live DNS/s, "$rel keeps live DNS out of DNS record admission";
     like $text{$rel}, qr/production (?:auth|writer authorization|key lifecycle)/s,
         "$rel keeps production auth/key lifecycle outside signed material";
-    like $text{$rel}, qr/source art \/ C \/ asm \/ Web UI \/ TUI -> cannot change truth/,
+    like $text{$rel}, _truth_surface_pattern($rel),
         "$rel keeps display and accelerator surfaces outside truth";
     unlike $text{$rel}, qr/\b(?:AI|ChatGPT|LLM|生成AI|人工智能|大模型|機械翻訳)\b/i,
         "$rel has no generated-content marker";
@@ -101,4 +101,20 @@ sub _read_text {
     my $text = <$fh>;
     close $fh or die "close $path: $!";
     return $text // '';
+}
+
+sub _release_line_pattern {
+    my ($rel) = @_;
+    return qr/Current release: `v1[.]0\/package 1[.]000`[.]/ if $rel eq 'README.md';
+    return qr/当前版本：`v1[.]0\/package 1[.]000`。/ if $rel eq 'README.zh-CN.md';
+    return qr/現在のリリース: `v1[.]0\/package 1[.]000`[.]/ if $rel eq 'README.ja.md';
+    die "unknown README $rel";
+}
+
+sub _truth_surface_pattern {
+    my ($rel) = @_;
+    return qr/source art \/ C \/ asm \/ Web UI \/ TUI -> cannot change truth/ if $rel eq 'README.md';
+    return qr/代码画 \/ C \/ asm \/ Web UI \/ TUI -> 不能改变协议真相/ if $rel eq 'README.zh-CN.md';
+    return qr/source art \/ C \/ asm \/ Web UI \/ TUI -> replay の真実を変えられません/ if $rel eq 'README.ja.md';
+    die "unknown README $rel";
 }
