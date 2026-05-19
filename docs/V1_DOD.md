@@ -396,6 +396,7 @@ prove -lr t/v1-signed-hmac-golden-vectors.t
 prove -lr t/profile-registry.t t/profile-adapter.t t/witness-api.t
 prove -lr t/diagnostics-contract.t
 prove -lr t/rules-flow.t t/rules-superko.t
+prove -lr t/p14-claim-audit.t
 
 make manifest
 make dist
@@ -431,6 +432,7 @@ script/gobanftp v1 compare-replay --fixture t/fixtures/v1/cross-substrate/minima
 prove -lr t/v1-attack-fixtures.t
 prove -lr t/v1-signed-hmac.t t/v1-signed-hmac-golden-vectors.t
 prove -lr t/ruleset-seal.t
+prove -lr t/p14-claim-audit.t
 ```
 
 The release requirement is that one reproducible command set proves the full

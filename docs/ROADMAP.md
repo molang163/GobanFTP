@@ -490,11 +490,11 @@ matrix, generated artifact list, skipped gates, and manifest-skip correction.
 It is a release-route checkpoint, not a v1.0 tag or P14 completion claim.
 The final artifact identity and tag preconditions are tracked in
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
-The immediate follow-up is to continue the P14 claim audit around the read-only
-Git-tree, DNS-record, and FTP listing boundaries and prepare the final clean
-gate, not to add Git publish, live DNS, AXFR, DNSSEC trust, provider APIs,
-dynamic update, DNS publish, hosted Web UI, interactive TUI, or a v1.0/P14
-completion claim.
+The `t/p14-claim-audit.t` gate guards current release-facing text against
+accidental over-claims. The immediate follow-up is to continue final clean-gate
+preparation, not to add Git publish, live DNS, AXFR, DNSSEC trust, provider
+APIs, dynamic update, DNS publish, hosted Web UI, interactive TUI, or a
+v1.0/P14 completion claim.
 
 Acceptance:
 

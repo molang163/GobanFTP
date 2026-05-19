@@ -7,6 +7,10 @@ Revision history for GobanFTP
     commit e1c8b4036ce9bf2260455b0aa0834df544393845 after the source-art
     arch-gate, bad-signature public poison vector, and dist hygiene gate landed;
     this remains development evidence only, not a final stable v1.0 artifact.
+  - Added `t/p14-claim-audit.t` as a release-text claim-boundary gate for the
+    current P14 documents, restore record, and changelog, without declaring
+    P14/v1.0 complete or adding Git publish, live DNS, hosted Web UI,
+    interactive TUI, or final release capability.
   - Added a core `bad-signature` attack fixture and public non-consensus poison
     vector proving unsigned `GOFTP/1` ignores invalid sidecar signatures while
     preserving the same root, replay, board projection, and SGF truth.

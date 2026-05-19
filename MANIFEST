@@ -548,6 +548,7 @@ t/hmac-auth.t
 t/lib/GobanFTP/Test/RulesMechanics.pm
 t/lib/GobanFTP/Test/StoreContract.pm
 t/listing.t
+t/p14-claim-audit.t
 t/play-flow-store.t
 t/play-watch.t
 t/profile-adapter.t

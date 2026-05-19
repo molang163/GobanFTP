@@ -183,6 +183,24 @@ The earlier clean-checkout matrix at
 `a7631497ac990e9622102176e322d449f125aaed` remains historical development
 evidence; the record above is the current HEAD evidence.
 
+## Post-Matrix Claim-Audit Targeted Check
+
+After the current development-freeze matrix above, a targeted release-text
+claim-audit gate was added:
+
+```text
+Date: 2026-05-19
+Source state: this documentation commit, after adding t/p14-claim-audit.t
+Command: prove -lr t/p14-claim-audit.t
+Result: PASS
+Scope: release-text claim-boundary check only
+```
+
+This targeted check guards README, Changes, V1 DoD, roadmap, P14 gate,
+release-manifest/tag plan, and source-checkout restore memory against accidental
+final-release over-claims. It is not a refreshed full clean-checkout matrix, not
+a stable `v1.0` artifact check, and not a P14/v1.0 completion claim.
+
 ## Next Release-Route Step
 
 The `1.000_001` development freeze is recorded above. The next release-route

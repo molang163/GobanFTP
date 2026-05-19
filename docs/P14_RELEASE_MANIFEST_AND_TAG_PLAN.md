@@ -219,6 +219,7 @@ prove -lr t/v1-signed-hmac-golden-vectors.t
 prove -lr t/profile-registry.t t/profile-adapter.t t/witness-api.t
 prove -lr t/diagnostics-contract.t
 prove -lr t/rules-flow.t t/rules-superko.t
+prove -lr t/p14-claim-audit.t
 
 script/gobanftp v1 witness --profile local-goftp1 --fixture t/fixtures/v1/cross-substrate/minimal
 script/gobanftp v1 compare-roots --fixture t/fixtures/v1/cross-substrate/minimal
@@ -335,6 +336,8 @@ Before tagging, scan README, Changes, docs/ROADMAP.md, docs/V1_DOD.md,
 docs/P14_RELEASE_GATE.md, docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md,
 docs/SESSION_RESTORE.md, tag text, and the external artifact record for these
 forbidden claims. A forbidden claim is a release blocker even if the tests pass.
+The `t/p14-claim-audit.t` gate guards the current source-tree release text
+against accidental over-claims; passing it is not a P14/v1.0 completion claim.
 
 ## Tag Procedure
 

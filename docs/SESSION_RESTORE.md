@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- test: add P14 claim audit gate
 - docs: record current P14 development matrix
 - test: add source art arch gate
 - test: add bad signature vector and dist hygiene gate
@@ -50,6 +51,9 @@ Current state after the latest P14 development-freeze matrix:
   `MANIFEST_sha256=8ee3efb34417baa521a1f620e8761fe56cc266d346cd2324fe431457f9646bc2`.
 - This is still `1.000_001` development-freeze evidence only: no v1.0 tag, P14
   completion, publication event, or final stable v1.0 artifact is claimed.
+- `t/p14-claim-audit.t` now guards release-facing text against accidental
+  final-release over-claims. It is a targeted documentation/claim-boundary gate,
+  not a refreshed full clean-checkout matrix or P14/v1.0 completion claim.
 - `oracle/goban.pl` now carries a comment-only ASCII `arch-gate` source-art
   easter egg beside the smoke wrapper.
 - `t/source-art.t` now asserts the arch-gate marker exists, stays ASCII, the
@@ -63,6 +67,7 @@ Current state after the latest P14 development-freeze matrix:
 ## Recent Completed Work
 
 ```text
+HEAD test: add P14 claim audit gate
 HEAD docs: record current P14 development matrix
 HEAD test: add source art arch gate
 HEAD test: add bad signature vector and dist hygiene gate
@@ -325,6 +330,12 @@ Key completed boundaries:
   v1.0 tag, P14 completion, publication event, or final stable v1.0 artifact is
   claimed. This restore-file record is post-run documentation, not the tested
   tarball source unless the matrix is rerun from this record commit.
+- `t/p14-claim-audit.t` is now an executable release-text boundary gate. It
+  scans README, Changes, roadmap, V1 DoD, P14 gate, P14 manifest/tag plan, and
+  source-checkout restore memory for unguarded final-release claims while
+  allowing explicit forbidden-claim registries and negative/deferred contexts.
+  It has been added to the development and final release matrices, but the
+  previous `e1c8b4...` clean-checkout matrix did not include it.
 - Ruleset seal, v1 witness CLI, and v1 compare CLI are already implemented.
 
 ## Last Verified
@@ -342,6 +353,11 @@ logs /tmp/gobanftp-p14-current.kfuVD5/logs
 Result:
 
 ```text
+Post-matrix targeted claim-audit gate:
+  prove -lr t/p14-claim-audit.t
+  Files=1, Tests=12, all successful.
+  This is not a refreshed full clean-checkout matrix.
+
 Matrix: PASS.
 perl -c oracle/goban.pl: PASS.
 perl oracle/goban.pl --smoke: PASS, source-art inline_c=skip.
@@ -516,6 +532,9 @@ after entering v1.0/P14 development:
 - the latest `1.000_001` development freeze matrix has passed at
   `e1c8b4036ce9bf2260455b0aa0834df544393845`; do not tag or publish it as
   v1.0
+- the targeted `t/p14-claim-audit.t` release-text boundary gate is added; keep
+  it in the development and final release matrices, but do not treat it as a
+  refreshed full clean-checkout matrix by itself
 - next choose either continued `1.000_001` development or the separate final
   stable v1.0 route
 - that slice must not add or claim Git publish, live DNS, AXFR, DNSSEC trust,
@@ -561,6 +580,7 @@ t/v1-cli-witness.t
 t/v1-cli-witness-surface-golden.t
 t/v1-cli-witness-surface.t
 t/source-art.t
+t/p14-claim-audit.t
 t/surface-witness-view.t
 t/cli-auth-trust-report.t
 t/diagnostics-contract.t
