@@ -89,6 +89,8 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'signed-HMAC overlay is read-only witness evidence and does not authorize publish',
         'fixture key lifecycle semantics cover trusted, rotated, revoked, and expired fixture status without changing unsigned replay',
         'publish auth fixture semantics distinguish verification from new-material publishing without authorizing real writers',
+        'signed/auth mismatch diagnostics have named fixture and golden-vector evidence for signature-class witness-gate and publish-auth denials',
+        'publish-auth public vector evidence is limited to GOFTP-HMAC-PUBLISH/1 token mismatch denial and unsigned GOFTP/1 invariance',
         'default-off verifier-local publish preflight can block local, FTP, and WebDAV store writes while staying separate from Git-tree and DNS-record read-only storage boundaries without changing default unsigned publish paths',
         'signed-HMAC verifier lifecycle status is explicit verifier input, not GOFTP-TRUST public-key authority',
         'public key and trust fixture reports are advisory outside signed profiles',
@@ -123,6 +125,8 @@ subtest 'allowed and forbidden claim registries are complete' => sub {
         'v1 trust-report --fixture enforces signed-HMAC or production publish auth',
         'fixture-ed25519-v1 is a production signing suite',
         'production publish signing or authorization is implemented',
+        'complete signed/auth diagnostics coverage is implemented',
+        'complete public attack coverage is implemented',
         'final scoring/result events are part of GOFTP/1',
         'source art, Web, TUI, C, or asm-like surfaces own replay truth',
         'the arch-gate motif claims Arch Linux affiliation, endorsement, package',
@@ -167,6 +171,10 @@ subtest 'forbidden claims appear only in guarded contexts' => sub {
             'publish authentication policy completion'],
         [qr/\bproduction publish signing or authorization\b.*\b(?:implemented|complete|ready|supported|shipped|landed|done)\b/i,
             'production publish signing or authorization'],
+        [qr/\b(?:complete )?signed\/auth diagnostics coverage\b.*\b(?:complete|implemented|ready|supported|shipped|landed|done)\b/i,
+            'complete signed/auth diagnostics coverage'],
+        [qr/\b(?:complete )?public attack coverage\b.*\b(?:complete|implemented|ready|supported|shipped|landed|done)\b/i,
+            'complete public attack coverage'],
         [qr/\b(?:source art|Web|TUI|Inline::C|asm-like)\b.*\bown(?:s)? (?:replay )?truth\b/i,
             'display or accelerator owns truth'],
     );
@@ -250,7 +258,7 @@ sub _guarded_context {
     /ix);
     return 1 if $window =~ /\b(?:not\s+a|not\s+an|without\s+claiming|without\s+adding|without\s+declaring|does\s+not|do\s+not|must\s+not|may\s+not|cannot|excluding|avoiding\s+any\s+claim)\b/i;
 
-    my $section_start = $index - 24;
+    my $section_start = $index - 32;
     $section_start = 0 if $section_start < 0;
     my $section = join "\n", @{$lines}[$section_start .. $index];
     return $section =~ /^Forbidden final-release claims\b/m;

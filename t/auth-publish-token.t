@@ -160,4 +160,43 @@ subtest 'publish authorization rejects untrusted selectors and public-key namesp
         'public namespace reason is stable';
 };
 
+subtest 'publish token field mismatches keep stable wrong-signature reasons' => sub {
+    my $token = sign_publish_token(
+        profile         => 'signed-hmac-goftp1',
+        game_descriptor => $game,
+        event_basename  => $event,
+        key_id          => $key_id,
+        key             => $key,
+    );
+    my %keys = ($key_id => $key);
+    my @cases = (
+        ['version',         { version => 'GOFTP-HMAC-PUBLISH/2' }, 'version.mismatch'],
+        ['profile',         { profile => 'local-goftp1' },         'profile.mismatch'],
+        ['purpose',         { purpose => 'replay' },               'purpose.mismatch'],
+        ['algorithm',       { algorithm => 'hmac-sha512' },        'algorithm.mismatch'],
+        ['game_descriptor', { game_descriptor => 'g1.id-other.s3.r-chinese-area-v1.k0.pb-alice.pw-bob' }, 'game_descriptor.mismatch'],
+        ['event_basename',  { event_basename => $other_event },    'event_basename.mismatch'],
+        ['event_id',        { event_id => 'bihb3re4k9hlucat' },    'event_id.mismatch'],
+    );
+
+    for my $case (@cases) {
+        my ($label, $patch, $reason) = @$case;
+        my $patched = { %$token, %$patch };
+        my $result = publish_authorization_result(
+            profile_id        => 'signed-hmac-goftp1',
+            game_descriptor   => $game,
+            event_basename    => $event,
+            token             => $patched,
+            trusted_hmac_keys => \%keys,
+        );
+
+        is $result->{authorized}, 0, "$label mismatch is denied";
+        is $result->{status}, 'denied', "$label mismatch status is denied";
+        is $result->{diagnostics}[0]{code}, 'wrong_signature',
+            "$label mismatch maps to wrong_signature";
+        is $result->{diagnostics}[0]{reason}, $reason,
+            "$label mismatch reason is stable";
+    }
+};
+
 done_testing;

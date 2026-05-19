@@ -317,6 +317,8 @@ signed-HMAC cross-substrate overlay proves signed acceptance invariance across a
 signed-HMAC overlay is read-only witness evidence and does not authorize publish
 fixture key lifecycle semantics cover trusted, rotated, revoked, and expired fixture status without changing unsigned replay
 publish auth fixture semantics distinguish verification from new-material publishing without authorizing real writers
+signed/auth mismatch diagnostics have named fixture and golden-vector evidence for signature-class witness-gate and publish-auth denials
+publish-auth public vector evidence is limited to GOFTP-HMAC-PUBLISH/1 token mismatch denial and unsigned GOFTP/1 invariance
 default-off verifier-local publish preflight can block local, FTP, and WebDAV store writes while staying separate from Git-tree and DNS-record read-only storage boundaries without changing default unsigned publish paths
 signed-HMAC verifier lifecycle status is explicit verifier input, not GOFTP-TRUST public-key authority
 public key and trust fixture reports are advisory outside signed profiles
@@ -352,6 +354,8 @@ rotated, revoked, or expired keys can publish new material
 v1 trust-report --fixture enforces signed-HMAC or production publish auth
 fixture-ed25519-v1 is a production signing suite
 production publish signing or authorization is implemented
+complete signed/auth diagnostics coverage is implemented
+complete public attack coverage is implemented
 final scoring/result events are part of GOFTP/1
 source art, Web, TUI, C, or asm-like surfaces own replay truth
 JSON output is complete for every command

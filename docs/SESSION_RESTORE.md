@@ -14,6 +14,7 @@ Current HEAD expectation:
 
 ```text
 at or after:
+- test: freeze publish auth mismatch vectors
 - feat: close diagnostics registry contract
 - feat: add hmac publish token semantics
 - feat: add signed hmac substrate overlay
@@ -122,12 +123,20 @@ Current state after the v1.0 final-candidate identity switch:
   and diagnostic fixture rows; there is no all-command JSON-complete claim.
   Web, TUI, source-art, C, and asm-like surfaces still cannot own replay or
   diagnostic truth.
+- P21b tightens signed/auth mismatch evidence without changing unsigned
+  `GOFTP/1`: signed-HMAC witness diagnostics and `v1 publish-auth` diagnostics
+  now have contract coverage for stable signature-class fields and redaction,
+  signed-HMAC and publish-token field mismatch reasons are tested, and
+  `t/fixtures/vectors/v1-publish-auth.jsonl` freezes a public
+  `GOFTP-HMAC-PUBLISH/1` event-basename mismatch denial while pinning unsigned
+  `local-goftp1` witness truth.
 - Previous HEAD `test: add bad signature vector and dist hygiene gate` added
   the `bad-signature` public poison vector and dist manifest hygiene gate.
 
 ## Recent Completed Work
 
 ```text
+HEAD test: freeze publish auth mismatch vectors
 HEAD feat: close diagnostics registry contract
 HEAD test: harden publish auth preflight coverage
 HEAD feat: add publish auth preflight gate
@@ -409,18 +418,15 @@ Key completed boundaries:
 
 ## Last Verified
 
-Latest local verification after P21a diagnostics registry closure:
+Latest local verification after P21b signed/auth mismatch vector closure:
 
 ```text
-perl -Ilib -c lib/GobanFTP/Diagnostics.pm
-perl -Ilib -c lib/GobanFTP/TUI/Play.pm
 perl -Ilib -c t/diagnostics-contract.t
-perl -Ilib -c t/tui-play.t
+perl -Ilib -c t/profile-signed-hmac.t
+perl -Ilib -c t/auth-publish-token.t
+perl -Ilib -c t/v1-publish-auth-golden-vectors.t
 perl -Ilib -c t/p14-claim-audit.t
-prove -lr t/publish-auth-preflight.t t/tui-play.t t/store-git-tree.t t/dns-cli-parity.t t/ftp-cli-parity.t t/webdav-cli-parity.t t/diagnostics-contract.t t/p14-claim-audit.t
-prove -lr t/cli-auth-hmac.t t/v1-cli-witness.t t/v1-signed-hmac.t t/v1-signed-hmac-overlay.t t/profile-signed-hmac.t t/hmac-auth.t
-prove -lr t/diagnostics-contract.t t/tui-play.t t/p14-claim-audit.t t/witness-api.t t/v1-cross-substrate.t t/cli-auth-publish-token.t t/auth-publish-token.t t/publish-auth-preflight.t
-prove -lr t/v1-golden-vectors.t t/v1-signed-hmac-golden-vectors.t t/v1-cli-witness-surface.t t/v1-cli-witness-surface-golden.t t/showcase-demo.t t/source-art.t
+prove -lr t/auth-publish-token.t t/cli-auth-publish-token.t t/publish-auth-preflight.t t/profile-signed-hmac.t t/v1-signed-hmac.t t/v1-cli-witness.t t/v1-signed-hmac-golden-vectors.t t/v1-profile-attack-fixtures.t t/diagnostics-contract.t t/v1-publish-auth-golden-vectors.t t/p14-claim-audit.t t/dist-manifest-hygiene.t
 prove -lr t
 git diff --check
 perl -MExtUtils::Manifest=fullcheck -e 'fullcheck()'
@@ -429,9 +435,8 @@ perl -MExtUtils::Manifest=fullcheck -e 'fullcheck()'
 Result:
 
 ```text
-P21a targeted checks: PASS.
-P21a witness/surface golden checks: PASS.
-Full prove: Files=82, Tests=1099, all successful.
+P21b signed/auth mismatch target matrix: PASS.
+Full prove: Files=83, Tests=1106, all successful.
 Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 ```
 
@@ -629,14 +634,14 @@ Live FTP tests were skipped unless GOBANFTP_FTP_TEST=1 is set.
 Immediate next implementation:
 
 ```text
-after P21a diagnostics registry closure:
+after P21b signed/auth mismatch vector closure:
 - keep `GOFTP-HMAC-PUBLISH/1` as verifier-local fixture publish-auth semantics;
   it is not real writer access, transport auth, or production key lifecycle
 - unsigned `GOFTP/1` and default `publish-move`, `publish-ack`, and `play`
   paths still do not read auth material
-- likely next v1.0-completeness slice is P21b: tighten signed/auth mismatch
-  diagnostics and public attack/vector coverage without changing unsigned
-  `GOFTP/1`
+- likely next v1.0-completeness slice is P21c: run a final release-claim audit
+  and clean-checkout-style matrix rehearsal, then decide whether any remaining
+  v1.0 route gap blocks the final artifact plan
 - do not tag v1.0 until the final claim audit passes, the final stable
   clean-checkout matrix passes, and the external artifact record is attached
 - do not let display, source art, Web assets, terminal formatting, or interactive
@@ -679,6 +684,8 @@ t/cli-auth-hmac.t
 t/auth-publish-token.t
 t/cli-auth-publish-token.t
 t/publish-auth-preflight.t
+t/v1-publish-auth-golden-vectors.t
+t/fixtures/vectors/v1-publish-auth.jsonl
 t/store-git-tree.t
 t/dns-cli-parity.t
 t/ftp-cli-parity.t

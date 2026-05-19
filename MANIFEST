@@ -545,6 +545,7 @@ t/fixtures/vectors/README.md
 t/fixtures/vectors/ruleset-seal.jsonl
 t/fixtures/vectors/v1-dag-invariants.jsonl
 t/fixtures/vectors/v1-non-consensus-poison.jsonl
+t/fixtures/vectors/v1-publish-auth.jsonl
 t/fixtures/vectors/v1-replay-invariants.jsonl
 t/fixtures/vectors/v1-signed-hmac-witness.jsonl
 t/fixtures/vectors/v1-witness.jsonl
@@ -598,6 +599,7 @@ t/v1-cross-substrate.t
 t/v1-golden-vectors.t
 t/v1-profile-attack-fixtures.t
 t/v1-profile-publish-fixtures.t
+t/v1-publish-auth-golden-vectors.t
 t/v1-signed-hmac-golden-vectors.t
 t/v1-signed-hmac-overlay.t
 t/v1-signed-hmac.t

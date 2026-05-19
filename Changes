@@ -33,6 +33,11 @@ Revision history for GobanFTP
     human meaning; storage-boundary failures are storage-class failures, JSONL
     evidence stays limited to witness/schema/diagnostic records, and display or
     source-art surfaces do not own replay or diagnostic truth.
+  - Added public signed/auth mismatch evidence for the fixture boundary:
+    signed-HMAC witness and publish-auth diagnostics now have contract tests for
+    stable signature-class fields and redaction, and
+    `v1-publish-auth.jsonl` freezes a mismatched `GOFTP-HMAC-PUBLISH/1` token
+    denial while proving unsigned `GOFTP/1` witness truth stays unchanged.
   - Began v1.0/P14 development after skipping the public v0.2 / package 0.002
     release candidate.
   - Recorded a fresh clean-checkout `1.000_001` development-freeze matrix for

@@ -11,6 +11,7 @@ use Test::More;
 
 use lib "$FindBin::Bin/../lib";
 
+use GobanFTP::Auth::PublishToken qw(sign_publish_token);
 use GobanFTP::CLI;
 use GobanFTP::Diagnostics qw(
     default_diagnostics_schema
@@ -19,9 +20,20 @@ use GobanFTP::Diagnostics qw(
     diagnostic_schema_json
     explain_diagnostic
 );
+use GobanFTP::Witness qw(witness_for_listing);
 
 my $docs_path = "$FindBin::Bin/../docs/DIAGNOSTICS.md";
 my $fixture_dir = "$FindBin::Bin/fixtures/e2e";
+my $signed_hmac_fixture_dir = "$FindBin::Bin/fixtures/v1/signed-hmac";
+
+my $signed_hmac_profile = 'signed-hmac-goftp1';
+my $signed_hmac_game = 'g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob';
+my $signed_hmac_event =
+    'm1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m';
+my $signed_hmac_other_event =
+    'm1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat';
+my $signed_hmac_key_id = 'fixture-key-1';
+my $signed_hmac_secret = 'gobanftp signed hmac fixture key 1';
 
 my @allowed_fields = qw(
     child_ids code color error event_id expected_color expected_player
@@ -234,6 +246,154 @@ subtest 'CLI reports direct unknown event versions as parser diagnostics' => sub
     like $stderr, qr/\bname=\Q$unknown\E\b/, 'public event basename is reported';
 };
 
+subtest 'signed profile diagnostics expose contract fields and signature class' => sub {
+    my @schema = _diagnostic_schema(_slurp($docs_path));
+    my @cases = (
+        {
+            fixture => 'missing-signature',
+            code    => 'missing_signature',
+            fields  => [qw(code event_id name profile_id)],
+        },
+        {
+            fixture => 'wrong-signature',
+            code    => 'wrong_signature',
+            fields  => [qw(code event_id key_id name profile_id reason)],
+            reason  => 'signature.mismatch',
+        },
+        {
+            fixture => 'untrusted-key-id',
+            code    => 'untrusted_signature',
+            fields  => [qw(code event_id key_id name profile_id reason)],
+            reason  => 'key.untrusted',
+        },
+        {
+            fixture => 'malformed-signature',
+            code    => 'malformed_signature',
+            fields  => [qw(code profile_id reason signature_id)],
+            reason  => 'signature.format',
+        },
+    );
+
+    for my $case (@cases) {
+        my $witness = _signed_hmac_witness_for_case($case->{fixture});
+        my ($diagnostic) = @{ $witness->{rejected_diagnostics} };
+
+        is $witness->{rejected_count}, 1, "$case->{fixture}: one rejected event";
+        is_deeply $witness->{rejected_codes}, [$case->{code}],
+            "$case->{fixture}: rejected code is stable";
+        is_deeply $witness->{rejected_classes}, ['signature'],
+            "$case->{fixture}: rejected class is signature";
+        _assert_signature_diagnostic_contract(
+            $diagnostic,
+            \@schema,
+            $case,
+            "$case->{fixture}: witness diagnostic",
+        );
+    }
+};
+
+subtest 'publish-auth diagnostics use signature contract fields and redact auth material' => sub {
+    my @schema = _diagnostic_schema(_slurp($docs_path));
+    my $root = tempdir(CLEANUP => 1);
+    my $key_id = 'diagnostics-contract-key';
+    my $secret = 'diagnostics-contract-secret-value';
+    my $token = sign_publish_token(
+        profile         => $signed_hmac_profile,
+        game_descriptor => $signed_hmac_game,
+        event_basename  => $signed_hmac_event,
+        key_id          => $key_id,
+        key             => $secret,
+    );
+    my $bad_signature = 'not-a-hex-signature';
+
+    my @cases = (
+        {
+            name    => 'wrong-signature',
+            token   => $token,
+            event   => $signed_hmac_other_event,
+            trusted => 1,
+            code    => 'wrong_signature',
+            fields  => [qw(code event_id key_id name profile_id reason)],
+            reason  => 'event_basename.mismatch',
+        },
+        {
+            name    => 'missing-signature',
+            token   => _without_signature_fields($token),
+            event   => $signed_hmac_event,
+            trusted => 1,
+            code    => 'missing_signature',
+            fields  => [qw(code event_id name profile_id)],
+        },
+        {
+            name    => 'malformed-signature',
+            token   => {
+                %$token,
+                mac           => $bad_signature,
+                signature     => $bad_signature,
+                signature_hex => $bad_signature,
+            },
+            event   => $signed_hmac_event,
+            trusted => 1,
+            code    => 'malformed_signature',
+            fields  => [qw(code profile_id reason signature_id)],
+            reason  => 'signature.format',
+        },
+        {
+            name    => 'untrusted-signature',
+            token   => $token,
+            event   => $signed_hmac_event,
+            trusted => 0,
+            code    => 'untrusted_signature',
+            fields  => [qw(code event_id key_id name profile_id reason)],
+            reason  => 'key.untrusted',
+        },
+    );
+
+    for my $case (@cases) {
+        my $token_path = File::Spec->catfile($root, "$case->{name}.jsonl");
+        _write_jsonl($token_path, [$case->{token}]);
+
+        my @args = (
+            'v1', 'publish-auth',
+            '--profile', $signed_hmac_profile,
+            '--token', $token_path,
+        );
+        push @args, ('--trusted-hmac-key', "$key_id=$secret") if $case->{trusted};
+        push @args, ($signed_hmac_game, $case->{event});
+
+        my ($exit, $stdout, $stderr) = _run_cli(@args);
+        my @diagnostics = _diagnostics_from_stderr($stderr);
+
+        is $exit, 2, "$case->{name}: denied token exits validation";
+        like $stdout, qr/^gobanftp[.]v1[.]publish-auth=denied$/m,
+            "$case->{name}: command status is denied";
+        like $stdout, qr/^publish_auth[.]status=denied$/m,
+            "$case->{name}: publish_auth status is denied";
+        like $stdout, qr/^diagnostic_codes=\Q$case->{code}\E$/m,
+            "$case->{name}: stdout code summary is stable";
+        like $stdout, qr/^diagnostic_classes=signature$/m,
+            "$case->{name}: stdout class summary is signature";
+        like $stdout, qr/^diagnostic_count=1$/m,
+            "$case->{name}: stdout diagnostic count is stable";
+        is scalar(@diagnostics), 1, "$case->{name}: one stderr diagnostic";
+
+        _assert_signature_diagnostic_contract(
+            $diagnostics[0],
+            \@schema,
+            $case,
+            "$case->{name}: CLI diagnostic",
+        );
+
+        my $combined = $stdout . $stderr;
+        unlike $combined, qr/\Q$secret\E/,
+            "$case->{name}: trusted HMAC secret is not printed";
+        unlike $combined, qr/\Q$token->{signature}\E/,
+            "$case->{name}: full publish MAC is not printed";
+        unlike $combined, qr/\Q$bad_signature\E/,
+            "$case->{name}: malformed signature value is not printed";
+    }
+};
+
 subtest 'CLI storage errors redact FTP messages that echo credentials' => sub {
     local %ENV = %ENV;
     $ENV{GOBANFTP_STORE} = 'ftp';
@@ -314,6 +474,97 @@ sub _write_text {
     open my $fh, '>:encoding(UTF-8)', $path or die "write $path: $!";
     print {$fh} $text;
     close $fh or die "close $path: $!";
+}
+
+sub _write_jsonl {
+    my ($path, $rows) = @_;
+
+    open my $fh, '>:encoding(UTF-8)', $path or die "write $path: $!";
+    my $json = JSON::PP->new->canonical(1);
+    for my $row (@$rows) {
+        print {$fh} $json->encode($row), "\n";
+    }
+    close $fh or die "close $path: $!";
+}
+
+sub _read_jsonl {
+    my ($path) = @_;
+
+    open my $fh, '<:encoding(UTF-8)', $path or die "open $path: $!";
+    my @rows;
+    my $json = JSON::PP->new;
+    while (my $line = <$fh>) {
+        chomp $line;
+        next if $line =~ /\A\s*\z/;
+        push @rows, $json->decode($line);
+    }
+    close $fh or die "close $path: $!";
+
+    return @rows;
+}
+
+sub _signed_hmac_witness_for_case {
+    my ($case) = @_;
+
+    my $case_dir = File::Spec->catdir($signed_hmac_fixture_dir, $case);
+    my $profile_dir = File::Spec->catdir($case_dir, $signed_hmac_profile);
+    my $game = _read_single(File::Spec->catfile($case_dir, 'game.name'));
+    my @raw_names = _read_names(File::Spec->catfile($profile_dir, 'listing.names'));
+    my @attestations = _read_jsonl(File::Spec->catfile($profile_dir, 'attestations.jsonl'));
+
+    return witness_for_listing(
+        profile_id              => $signed_hmac_profile,
+        game_descriptor         => $game,
+        raw_names               => \@raw_names,
+        diagnostics_schema_path => $docs_path,
+        hmac_attestations       => \@attestations,
+        trusted_hmac_keys       => { $signed_hmac_key_id => $signed_hmac_secret },
+    );
+}
+
+sub _without_signature_fields {
+    my ($token) = @_;
+
+    my %copy = %$token;
+    delete @copy{qw(mac signature signature_hex hmac_sha256)};
+    return \%copy;
+}
+
+sub _diagnostics_from_stderr {
+    my ($stderr) = @_;
+
+    my @diagnostics;
+    for my $line (grep { /^diagnostic / } split /\n/, $stderr) {
+        my @pairs = split /\s+/, $line;
+        shift @pairs;
+
+        my %fields;
+        for my $pair (@pairs) {
+            my ($key, $value) = split /=/, $pair, 2;
+            $fields{$key} = $value // '';
+        }
+        push @diagnostics, \%fields;
+    }
+
+    return @diagnostics;
+}
+
+sub _assert_signature_diagnostic_contract {
+    my ($diagnostic, $schema, $case, $label) = @_;
+
+    is $diagnostic->{code}, $case->{code}, "$label: code is stable";
+    is diagnostic_class($diagnostic, $schema), 'signature', "$label: class is signature";
+    is_deeply [sort keys %$diagnostic], [sort @{ $case->{fields} }],
+        "$label: field set matches contract";
+    is $diagnostic->{profile_id}, $signed_hmac_profile, "$label: profile id is public";
+    is $diagnostic->{reason}, $case->{reason}, "$label: reason is stable"
+        if exists $case->{reason};
+
+    my %allowed = map { $_ => 1 } @allowed_fields;
+    for my $field (keys %$diagnostic) {
+        ok $allowed{$field}, "$label: diagnostic field is documented: $field";
+    }
+    _assert_schema_match($diagnostic, $schema);
 }
 
 sub _diagnostic_schema {

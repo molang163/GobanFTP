@@ -76,5 +76,13 @@ the public trust selector, lifecycle status, accepted/rejected events, rejected
 diagnostics, replay diagnostics, raw input names, and rendered projection text,
 but not the HMAC secret used by the verifier test.
 
+`v1-publish-auth.jsonl` freezes public publish-auth evidence for a mismatched
+publish token. The current row binds a public `GOFTP-HMAC-PUBLISH/1` token
+signed for one event to a different candidate event, proving the verifier
+denies it with stable `wrong_signature` / `event_basename.mismatch` evidence.
+The same row also pins the unsigned `local-goftp1` witness for the fixture
+listing, proving publish-auth token material and the denied candidate do not
+change unsigned `GOFTP/1` truth.
+
 `ruleset-seal.jsonl` freezes the `chinese-area-v1` ruleset seal, fixture digest
 manifest, and byte-level preimage hex for `GOFTP-RULESET-SEAL/1`.

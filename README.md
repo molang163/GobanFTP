@@ -217,6 +217,8 @@ Implemented in the current final-candidate line:
   and WebDAV read normalizers using explicit verifier-local HMAC trust input
 - verifier-local `GOFTP-HMAC-PUBLISH/1` publish token generation and
   verification for fixture new-material lifecycle semantics
+- public signed/auth mismatch fixture and golden-vector evidence for
+  signature-class witness-gate rejections and publish-auth token denial
 - default-off verifier-local publish preflight gate for `publish-move`,
   `publish-ack`, `play --move`, `play --ack`, and `play --tui`
 - core, v1, and profile attack fixture galleries
@@ -235,6 +237,9 @@ and the full `v1.0/P14` freeze. FTP listing-shadow public poison-vector coverage
 frozen for the current fixture/listing boundary only.
 it does not claim live FTP, `RETR`, `SIZE`, `MDTM`, FTP auth, FTP integrity, or
 FTP publish behavior.
+Signed/auth mismatch rows are fixture and vector evidence only; they do not
+claim complete production key lifecycle, complete publish auth, or real writer
+authorization.
 
 Unsigned `GOFTP/1` remains valid and unchanged. A signed/auth profile can reject
 events only when that explicit profile is selected; sidecar signatures do not

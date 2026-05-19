@@ -71,6 +71,30 @@ subtest 'signature failures are gate diagnostics, not accepted events' => sub {
     }
 };
 
+subtest 'signed-HMAC field mismatches keep stable wrong-signature reasons' => sub {
+    my @cases = (
+        ['version',        { version => 'GOFTP-HMAC-EVENT/2' }, 'version.mismatch'],
+        ['profile',        { profile => 'local-goftp1' },       'profile.mismatch'],
+        ['algorithm',      { algorithm => 'hmac-sha512' },      'algorithm.unsupported'],
+        ['event_id',       { event_id => 'bihb3re4k9hlucat' },  'event_id.mismatch'],
+    );
+
+    for my $case (@cases) {
+        my ($label, $patch, $reason) = @$case;
+        my $attestation = _valid_attestation($events[0]);
+        @$attestation{keys %$patch} = values %$patch;
+
+        my $result = _signed_result([$events[0]], [$attestation]);
+        is $result->{event_count}, 0, "$label mismatch accepts no event";
+        is $result->{diagnostics}[0]{code}, 'wrong_signature',
+            "$label mismatch maps to wrong_signature";
+        is $result->{diagnostics}[0]{reason}, $reason,
+            "$label mismatch reason is stable";
+        is_deeply $result->{accepted_events}, [],
+            "$label mismatch leaves signed accepted set empty";
+    }
+};
+
 subtest 'duplicate attestations are order-independent' => sub {
     my $valid = _valid_attestation($events[0]);
     my $wrong = _wrong_attestation();

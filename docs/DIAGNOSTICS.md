@@ -395,6 +395,18 @@ Signature verification reasons are public verifier classifications such as
 `key.revoked`, or `key.expired`. They name the rejected binding or lifecycle
 state, not secret material.
 
+Current public fixture and golden-vector evidence freezes these as named
+signed/auth mismatch facts, not as a production identity system:
+`missing_signature`, `wrong_signature` with `signature.mismatch`,
+`game_descriptor.mismatch`, `event_id.mismatch`, `profile.mismatch`,
+`version.mismatch`, `algorithm.unsupported`, or
+`event_basename.mismatch` where that mismatch is observable at the publish-auth
+token layer, `untrusted_signature` with `key.untrusted`, `key.rotated`,
+`key.revoked`, `key.expired`, or `key_id.public_key_namespace`, and
+`malformed_signature` with `signature.format`. These rows are witness-gate or
+publish-auth fixture evidence; they do not claim production writer
+authorization or complete production key lifecycle.
+
 Signature diagnostics may print public event basenames, event ids, key ids,
 profile ids, and trust-set labels. They must not print HMAC secrets, full MAC
 values, private key material, or environment values.

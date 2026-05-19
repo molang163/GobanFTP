@@ -410,11 +410,17 @@ projection, recursive descendant, and list-order rows stay outside event-set
 and replay truth. DNS owner labels are a current-game record scoping filter,
 not replay truth. The signed-HMAC public-trust bridge vectors separately prove
 public advisory `k1.` key/trust rows cannot authorize `signed-hmac-goftp1` HMAC
-selectors or revoke an explicit HMAC selector. The next proof slice should
-audit P14 release claims while keeping `git-tree-goftp1` and
-`dns-record-goftp1` read-only and avoiding any claim of Git publish, live FTP,
-FTP auth, FTP integrity, FTP publish behavior, live DNS, AXFR, DNSSEC trust,
-provider APIs, dynamic update, or DNS record publishing.
+selectors or revoke an explicit HMAC selector. The publish-auth public vector
+freezes a mismatched `GOFTP-HMAC-PUBLISH/1` token denial with
+`wrong_signature` / `event_basename.mismatch`, and also pins the unsigned
+`local-goftp1` witness to show denied candidate/auth material does not enter
+unsigned truth. These signed/auth rows are fixture and golden-vector evidence
+only: they are not production writer authorization, complete production key
+lifecycle, or publish-auth completion. The next proof slice should audit P14
+release claims while keeping `git-tree-goftp1` and `dns-record-goftp1`
+read-only and avoiding any claim of Git publish, live FTP, FTP auth, FTP
+integrity, FTP publish behavior, live DNS, AXFR, DNSSEC trust, provider APIs,
+dynamic update, or DNS record publishing.
 
 ## Release Gates
 
@@ -433,6 +439,7 @@ prove -lr t/v1-cross-substrate.t
 prove -lr t/v1-attack-fixtures.t
 prove -lr t/v1-profile-attack-fixtures.t
 prove -lr t/v1-profile-publish-fixtures.t
+prove -lr t/v1-publish-auth-golden-vectors.t
 prove -lr t/v1-golden-vectors.t
 prove -lr t/v1-signed-hmac.t
 prove -lr t/v1-signed-hmac-overlay.t
