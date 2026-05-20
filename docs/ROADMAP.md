@@ -49,6 +49,13 @@ terminal witness output, executable source art, and optional `Inline::C` are
 implemented as display/input or acceleration surfaces that do not own replay
 truth.
 
+The v1.0.1/package 1.001 point release adds read-only live-over-listing
+observers: `watch --live` and `play --live` continue polling after visible
+forks or validation diagnostics, but they still derive every snapshot from a
+fresh `events/` listing and conservative replay. They do not publish moves,
+choose fork winners, read `tmp/` leases, or turn polling order into protocol
+truth.
+
 ### Deferred
 
 Result/scoring events remain outside `GOFTP/1`.
@@ -57,17 +64,10 @@ Git publish, Git remote fetch, live FTP auth, live FTP integrity, production
 FTP deployment safety, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic
 update, DNS record publishing, hosted Web UI, production key lifecycle
 completion, publish auth completion, complete JSON output for every command,
-and complete future attack coverage remain outside the v1.0/package 1.000
+and complete future attack coverage remain outside the v1.0.1/package 1.001
 claim.
 
 ### Next
-
-Post-v1.0 source work starts the live-over-listing line with read-only live
-observers: `watch --live` and `play --live` continue polling after visible
-forks or validation diagnostics, but they still derive every snapshot from a
-fresh `events/` listing and conservative replay. They do not publish moves,
-choose fork winners, read `tmp/` leases, or turn polling order into protocol
-truth.
 
 The next live phase should keep the same boundary: optimistic publish, explicit
 pending/visible/replayed UI states, visible fork handling, and explicit

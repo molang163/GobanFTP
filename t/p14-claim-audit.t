@@ -35,11 +35,11 @@ for my $case (@release_files) {
 }
 
 subtest 'release-state guardrails are explicit' => sub {
-    _like('Changes', qr/^1[.]000  2026-05-19$/m,
-        'Changes keeps the final package version and date');
-    _like('lib/GobanFTP.pm', qr/^our \$VERSION = '1[.]000';$/m,
-        'module declares the final package version');
-    _like('README.md', qr/^Current release: `v1[.]0\/package 1[.]000`[.]$/m,
+    _like('Changes', qr/^1[.]001  2026-05-20$/m,
+        'Changes keeps the current package version and date');
+    _like('lib/GobanFTP.pm', qr/^our \$VERSION = '1[.]001';$/m,
+        'module declares the current package version');
+    _like('README.md', qr/^Current release: `v1[.]0[.]1\/package 1[.]001`[.]$/m,
         'README names the current release');
     _like('README.md',
         qr/static HTML is not hosted Web UI, and\n`--surface terminal` is not the local `play --tui` input surface[.]/,

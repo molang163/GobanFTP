@@ -28,11 +28,11 @@ replay の真実は、信頼しにくいが列挙できる保存先の公開さ�
 これは普通の囲碁サーバでも、hosted Web UI でも、本番用の安全システムでもありません。
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
-![Version 1.000](https://img.shields.io/badge/version-1.000-333333)
+![Version 1.001](https://img.shields.io/badge/version-1.001-333333)
 ![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Showcase check](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
-現在のリリース: `v1.0/package 1.000`.
+現在のリリース: `v1.0.1/package 1.001`.
 
 [まず見るもの](#see-it-first) · [何に向いているか](#what-this-is-for) ·
 [何ではないか](#not-for) · [3分で確認する](#three-minute-proof) ·
@@ -318,20 +318,21 @@ SGF は witness です。正本ではありません。
 
 ## いま動く範囲
 
-v1.0/package 1.000 で実装済みの範囲です。
+v1.0.1/package 1.001 で実装済みの範囲です。
 
 - 中核: filename grammar、event ids、`event_set_root`、DAG replay、
   `chinese-area-v1` rules、SGF、ack-assisted fork recovery。
 - 保存先: local、FTP、WebDAV、read-only Git tree、read-only DNS record-file
   admission。
-- 表示と入力: `play --tui`、witness text/html/terminal、projections、direct-open
-  static specimen、executable source-art oracle smoke。
+- 表示と入力: `play --tui`、read-only `watch --live` / `play --live`
+  observers、witness text/html/terminal、projections、direct-open static
+  specimen、executable source-art oracle smoke。
 - profiles: unsigned `GOFTP/1`、declared substrate profiles、explicit
   signed-HMAC witness/preflight checks。
 - 検証材料: showcase check、attack fixtures、cross-substrate golden vectors、
   profile publish fixtures。
 
-v1.0/package 1.000 の範囲は次の通りです。
+v1.0.1/package 1.001 の範囲は次の通りです。
 
 - `git-tree-goftp1` は runtime で read-only です。publish commands は storage
   boundary で失敗します。

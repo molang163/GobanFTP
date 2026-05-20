@@ -105,9 +105,9 @@ sub _read_text {
 
 sub _release_line_pattern {
     my ($rel) = @_;
-    return qr/Current release: `v1[.]0\/package 1[.]000`[.]/ if $rel eq 'README.md';
-    return qr/当前版本：`v1[.]0\/package 1[.]000`。/ if $rel eq 'README.zh-CN.md';
-    return qr/現在のリリース: `v1[.]0\/package 1[.]000`[.]/ if $rel eq 'README.ja.md';
+    return qr/Current release: `v1[.]0[.]1\/package 1[.]001`[.]/ if $rel eq 'README.md';
+    return qr/当前版本：`v1[.]0[.]1\/package 1[.]001`。/ if $rel eq 'README.zh-CN.md';
+    return qr/現在のリリース: `v1[.]0[.]1\/package 1[.]001`[.]/ if $rel eq 'README.ja.md';
     die "unknown README $rel";
 }
 

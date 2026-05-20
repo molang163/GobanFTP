@@ -1,5 +1,17 @@
 Revision history for GobanFTP
 
+1.001  2026-05-20
+  - Release v1.0.1 / package 1.001 as a point release over the v1.0 proof
+    boundary.
+  - Add read-only live-over-listing observers: `watch --live` and `play --live`
+    continue polling after visible forks or validation diagnostics while deriving
+    every snapshot from a fresh `events/` listing and conservative replay.
+  - Keep live observation outside protocol truth: the live observer does not
+    publish moves, choose fork winners, read `tmp/` leases, or turn polling order
+    into a replay input.
+  - Document the live observer boundary in the English, Simplified Chinese, and
+    Japanese READMEs and the CLI reference.
+
 1.000  2026-05-19
   - Release v1.0 / package 1.000 as the P14 proof-machine source for
     listing-first Go over enumerable stores, with `GOFTP/1` still anchored on

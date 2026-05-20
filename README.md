@@ -5,7 +5,7 @@
 A game of Go where moves are filenames.
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
-![Version 1.000](https://img.shields.io/badge/version-1.000-333333)
+![Version 1.001](https://img.shields.io/badge/version-1.001-333333)
 ![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Showcase test](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
@@ -26,7 +26,7 @@ untrusted enumerable storage.
 
 It is not a normal Go server, a hosted Web UI, or a production security system.
 
-Current release: `v1.0/package 1.000`.
+Current release: `v1.0.1/package 1.001`.
 
 [See it first](#see-it-first) · [What this is for](#what-this-is-for) ·
 [Not for](#not-for) · [Three-minute check](#three-minute-proof) ·
@@ -306,20 +306,21 @@ SGF is generated from replay. It is not read back as the source game.
 
 ## What Runs Now
 
-Implemented in v1.0/package 1.000:
+Implemented in v1.0.1/package 1.001:
 
 - Consensus core: filename grammar, event ids, `event_set_root`, DAG replay,
   `chinese-area-v1` rules, SGF, and ack-assisted fork recovery.
 - Stores: local, FTP, WebDAV, read-only Git tree, and read-only DNS record-file
   admission.
 - Interfaces: `play --tui`, witness text/html/terminal output, projections,
-  direct-open static specimen, and executable source-art smoke.
+  direct-open static specimen, read-only `watch --live` / `play --live`
+  observers, and executable source-art smoke.
 - Profiles: unsigned `GOFTP/1`, declared substrate profiles, and explicit
   signed-HMAC witness/preflight checks.
 - Checks and fixtures: showcase test, attack fixtures, cross-substrate golden
   vectors, and profile publish fixtures.
 
-Deliberately out of scope in v1.0/package 1.000:
+Deliberately out of scope in v1.0.1/package 1.001:
 
 - `git-tree-goftp1` is read-only at runtime; publish commands fail at the
   storage boundary.

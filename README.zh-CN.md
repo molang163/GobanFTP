@@ -21,11 +21,11 @@ GobanFTP 是一个 `GOFTP/1` 协议实验，也是一个可以跑的证明样本
 它不是在线围棋服务器，也不是托管 Web UI，也不是生产安全系统。
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
-![Version 1.000](https://img.shields.io/badge/version-1.000-333333)
+![Version 1.001](https://img.shields.io/badge/version-1.001-333333)
 ![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Showcase check](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
-当前版本：`v1.0/package 1.000`。
+当前版本：`v1.0.1/package 1.001`。
 
 [先看一眼](#see-it-first) · [适合用来做什么](#what-this-is-for) ·
 [不适合用来做什么](#not-for) · [三分钟跑起来](#three-minute-proof) ·
@@ -282,14 +282,15 @@ SGF 是见证输出，不是棋局正本。
 
 ## 现在实现了什么
 
-v1.0/package 1.000 已实现：
+v1.0.1/package 1.001 已实现：
 
 - 共识核心：filename grammar、event ids、`event_set_root`、DAG replay、
   `chinese-area-v1` rules、SGF witness，以及 ack-assisted fork recovery。
 - 存储后端：local、FTP、WebDAV、read-only Git tree profile，以及 read-only
   DNS record-file profile。
-- 展示层：`play --tui`、text / html / terminal witness surfaces、
-  static witness specimen，以及 source-art oracle smoke。
+- 展示层：`play --tui`、只读 `watch --live` / `play --live` 观察、text /
+  html / terminal witness surfaces、static witness specimen，以及 source-art
+  oracle smoke。
 - 检查材料：signed-HMAC fixture/preflight checks、attack fixtures，以及
   cross-substrate golden vectors。
 
