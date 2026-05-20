@@ -2,29 +2,73 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
-A Go game where moves are filenames.
+A game of Go where moves are filenames.
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
 ![Version 1.000](https://img.shields.io/badge/version-1.000-333333)
 ![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Showcase test](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
-GobanFTP is a `GOFTP/1` protocol experiment. A game is recovered from a game
-directory and the event filenames directly under `events/`. Replay lists names;
-it does not read file bodies.
+GobanFTP is a `GOFTP/1` protocol experiment and a small runnable proof
+specimen. It makes one narrow claim inspectable: if the same game descriptor
+basename and accepted event filenames are visible, the same Go game can be
+replayed.
 
-That means file contents, size, mtime, listing order, sidecars, projections,
-SGF, HTML, terminal output, and source art can help humans inspect the game, but
-they do not decide the game.
+A move is an event filename under `events/`. Replay reads names, not file
+bodies. File contents, size, mtime, listing order, sidecars, projections, SGF,
+HTML, terminal output, and source art can help humans inspect the game, but they
+do not decide it.
+
+It started as playful protocol abuse / protocol bending: making FTP-shaped
+storage do something outside its usual job. The v1.0 claim is narrower and
+testable: replay truth comes from public descriptor and event filenames on
+untrusted enumerable storage.
 
 It is not a normal Go server, a hosted Web UI, or a production security system.
-It is a small implementation of a stranger question: can one game survive across
-untrusted places that can enumerate the same names?
 
 Current release: `v1.0/package 1.000`.
 
-[Three-minute check](#three-minute-proof) · [Terminal play](#terminal-play) ·
-[Static specimen](#static-witness-specimen) · [The contract](#the-contract)
+[See it first](#see-it-first) · [What this is for](#what-this-is-for) ·
+[Not for](#not-for) · [Three-minute check](#three-minute-proof) ·
+[Terminal play](#terminal-play) · [Static specimen](#static-witness-specimen) ·
+[The contract](#the-contract)
+
+<a id="see-it-first"></a>
+
+## See It First
+
+![GobanFTP static witness specimen showing a visual 9x9 board and witness fields.](docs/assets/readme-03-witness-specimen.png)
+
+Open `examples/static/witness-specimen.html` directly in a browser.
+
+It has no script, no server, and no network fetch. It only displays witness
+fields and a board projection generated from replay. The page is not the game
+source; replay still comes from the game descriptor and event filenames.
+
+<a id="what-this-is-for"></a>
+
+## What This Is For
+
+GobanFTP is a good candidate if you want to explore:
+
+- deterministic replay from public descriptor and event filenames
+- event logs shaped as directory listings
+- visible fork diagnostics when writers race
+- protocol boundaries over untrusted enumerable storage
+- protocol art that still runs
+
+<a id="not-for"></a>
+
+## Not For
+
+GobanFTP is not:
+
+- a normal Go server
+- a hosted Web UI
+- a production auth system
+- a production FTP safety proof
+- DNS resolver or provider integrations
+- a complete scoring/result system
 
 <a id="three-minute-proof"></a>
 
@@ -101,16 +145,9 @@ canonical_ids=hihat4p8r6gaeuts
 
 ## First Look
 
-These are views of the same object. The replay input remains the game directory
-basename plus the direct event filenames under `events/`.
-
-### Static Witness Specimen
-
-![GobanFTP static witness specimen showing a visual 9x9 board and witness fields.](docs/assets/readme-03-witness-specimen.png)
-
-This is a direct-open HTML file. It has no script, no server, and no network
-fetch. The static HTML is not hosted Web UI; it displays witness fields and a
-board projection that were already generated.
+These are views of the same object. The static witness specimen is shown above.
+The replay input remains the game directory basename plus the direct event
+filenames under `events/`.
 
 ### Protocol Object
 
@@ -541,6 +578,7 @@ Build:        docs/BUILD.md
 CLI:          docs/CLI.md
 Roadmap:      docs/ROADMAP.md
 Decisions:    docs/DECISIONS.md
+README refs:  docs/references/README.md
 ```
 
 Repository map:
@@ -550,7 +588,7 @@ Repository map:
 |-- README.md              this text
 |-- README.zh-CN.md        Simplified Chinese README
 |-- README.ja.md           Japanese README
-|-- docs/                  protocol, roadmap, decisions, release records
+|-- docs/                  protocol, roadmap, decisions, references, release records
 |-- oracle/goban.pl        executable source-art smoke wrapper
 |-- lib/GobanFTP/          Perl implementation modules
 |-- script/gobanftp        CLI entry point

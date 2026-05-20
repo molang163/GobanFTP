@@ -3,6 +3,9 @@
 [English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
 GobanFTP は、囲碁の一局をディレクトリの名前一覧から再生する `GOFTP/1` の実験です。
+実行できる小さな検証用の標本でもあります。確認したい主張は一つです:
+同じ game descriptor basename と、受理された同じ event filenames が見えていれば、
+同じ一局を replay できるはずです。
 
 着手は `events/` の下にある event filename です。replay はその名前を読みます。
 ファイル本文は読みません。
@@ -18,9 +21,11 @@ GobanFTP は、囲碁の一局をディレクトリの名前一覧から再生�
 変わるべきものは event filename です。event filename を変えたら、一局は変わるか、
 その event が拒否されます。
 
-これは普通の囲碁サーバでも、本番用のセキュリティ機構でもありません。信頼しにくい
-保存先が同じ名前を列挙できるとき、一局を同じように replay できるかを見る小さな
-プロトコル実験です。
+出発点は playful protocol abuse / protocol bending です。FTP のような、名前を列挙できる保存先に
+ふだんの仕事とは違うことをさせます。v1.0 で検査する範囲はもっと狭いです:
+replay の真実は、信頼しにくいが列挙できる保存先の公開された game descriptor と event filenames から来ます。
+
+これは普通の囲碁サーバでも、hosted Web UI でも、本番用の安全システムでもありません。
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
 ![Version 1.000](https://img.shields.io/badge/version-1.000-333333)
@@ -29,8 +34,51 @@ GobanFTP は、囲碁の一局をディレクトリの名前一覧から再生�
 
 現在のリリース: `v1.0/package 1.000`.
 
-[3分で確認する](#three-minute-proof) · [端末で打つ](#terminal-play) ·
-[静的標本ページ](#static-witness-specimen) · [契約](#the-contract)
+[まず見るもの](#see-it-first) · [何に向いているか](#what-this-is-for) ·
+[何ではないか](#not-for) · [3分で確認する](#three-minute-proof) ·
+[端末で打つ](#terminal-play) · [静的標本ページ](#static-witness-specimen) ·
+[契約](#the-contract)
+
+<a id="see-it-first"></a>
+
+## まず見るもの
+
+![GobanFTP の static witness specimen。9x9 board と検証パネルが表示されている。](docs/assets/readme-03-witness-specimen.png)
+
+ブラウザで直接開けます。
+
+```text
+examples/static/witness-specimen.html
+```
+
+script も server も network fetch もありません。replay から生成された witness fields と
+board projection を表示するだけです。このページは一局の source ではありません。
+replay は game descriptor と event filenames から来ます。
+
+<a id="what-this-is-for"></a>
+
+## 何に向いているか
+
+GobanFTP は、次のものを見たいときに向いています。
+
+- 公開された game descriptor と event filenames からの決定的な replay
+- directory listing の形をした event log
+- writer が競合したときに見える fork diagnostics
+- 信頼しにくいが列挙できる保存先の protocol boundary
+- 実行できる protocol art
+
+<a id="not-for"></a>
+
+## 何ではないか
+
+GobanFTP は次のものではありません。
+
+- 通常の囲碁サーバ
+- hosted Web UI
+- 本番用の認証システム
+- 本番 FTP の安全性証明
+- DNS resolver や provider 連携
+- 完全な scoring/result system
 
 <a id="three-minute-proof"></a>
 
@@ -102,20 +150,12 @@ canonical_ids=hihat4p8r6gaeuts
 - projection: replay の結果から生成される表示です。盤面 text、SGF、HTML などです。
 - witness: 人や test が確認するための証拠です。一局の truth そのものではありません。
 
-## まず見るもの
+## さらに三つの見方
 
-四つの画像は同じ一局を別の角度から見せています。replay の入力は、game directory
-の名前と `events/` 直下の event filenames だけです。
+静的標本ページは上にあります。ここでは同じ一局を別の三つの角度から見ます。
+replay の入力は、game directory の名前と `events/` 直下の event filenames だけです。
 
-### 1. 静的標本ページ
-
-![GobanFTP の static witness specimen。9x9 board と検証パネルが表示されている。](docs/assets/readme-03-witness-specimen.png)
-
-これは直接開ける HTML file です。script も server も network fetch もありません。
-static HTML は hosted Web UI ではありません。すでに生成された witness fields と
-board projection を表示するだけです。
-
-### 2. 一局はディレクトリとして見える
+### 1. 一局はディレクトリとして見える
 
 ![GobanFTP のプロトコルオブジェクト。game descriptor directory、event basenames、sidecar、projections、tmp residue が見える。](docs/assets/readme-01-protocol-object.png)
 
@@ -123,14 +163,14 @@ board projection を表示するだけです。
 `sidecar/`、`projections/`、`tmp/` は説明、表示、公開途中の作業には使えますが、
 replay を決めません。
 
-### 3. race は fork として残る
+### 2. race は fork として残る
 
 ![GobanFTP race shrine の replay 出力。visible fork diagnostic が表示されている。](docs/assets/readme-04-race-fork.png)
 
 二つの着手が同じ親から同時に出たとき、listing order に勝者を選ばせません。
 GobanFTP は fork を表示し、既定の replay ではそこで止まります。
 
-### 4. terminal でも打てる
+### 3. terminal でも打てる
 
 ![GobanFTP の terminal play。keyboard と optional SGR mouse による二段確認がある。](docs/assets/readme-02-tui.png)
 
@@ -244,7 +284,7 @@ g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim/
 g1.../         names the game
 events/       names the moves and acknowledgements
 sidecar/      説明はできるが、決定はしない
-projections/  表示はできるが、証明はしない
+projections/  表示はできるが、決定はしない
 tmp/          publish 中に残るもの
 ```
 
@@ -559,6 +599,7 @@ Build:        docs/BUILD.md
 CLI:          docs/CLI.md
 Roadmap:      docs/ROADMAP.md
 Decisions:    docs/DECISIONS.md
+README refs:  docs/references/README.md
 ```
 
 repository map:
@@ -568,7 +609,7 @@ repository map:
 |-- README.md              English README
 |-- README.zh-CN.md        Simplified Chinese README
 |-- README.ja.md           this text
-|-- docs/                  protocol, roadmap, decisions, release records
+|-- docs/                  protocol, roadmap, decisions, references, release records
 |-- oracle/goban.pl        executable source-art smoke wrapper
 |-- lib/GobanFTP/          Perl implementation modules
 |-- script/gobanftp        CLI entry point

@@ -4,6 +4,9 @@
 
 GobanFTP 把一盘围棋存在目录列表里。
 
+GobanFTP 是一个 `GOFTP/1` 协议实验，也是一个可以跑的证明样本。
+它要检查的主张很窄：如果两个系统能看到同一个游戏目录名和同一组已接受的 event 文件名，就应该能回放出同一盘棋。
+
 每一步棋都是 `events/` 下面的一个事件文件名（event filename）。回放时只读取这些名字，不读取文件内容。
 
 所以：
@@ -13,7 +16,9 @@ GobanFTP 把一盘围棋存在目录列表里。
 - 打乱目录返回顺序（listing order），棋局不变
 - 改 event 文件名，棋局必须改变，或者被拒绝
 
-它不是在线围棋服务器，也不是生产级 FTP 安全方案。它是一个 `GOFTP/1` 协议实验：看看一盘棋能不能只靠公开、可列举的名字复原。
+它最初的动机更像一次带玩心的协议滥用：让 FTP 这类可列目录的存储表面做一点本职之外的事。v1.0 的主张更窄，也可以测试：棋局真相来自不可信但可枚举存储里的公开游戏目录名和 event 文件名。
+
+它不是在线围棋服务器，也不是托管 Web UI，也不是生产安全系统。
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
 ![Version 1.000](https://img.shields.io/badge/version-1.000-333333)
@@ -22,11 +27,53 @@ GobanFTP 把一盘围棋存在目录列表里。
 
 当前版本：`v1.0/package 1.000`。
 
-[三分钟跑起来](#three-minute-proof) · [终端下棋](#terminal-play) ·
-[静态标本页](#static-witness-specimen) · [协议契约](#the-contract)
+[先看一眼](#see-it-first) · [适合用来做什么](#what-this-is-for) ·
+[不适合用来做什么](#not-for) · [三分钟跑起来](#three-minute-proof) ·
+[终端下棋](#terminal-play) · [静态标本页](#static-witness-specimen) ·
+[协议契约](#the-contract)
 
-> 对象为真，棋盘为相，SGF 为经，FTP 为仪式。
+> 名字为真，棋盘为相，SGF 为经，FTP 为仪式。
 > 仪式可以展示，不能裁决。
+
+<a id="see-it-first"></a>
+
+## 先看一眼
+
+![GobanFTP 静态 witness 标本页，显示 9x9 棋盘和证明面板。](docs/assets/readme-03-witness-specimen.png)
+
+直接用浏览器打开：
+
+```text
+examples/static/witness-specimen.html
+```
+
+它没有脚本、服务端或网络请求。static HTML 不是 hosted Web UI；它只展示
+replay 后生成的 witness 字段和棋盘投影。这个页面不是棋局来源；replay 仍然来自游戏目录名和 event 文件名。
+
+<a id="what-this-is-for"></a>
+
+## 适合用来做什么
+
+如果你想看这些东西，GobanFTP 是一个合适的标本：
+
+- 只从公开游戏目录名和 event 文件名做确定性回放
+- 把目录列表当成 event log（事件日志）
+- 两个写入者竞争时留下可见 fork
+- 不可信但可枚举存储上的协议边界
+- 能运行的协议艺术（protocol art）
+
+<a id="not-for"></a>
+
+## 不适合用来做什么
+
+GobanFTP 不是：
+
+- 普通在线围棋服务器
+- 托管 Web UI
+- 生产级认证系统
+- 生产级 FTP 安全证明
+- DNS resolver 或 provider 集成
+- 完整的数目 / 胜负结算系统
 
 <a id="three-minute-proof"></a>
 
@@ -96,29 +143,23 @@ canonical_ids=hihat4p8r6gaeuts
 - projection：从 replay 结果生成的展示，比如棋盘文本、SGF、HTML。
 - witness：给人或测试看的证明材料，不是棋局真相本身。
 
-## 先看四张图
+## 再看三个视角
 
-这四张图看的是同一个东西：一盘棋由 game directory 的名字和 `events/` 下面的直接文件名决定。
+上面的静态标本页已经展示了棋盘和 witness 面板。下面三个视角看的是同一个对象：一盘棋由 game directory 的名字和 `events/` 下面的直接文件名决定。
 
-### 1. 静态标本页
-
-![GobanFTP 静态 witness 标本页，显示 9x9 棋盘和证明面板。](docs/assets/readme-03-witness-specimen.png)
-
-这是一个能直接打开的 HTML 文件，没有脚本、服务端或网络请求。static HTML 不是 hosted Web UI；它只是展示已经生成的见证字段（witness fields）和棋盘投影（projection）。
-
-### 2. 棋局长在目录里
+### 1. 棋局长在目录里
 
 ![GobanFTP 协议对象：game descriptor 目录、event basenames、sidecar、projections 和 tmp 残留。](docs/assets/readme-01-protocol-object.png)
 
 最外层目录名描述这盘棋。`events/` 里的文件名描述每一步。`sidecar/` 可以放解释材料，`projections/` 可以放棋盘和 SGF，`tmp/` 可以留下发布残渣。它们可以帮助人看懂，但不能决定棋局。
 
-### 3. 并发会变成 fork
+### 2. 并发会变成 fork
 
 ![GobanFTP race shrine 的 replay 输出，显示一个可见的 fork diagnostic。](docs/assets/readme-04-race-fork.png)
 
 如果两个客户端同时从同一个父节点下棋，目录返回顺序不能替协议决定哪一步赢。GobanFTP 会显示 fork，并在默认回放下停住。
 
-### 4. 终端里可以下棋
+### 3. 终端里可以下棋
 
 ![GobanFTP 终端下棋界面，支持键盘和可选 SGR mouse 二段确认。](docs/assets/readme-02-tui.png)
 
@@ -212,7 +253,7 @@ g1.id-ftp-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim/
 ```
 
 读法很直接：`g1.../` 命名这盘棋；`events/` 命名落子和确认；`sidecar/`
-可以解释，但不能决定；`projections/` 可以显示，但不能作证；`tmp/` 是发布残留。
+可以解释，但不能决定；`projections/` 可以显示，但不能裁决；`tmp/` 是发布残留。
 
 建议先看：
 
@@ -473,6 +514,7 @@ Build:        docs/BUILD.md
 CLI:          docs/CLI.md
 Roadmap:      docs/ROADMAP.md
 Decisions:    docs/DECISIONS.md
+README refs:  docs/references/README.md
 ```
 
 仓库结构：
@@ -482,7 +524,7 @@ Decisions:    docs/DECISIONS.md
 |-- README.md              English README
 |-- README.zh-CN.md        this text
 |-- README.ja.md           Japanese README
-|-- docs/                  protocol, roadmap, decisions, release records
+|-- docs/                  protocol, roadmap, decisions, references, release records
 |-- oracle/goban.pl        executable source-art smoke wrapper
 |-- lib/GobanFTP/          Perl implementation modules
 |-- script/gobanftp        CLI entry point
