@@ -649,7 +649,7 @@ verifier-local token preflight with a token bound to the exact `a1.*` basename
 and visible event id before the store write runs. A denied ack leaves no `a1.*`
 event behind.
 
-### `gobanftp play [--once|--tui] [--move <move>|--ack <event-id>] [--nonce <n>] [--publish-auth-token <publish-token.jsonl>] [--publish-auth-trusted-hmac-key-file <hmac-key-file>] <game-root|game-descriptor>`
+### `gobanftp play [--once|--live|--tui] [--count <n>|--max-polls <n>] [--interval <seconds>] [--move <move>|--ack <event-id>] [--nonce <n>] [--publish-auth-token <publish-token.jsonl>] [--publish-auth-trusted-hmac-key-file <hmac-key-file>] <game-root|game-descriptor>`
 
 Renders a terminal snapshot of the current canonical board. The snapshot is
 derived from the configured store's `events/` listing and replay result only.
@@ -672,6 +672,13 @@ q
 
 Bare points are normalized to `play-<point>`. `refresh` reloads the listing and
 prints another snapshot. `quit`, `exit`, and `q` exit without publishing.
+
+With `--live`, `play` becomes a read-only live-over-listing observer. It uses
+the same polling options as `watch --live`, prints `gobanftp.play=<status>`
+snapshots, and marks each snapshot with `live=1`. It does not enter the line
+input loop, open the TUI, publish moves, or publish acknowledgements. Forks and
+validation diagnostics remain visible in the snapshot stream instead of
+becoming hidden ordering decisions.
 
 With `--tui`, `play` opens a local raw terminal board when both stdin and stdout
 are terminals. Arrow keys and `hjkl` move the cursor, Enter or an SGR mouse
@@ -729,7 +736,7 @@ ack-assisted replay. If the ack resolves the visible fork, the snapshot exits
 `watch`, `replay`, `sgf`, and `project` remain conservative by default on the
 same listing.
 
-### `gobanftp watch [--once] [--count <n>|--max-polls <n>] [--interval <seconds>] <game-root|game-descriptor>`
+### `gobanftp watch [--live] [--once] [--count <n>|--max-polls <n>] [--interval <seconds>] <game-root|game-descriptor>`
 
 Repeatedly reloads the store listing and prints terminal snapshots. `--once` is
 equivalent to `--count 1`. `--max-polls` is an alias for `--count`. The default
@@ -743,4 +750,11 @@ list events -> sort event basenames -> replay -> render snapshot
 
 The polling interval is not a replay input. `watch` never reads event file
 contents, file size, mtime, LIST order, sidecar files, `tmp/`, or projections.
-It exits `2` for validation failures and `3` for forks.
+By default it exits `2` for validation failures and `3` for forks.
+
+With `--live`, `watch` keeps polling after validation failures and forks. Each
+snapshot still reports `gobanftp.watch=failed` or `gobanftp.watch=fork`, emits
+diagnostics, and renders the replay-derived board surface; the process returns
+success only when the bounded poll count ends or it is interrupted. `--live`
+does not choose a fork winner, enable ack-assisted replay, read `tmp/` leases,
+or make polling order authoritative.

@@ -201,6 +201,17 @@ successful publish ends the session.
 The TUI does not own rules, roots, diagnostics, or event acceptance. It is only
 an input/display layer over replay and publish callbacks.
 
+For read-only live-over-listing observation, use bounded `watch --live` or
+`play --live`:
+
+```sh
+perl -Ilib script/gobanftp watch --live --max-polls 3 --interval 1 "$game"
+```
+
+Live mode keeps polling after visible forks or validation diagnostics. It does
+not choose a winner, and it does not publish moves. It only keeps re-listing
+`events/`, replaying the names, and showing the current witness surface.
+
 <a id="static-witness-specimen"></a>
 
 ## Static Witness Specimen

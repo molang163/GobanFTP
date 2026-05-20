@@ -158,6 +158,103 @@ subtest 'watch --max-polls renders a bounded listing-first snapshot' => sub {
     ok !-e File::Spec->catdir($game_root, 'projections'), 'watch does not write projections';
 };
 
+subtest 'watch exits on a fork by default' => sub {
+    my (undef, $game_root) = _make_game_root();
+    my ($left, $left_id) = build_move_name(
+        game_descriptor => $GAME,
+        ply             => 1,
+        color           => 'b',
+        action          => 'play-aa',
+        parent_id       => 'genesis',
+        player          => 'alice',
+        nonce           => 'wf1',
+    );
+    my ($right, $right_id) = build_move_name(
+        game_descriptor => $GAME,
+        ply             => 1,
+        color           => 'b',
+        action          => 'play-bb',
+        parent_id       => 'genesis',
+        player          => 'alice',
+        nonce           => 'wf2',
+    );
+    _write_text(File::Spec->catfile($game_root, 'events', $left), '');
+    _write_text(File::Spec->catfile($game_root, 'events', $right), '');
+
+    my ($exit, $stdout, $stderr) = _run_cli('watch', '--max-polls', '2', '--interval', '0', $game_root);
+
+    is $exit, 3, 'plain watch exits on fork';
+    like $stdout, qr/^gobanftp\.watch=fork$/m, 'fork status is rendered';
+    like $stdout, qr/^snapshot=1$/m, 'first snapshot is rendered';
+    unlike $stdout, qr/^snapshot=2$/m, 'plain watch stops before the next snapshot';
+    like $stdout, qr/^worldline\.fork\.child_ids=\Q@{[join ',', sort ($left_id, $right_id)]}\E$/m,
+        'fork children are visible';
+    like $stderr, qr/diagnostic .*code=fork/, 'fork diagnostic is reported';
+};
+
+subtest 'watch --live keeps polling after a visible fork' => sub {
+    my (undef, $game_root) = _make_game_root();
+    my ($left, $left_id) = build_move_name(
+        game_descriptor => $GAME,
+        ply             => 1,
+        color           => 'b',
+        action          => 'play-aa',
+        parent_id       => 'genesis',
+        player          => 'alice',
+        nonce           => 'liveleft',
+    );
+    my ($right, $right_id) = build_move_name(
+        game_descriptor => $GAME,
+        ply             => 1,
+        color           => 'b',
+        action          => 'play-bb',
+        parent_id       => 'genesis',
+        player          => 'alice',
+        nonce           => 'liveright',
+    );
+    _write_text(File::Spec->catfile($game_root, 'events', $left), '');
+    _write_text(File::Spec->catfile($game_root, 'events', $right), '');
+
+    my ($exit, $stdout, $stderr) = _run_cli('watch', '--live', '--max-polls', '2', '--interval', '0', $game_root);
+
+    is $exit, 0, 'live watch exits success after bounded polls';
+    is scalar(() = $stdout =~ /^gobanftp\.watch=fork$/mg), 2, 'fork status is rendered for both snapshots';
+    is scalar(() = $stdout =~ /^live=1$/mg), 2, 'live mode is explicit in every snapshot';
+    like $stdout, qr/^snapshot=1$/m, 'first snapshot is rendered';
+    like $stdout, qr/^snapshot=2$/m, 'second snapshot is rendered after the fork';
+    like $stdout, qr/^worldline\.fork\.child_ids=\Q@{[join ',', sort ($left_id, $right_id)]}\E$/m,
+        'live watch keeps fork children visible';
+    is scalar(() = $stderr =~ /diagnostic .*code=fork/g), 2, 'fork diagnostic is reported for both snapshots';
+    is_deeply [_event_names($game_root)], [sort ($left, $right)], 'live watch does not change events';
+    ok !-e File::Spec->catdir($game_root, 'projections'), 'live watch does not write projections';
+};
+
+subtest 'play --live is a read-only live-over-listing observer' => sub {
+    my (undef, $game_root) = _make_game_root();
+    my ($event) = build_move_name(
+        game_descriptor => $GAME,
+        ply             => 1,
+        color           => 'b',
+        action          => 'play-aa',
+        parent_id       => 'genesis',
+        player          => 'alice',
+        nonce           => 'plive',
+    );
+    _write_text(File::Spec->catfile($game_root, 'events', $event), '');
+
+    my ($exit, $stdout, $stderr) = _run_cli('play', '--live', '--max-polls', '1', '--interval', '0', $game_root);
+
+    is $exit, 0, 'play --live exits success after a bounded poll';
+    like $stdout, qr/^gobanftp\.play=ok$/m, 'play live uses play snapshots';
+    like $stdout, qr/^snapshot=1$/m, 'play live reports the snapshot number';
+    like $stdout, qr/^live=1$/m, 'play live marks live mode';
+    like $stdout, qr/^events=1$/m, 'play live sees the listing';
+    like $stdout, qr/^turn_color=w$/m, 'play live renders the next turn';
+    is $stderr, '', 'play live has no diagnostics on a clean listing';
+    is_deeply [_event_names($game_root)], [$event], 'play live does not publish';
+    ok !-e File::Spec->catdir($game_root, 'projections'), 'play live does not write projections';
+};
+
 subtest 'play --once reports forks as worldline state' => sub {
     my (undef, $game_root) = _make_game_root();
     my ($left, $left_id) = build_move_name(

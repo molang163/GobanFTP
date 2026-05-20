@@ -212,6 +212,17 @@ q                  quit
 `play --tui` は rules、roots、diagnostics、event acceptance を所有しません。同じ
 replay と publish callbacks の上にある local input/display layer です。
 
+read-only な live-over-listing 観察には、bounded な `watch --live` または
+`play --live` を使えます。
+
+```sh
+perl -Ilib script/gobanftp watch --live --max-polls 3 --interval 1 "$game"
+```
+
+live mode は、見える fork や validation diagnostics があっても polling を続けます。
+勝者を選ばず、move も publish しません。`events/` を繰り返し列挙し、名前から replay し、
+現在の witness surface を表示するだけです。
+
 <a id="static-witness-specimen"></a>
 
 ## 静的標本ページ

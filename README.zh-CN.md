@@ -187,6 +187,14 @@ select -> confirm -> publishing_locked -> published
 
 `play --tui` 不拥有规则、root、diagnostics 或 event acceptance。它只是同一套 replay 和 publish callbacks 之上的本地输入/显示层。
 
+只读 live-over-listing 观察可以用有界的 `watch --live` 或 `play --live`：
+
+```sh
+perl -Ilib script/gobanftp watch --live --max-polls 3 --interval 1 "$game"
+```
+
+live 模式遇到可见 fork 或 validation diagnostics 后会继续轮询。它不会选择胜者，也不会发布落子；它只会反复列出 `events/`，从文件名 replay，并展示当前 witness surface。
+
 <a id="static-witness-specimen"></a>
 
 ## 静态标本页

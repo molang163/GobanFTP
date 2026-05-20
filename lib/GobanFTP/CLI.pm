@@ -385,15 +385,49 @@ sub _command_play {
     my (@argv) = @_;
     my $usage = _play_usage_line();
 
-    my %opts = _publish_auth_default_opts();
+    my %opts = (
+        _publish_auth_default_opts(),
+        interval => 2,
+    );
     while (@argv && $argv[0] =~ /\A--/) {
         my $option = shift @argv;
         if ($option eq '--once') {
             $opts{once} = 1;
             next;
         }
+        if ($option eq '--live') {
+            $opts{live} = 1;
+            next;
+        }
         if ($option eq '--tui') {
             $opts{tui} = 1;
+            next;
+        }
+        if ($option eq '--count') {
+            die $usage if !@argv;
+            $opts{count} = shift @argv;
+            next;
+        }
+        if ($option =~ /\A--count=(.+)\z/) {
+            $opts{count} = $1;
+            next;
+        }
+        if ($option eq '--max-polls') {
+            die $usage if !@argv;
+            $opts{count} = shift @argv;
+            next;
+        }
+        if ($option =~ /\A--max-polls=(.+)\z/) {
+            $opts{count} = $1;
+            next;
+        }
+        if ($option eq '--interval') {
+            die $usage if !@argv;
+            $opts{interval} = shift @argv;
+            next;
+        }
+        if ($option =~ /\A--interval=(.+)\z/) {
+            $opts{interval} = $1;
             next;
         }
         if ($option eq '--move') {
@@ -432,6 +466,12 @@ sub _command_play {
 
     die $usage if @argv != 1 || (defined($opts{move}) && defined($opts{ack}));
     die $usage if $opts{tui} && ($opts{once} || defined($opts{move}) || defined($opts{ack}));
+    die $usage if $opts{live} && ($opts{once} || $opts{tui} || defined($opts{move}) || defined($opts{ack}));
+    die $usage
+        if defined($opts{count}) && $opts{count} !~ /\A[1-9][0-9]*\z/;
+    die $usage
+        if !defined($opts{interval}) || $opts{interval} !~ /\A(?:0|[1-9][0-9]*)(?:\.[0-9]+)?\z/;
+    die $usage if !$opts{live} && (defined($opts{count}) || $opts{interval} != 2);
     die $usage
         if defined($opts{nonce}) && $opts{nonce} !~ /\A[a-z0-9_-]{1,16}\z/;
     die $usage
@@ -443,6 +483,16 @@ sub _command_play {
         && !$opts{tui};
 
     my ($game_arg) = @argv;
+
+    if ($opts{live}) {
+        return _run_watch_loop(
+            command  => 'play',
+            game_arg => $game_arg,
+            count    => $opts{count},
+            interval => $opts{interval},
+            live     => 1,
+        );
+    }
 
     if ($opts{tui}) {
         return _command_play_tui(
@@ -616,13 +666,16 @@ sub _command_watch {
 
     while (@argv && $argv[0] =~ /\A--/) {
         my $option = shift @argv;
+        if ($option eq '--live') {
+            $opts{live} = 1;
+            next;
+        }
         if ($option eq '--once') {
             $opts{count} = 1;
             next;
         }
         if ($option eq '--count') {
-            die "usage: watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>"
-                if !@argv;
+            die _watch_usage_line() if !@argv;
             $opts{count} = shift @argv;
             next;
         }
@@ -631,8 +684,7 @@ sub _command_watch {
             next;
         }
         if ($option eq '--max-polls') {
-            die "usage: watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>"
-                if !@argv;
+            die _watch_usage_line() if !@argv;
             $opts{count} = shift @argv;
             next;
         }
@@ -641,8 +693,7 @@ sub _command_watch {
             next;
         }
         if ($option eq '--interval') {
-            die "usage: watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>"
-                if !@argv;
+            die _watch_usage_line() if !@argv;
             $opts{interval} = shift @argv;
             next;
         }
@@ -650,26 +701,42 @@ sub _command_watch {
             $opts{interval} = $1;
             next;
         }
-        die "usage: watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>";
+        die _watch_usage_line();
     }
 
-    die "usage: watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>"
-        if @argv != 1;
-    die "usage: watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>"
+    die _watch_usage_line() if @argv != 1;
+    die _watch_usage_line()
         if defined($opts{count}) && $opts{count} !~ /\A[1-9][0-9]*\z/;
-    die "usage: watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>"
+    die _watch_usage_line()
         if !defined($opts{interval}) || $opts{interval} !~ /\A(?:0|[1-9][0-9]*)(?:\.[0-9]+)?\z/;
 
     my ($game_arg) = @argv;
+    return _run_watch_loop(
+        command  => 'watch',
+        game_arg => $game_arg,
+        count    => $opts{count},
+        interval => $opts{interval},
+        live     => $opts{live} ? 1 : 0,
+    );
+}
+
+sub _run_watch_loop {
+    my (%opts) = @_;
+
     my $snapshot = 0;
 
     while (!defined($opts{count}) || $snapshot < $opts{count}) {
         $snapshot++;
 
-        my $context = _load_context($game_arg);
-        my $exit = _print_terminal_snapshot('watch', $context, snapshot => $snapshot);
+        my $context = _load_context($opts{game_arg});
+        my $exit = _print_terminal_snapshot(
+            $opts{command},
+            $context,
+            snapshot => $snapshot,
+            $opts{live} ? (live => 1) : (),
+        );
         _print_diagnostics($context->{replay_result});
-        return $exit if $exit != EXIT_SUCCESS;
+        return $exit if $exit != EXIT_SUCCESS && !$opts{live};
 
         last if defined($opts{count}) && $snapshot >= $opts{count};
         select undef, undef, undef, 0 + $opts{interval};
@@ -1624,9 +1691,13 @@ sub _publish_ack_usage_line {
 }
 
 sub _play_usage_line {
-    return 'usage: play [--once|--tui] [--move move|--ack event-id] [--nonce n] '
+    return 'usage: play [--once|--live|--tui] [--count n|--max-polls n] [--interval seconds] [--move move|--ack event-id] [--nonce n] '
         . _publish_auth_usage_suffix()
         . ' <game-root|game-descriptor>';
+}
+
+sub _watch_usage_line {
+    return 'usage: watch [--live] [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>';
 }
 
 sub _publish_auth_usage_suffix {
@@ -2703,6 +2774,7 @@ sub _print_terminal_snapshot {
 
     _print_summary($command, $status, $context, event_set => 1);
     print STDOUT "snapshot=$opts{snapshot}\n" if defined $opts{snapshot};
+    print STDOUT "live=1\n" if $opts{live};
     _print_turn($result);
     _print_worldline($result);
 
@@ -2891,8 +2963,8 @@ commands:
   project <game-root|game-descriptor>
   publish-move [--nonce n] [--publish-auth-token publish-token.jsonl] [--publish-auth-trusted-hmac-key-file hmac-key-file] <game-root|game-descriptor> <aa|play-aa|pass|resign>
   publish-ack [--nonce n] [--publish-auth-token publish-token.jsonl] [--publish-auth-trusted-hmac-key-file hmac-key-file] <game-root|game-descriptor> <event-id>
-  play [--once|--tui] [--move move|--ack event-id] [--nonce n] [--publish-auth-token publish-token.jsonl] [--publish-auth-trusted-hmac-key-file hmac-key-file] <game-root|game-descriptor>
-  watch [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>
+  play [--once|--live|--tui] [--count n|--max-polls n] [--interval seconds] [--move move|--ack event-id] [--nonce n] [--publish-auth-token publish-token.jsonl] [--publish-auth-trusted-hmac-key-file hmac-key-file] <game-root|game-descriptor>
+  watch [--live] [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>
   v1 keygen --profile signed-hmac-goftp1 --out hmac-key-file
   v1 keyid --fixture public-key-file
   v1 attest --profile signed-hmac-goftp1 --key hmac-key-file --out attestations.jsonl <game-root|game-descriptor>
