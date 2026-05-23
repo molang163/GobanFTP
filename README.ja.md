@@ -2,30 +2,8 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
-GobanFTP は、囲碁の一局をディレクトリの名前一覧から再生する `GOFTP/1` の実験です。
-実行できる小さな検証用の標本でもあります。確認したい主張は一つです:
-同じ game descriptor basename と、受理された同じ event filenames が見えていれば、
-同じ一局を replay できるはずです。
-
-着手は `events/` の下にある event filename です。replay はその名前を読みます。
-ファイル本文は読みません。
-
-そのため、次のものを変えても一局は変わりません。
-
-- file contents
-- mtime
-- listing order
-- sidecar
-- projection
-
-変わるべきものは event filename です。event filename を変えたら、一局は変わるか、
-その event が拒否されます。
-
-出発点は playful protocol abuse / protocol bending です。FTP のような、名前を列挙できる保存先に
-ふだんの仕事とは違うことをさせます。v1.0 で検査する範囲はもっと狭いです:
-replay の真実は、信頼しにくいが列挙できる保存先の公開された game descriptor と event filenames から来ます。
-
-これは普通の囲碁サーバでも、hosted Web UI でも、本番用の安全システムでもありません。
+GobanFTP は、囲碁の一局をディレクトリの名前一覧から replay する実験です。
+ファイル名が event です。
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
 ![Version 1.001](https://img.shields.io/badge/version-1.001-333333)
@@ -34,16 +12,75 @@ replay の真実は、信頼しにくいが列挙できる保存先の公開さ�
 
 現在のリリース: `v1.0.1/package 1.001`.
 
-[まず見るもの](#see-it-first) · [何に向いているか](#what-this-is-for) ·
+[ファイル名が event](#the-shape) · [fork を見る](#the-fork) ·
+[なぜ作ったか](#why-this-exists) · [まず見るもの](#see-it-first) · [何に向いているか](#what-this-is-for) ·
 [何ではないか](#not-for) · [3分で確認する](#three-minute-proof) ·
 [端末で打つ](#terminal-play) · [静的標本ページ](#static-witness-specimen) ·
 [契約](#the-contract)
+
+<a id="the-shape"></a>
+
+## ファイル名が event です
+
+小さな一局は、名前だけでも表せます。
+
+```text
+g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/
+  events/
+    m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m
+    m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat
+    m1.p000003.b.pass.pa-bihb3re4k9hlucat.by-alice.n-chain3.h-kcvtlonfje163p9q
+```
+
+読むべき move body はありません。ファイル名が event です。
+
+game directory の basename は board size、rules、komi、players を表します。
+`events/` の direct child basenames は、受理された events を表します。Replay はその名前に
+含まれる parent id をたどります。file contents、mtime、listing order は replay input では
+ありません。他のファイルがあってもかまいませんが、replay に入るのは受理された event
+basenames だけです。
+
+<a id="the-fork"></a>
+
+## fork を見る
+
+二つの publish attempt が同じ parent の下に別々の合法な child を作っても、listing は勝者を選びません。
+
+```text
+g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/
+  events/
+    m1.p000001.b.play-aa.pa-genesis.by-alice.n-forkleft.h-q65v2mhef9t3em7l
+    m1.p000001.b.play-bb.pa-genesis.by-alice.n-forkright.h-o5g8u5cu913nedng
+```
+
+どちらの event も `pa-genesis` を親として主張します。Default replay は visible fork を報告します。
+FTP、WebDAV、Git、DNS、filesystem listing order、mtime、file bodies、sidecar metadata で
+勝手に一局を決めません。
+
+<a id="why-this-exists"></a>
+
+## なぜ作ったか
+
+GobanFTP は `GOFTP/1` の protocol experiment であり、実行できる小さな proof specimen です。
+確認したい主張は一つです。同じ game descriptor basename と、受理された同じ event basenames
+が見えていれば、同じ一局を replay できるはずです。
+
+出発点は playful protocol abuse / protocol bending です。FTP のような、名前を列挙できる保存先に
+ふだんの仕事とは違うことをさせます。目的は普通の囲碁サーバではありません。信頼しにくいが
+列挙できる保存先で、replay boundary を見える形にすることです。
+
+file contents、size、mtime、listing order、sidecars、projections、SGF、HTML、terminal output、
+source art は一局を調べる助けになりますが、一局を決めません。
+
+これは普通の囲碁サーバでも、hosted Web UI でも、本番用の安全システムでもありません。
 
 <a id="see-it-first"></a>
 
 ## まず見るもの
 
 ![GobanFTP の static witness specimen。9x9 board と検証パネルが表示されている。](docs/assets/readme-03-witness-specimen.png)
+
+Replay のあと、同じ受理された名前を board と witness page に projection できます。
 
 ブラウザで直接開けます。
 
@@ -84,7 +121,8 @@ GobanFTP は次のものではありません。
 
 ## 3分で確認する
 
-必要なものは Perl 5.34+ と `make` です。
+必要なものは Perl 5.34+ と `make` です。この local check には FTP サーバーは不要です。
+repository 内の fixture を使います。
 
 ```sh
 perl Makefile.PL
@@ -587,8 +625,9 @@ bad signed profile -> rejected by that signed profile
 source art / C / asm / Web UI / TUI -> replay の真実を変えられません
 ```
 
-`v0.1` は `GOFTP/1` consensus boundary を固定しました。`v1.0/P14` はその境界を
-package 1.000 で、複数の substrate にまたがる検証の出発点にします。
+`v0.1` は `GOFTP/1` consensus boundary を固定しました。最初の `v1.0/P14`
+package 1.000 release source は、その境界を複数の substrate にまたがる検証の
+出発点にしました。現在の release line は `v1.0.1/package 1.001` です。
 
 ## 資料
 

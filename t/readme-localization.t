@@ -50,7 +50,7 @@ for my $rel (@readmes) {
         "$rel says the license is not a production security certification";
     unlike $text{$rel}, qr/perl_5|perl__5/,
         "$rel does not keep the old perl_5 license badge";
-    like $text{$rel}, qr/\[.*?\]\(#three-minute-proof\).*?\[.*?\]\(#terminal-play\).*?\[.*?\]\(#static-witness-specimen\).*?\[.*?\]\(#the-contract\)/s,
+    like $text{$rel}, qr/\[.*?\]\(#the-shape\).*?\[.*?\]\(#the-fork\).*?\[.*?\]\(#why-this-exists\).*?\[.*?\]\(#see-it-first\).*?\[.*?\]\(#three-minute-proof\).*?\[.*?\]\(#terminal-play\).*?\[.*?\]\(#static-witness-specimen\).*?\[.*?\]\(#the-contract\)/s,
         "$rel uses stable local README anchors";
     like $text{$rel}, qr/static HTML .*hosted Web UI|Static HTML .*hosted Web UI|static HTML .*hosted Web UI/s,
         "$rel keeps static HTML separate from hosted Web UI";

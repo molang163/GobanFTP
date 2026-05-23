@@ -2,23 +2,7 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
-GobanFTP 把一盘围棋存在目录列表里。
-
-GobanFTP 是一个 `GOFTP/1` 协议实验，也是一个可以跑的证明样本。
-它要检查的主张很窄：如果两个系统能看到同一个游戏目录名和同一组已接受的 event 文件名，就应该能回放出同一盘棋。
-
-每一步棋都是 `events/` 下面的一个事件文件名（event filename）。回放时只读取这些名字，不读取文件内容。
-
-所以：
-
-- 改文件内容，棋局不变
-- 改 mtime，棋局不变
-- 打乱目录返回顺序（listing order），棋局不变
-- 改 event 文件名，棋局必须改变，或者被拒绝
-
-它最初的动机更像一次带玩心的协议滥用：让 FTP 这类可列目录的存储表面做一点本职之外的事。v1.0 的主张更窄，也可以测试：棋局真相来自不可信但可枚举存储里的公开游戏目录名和 event 文件名。
-
-它不是在线围棋服务器，也不是托管 Web UI，也不是生产安全系统。
+GobanFTP 把一盘围棋存在目录列表里。文件名就是事件。
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
 ![Version 1.001](https://img.shields.io/badge/version-1.001-333333)
@@ -27,7 +11,8 @@ GobanFTP 是一个 `GOFTP/1` 协议实验，也是一个可以跑的证明样本
 
 当前版本：`v1.0.1/package 1.001`。
 
-[先看一眼](#see-it-first) · [适合用来做什么](#what-this-is-for) ·
+[文件名就是事件](#the-shape) · [分叉长什么样](#the-fork) ·
+[为什么做这个](#why-this-exists) · [先看一眼](#see-it-first) · [适合用来做什么](#what-this-is-for) ·
 [不适合用来做什么](#not-for) · [三分钟跑起来](#three-minute-proof) ·
 [终端下棋](#terminal-play) · [静态标本页](#static-witness-specimen) ·
 [协议契约](#the-contract)
@@ -35,11 +20,64 @@ GobanFTP 是一个 `GOFTP/1` 协议实验，也是一个可以跑的证明样本
 > 名字为真，棋盘为相，SGF 为经，FTP 为仪式。
 > 仪式可以展示，不能裁决。
 
+<a id="the-shape"></a>
+
+## 文件名就是事件
+
+一个很小的棋局可以只是一组名字：
+
+```text
+g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/
+  events/
+    m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m
+    m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat
+    m1.p000003.b.pass.pa-bihb3re4k9hlucat.by-alice.n-chain3.h-kcvtlonfje163p9q
+```
+
+没有“棋步内容”需要读取。文件名就是事件。
+
+游戏目录的 basename 负责命名棋盘大小、规则、贴目和玩家。`events/` 下面的直接子 basename
+负责命名已经被协议接受的事件。Replay 根据这些名字里的 parent id 串起棋局，不根据文件内容、
+mtime 或目录返回顺序。其他文件可以存在，但只有被接受的 event basename 会参与 replay。
+
+<a id="the-fork"></a>
+
+## 分叉长什么样
+
+如果两次发布尝试同时写出了同一个父节点下面的不同合法子节点，目录列表不能替协议选赢家：
+
+```text
+g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/
+  events/
+    m1.p000001.b.play-aa.pa-genesis.by-alice.n-forkleft.h-q65v2mhef9t3em7l
+    m1.p000001.b.play-bb.pa-genesis.by-alice.n-forkright.h-o5g8u5cu913nedng
+```
+
+这两个事件都声明了 `pa-genesis`。默认 replay 会报告一个可见 fork，而不是让 FTP、
+WebDAV、Git、DNS、文件系统 listing 顺序、mtime、文件内容或 sidecar metadata 偷偷决定棋局。
+
+<a id="why-this-exists"></a>
+
+## 为什么做这个
+
+GobanFTP 是一个 `GOFTP/1` 协议实验，也是一个可以跑的证明样本。它要检查的主张很窄：
+如果两个系统能看到同一个游戏目录 basename 和同一组已接受的 event basename，就应该能回放出同一盘棋。
+
+它最初的动机更像一次带玩心的协议滥用：让 FTP 这类可列目录的存储表面做一点本职之外的事。
+重点不是做一个普通围棋服务器，而是把不可信但可枚举存储上的 replay 边界变得可见。
+
+文件内容、大小、mtime、listing order、sidecar、projection、SGF、HTML、终端输出和代码画可以帮助人检查棋局，
+但不能裁决棋局。
+
+它不是在线围棋服务器，也不是托管 Web UI，也不是生产安全系统。
+
 <a id="see-it-first"></a>
 
 ## 先看一眼
 
 ![GobanFTP 静态 witness 标本页，显示 9x9 棋盘和证明面板。](docs/assets/readme-03-witness-specimen.png)
+
+Replay 之后，同一组已接受的名字可以被投影成棋盘和 witness 页面。
 
 直接用浏览器打开：
 
@@ -79,7 +117,7 @@ GobanFTP 不是：
 
 ## 三分钟跑起来
 
-要求：Perl 5.34+ 和 `make`。
+要求：Perl 5.34+ 和 `make`。这一步不需要 FTP 服务器；它使用仓库里的本地 fixture。
 
 ```sh
 perl Makefile.PL
@@ -500,7 +538,9 @@ bad signed profile -> rejected by that signed profile
 代码画 / C / asm / Web UI / TUI -> 不能改变协议真相
 ```
 
-`v0.1` 冻结 `GOFTP/1` consensus boundary。`v1.0/P14` 在 package 1.000 中把这条边界应用到 local、FTP、WebDAV、read-only Git tree 和 read-only DNS record-file。
+`v0.1` 冻结 `GOFTP/1` consensus boundary。最初的 `v1.0/P14` package 1.000
+release source 把这条边界应用到 local、FTP、WebDAV、read-only Git tree 和
+read-only DNS record-file。当前发布线是 `v1.0.1/package 1.001`。
 
 ## 文档
 

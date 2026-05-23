@@ -2,42 +2,87 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
-A game of Go where moves are filenames.
+A record of the board game Go where the filename is the event.
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
 ![Version 1.001](https://img.shields.io/badge/version-1.001-333333)
 ![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Showcase test](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
-GobanFTP is a `GOFTP/1` protocol experiment and a small runnable proof
-specimen. It makes one narrow claim inspectable: if the same game descriptor
-basename and accepted event filenames are visible, the same Go game can be
-replayed.
-
-A move is an event filename under `events/`. Replay reads names, not file
-bodies. File contents, size, mtime, listing order, sidecars, projections, SGF,
-HTML, terminal output, and source art can help humans inspect the game, but they
-do not decide it.
-
-It started as playful protocol abuse / protocol bending: making FTP-shaped
-storage do something outside its usual job. The v1.0 claim is narrower and
-testable: replay truth comes from public descriptor and event filenames on
-untrusted enumerable storage.
-
-It is not a normal Go server, a hosted Web UI, or a production security system.
-
 Current release: `v1.0.1/package 1.001`.
 
-[See it first](#see-it-first) · [What this is for](#what-this-is-for) ·
+[Filename is the event](#the-shape) · [The fork](#the-fork) ·
+[Why this exists](#why-this-exists) · [See it first](#see-it-first) · [What this is for](#what-this-is-for) ·
 [Not for](#not-for) · [Three-minute check](#three-minute-proof) ·
 [Terminal play](#terminal-play) · [Static specimen](#static-witness-specimen) ·
 [The contract](#the-contract)
+
+<a id="the-shape"></a>
+
+## The Filename Is the Event
+
+A small game can be only names:
+
+```text
+g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/
+  events/
+    m1.p000001.b.play-aa.pa-genesis.by-alice.n-chain1.h-khjclcui7pejbv3m
+    m1.p000002.w.play-bb.pa-khjclcui7pejbv3m.by-bob.n-chain2.h-bihb3re4k9hlucat
+    m1.p000003.b.pass.pa-bihb3re4k9hlucat.by-alice.n-chain3.h-kcvtlonfje163p9q
+```
+
+There is no move body to read. The filename is the event.
+
+The game directory basename names the board, rules, komi, and players. The
+direct child basenames under `events/` name the accepted events. Replay follows
+the parent ids in those names, not file contents, mtimes, or listing order.
+Other files may exist, but only accepted event basenames participate in replay.
+
+<a id="the-fork"></a>
+
+## The Fork
+
+If two publish attempts create different legal children of the same parent, the
+listing cannot pick a winner:
+
+```text
+g1.id-replay.s3.r-chinese-area-v1.k0.pb-alice.pw-bob/
+  events/
+    m1.p000001.b.play-aa.pa-genesis.by-alice.n-forkleft.h-q65v2mhef9t3em7l
+    m1.p000001.b.play-bb.pa-genesis.by-alice.n-forkright.h-o5g8u5cu913nedng
+```
+
+Both events claim `pa-genesis`. Default replay reports a visible fork instead
+of letting FTP, WebDAV, Git, DNS, filesystem listing order, mtime, file bodies,
+or sidecar metadata silently decide the game.
+
+<a id="why-this-exists"></a>
+
+## Why This Exists
+
+GobanFTP is a `GOFTP/1` protocol experiment with a runnable proof specimen. It
+checks one narrow claim: if the same game descriptor basename and accepted
+event basenames are visible, the same Go game can be replayed.
+
+It started as playful protocol abuse / protocol bending: making FTP-shaped
+storage do something outside its usual job. The point is not to build a normal
+online Go game server; it is to make a replay boundary visible on untrusted
+enumerable storage.
+
+File contents, size, mtime, listing order, sidecars, projections, SGF, HTML,
+terminal output, and source art can help humans inspect the game, but they do
+not decide it.
+
+It is not a normal online Go game server, a hosted Web UI, or a production
+security system.
 
 <a id="see-it-first"></a>
 
 ## See It First
 
 ![GobanFTP static witness specimen showing a visual 9x9 board and witness fields.](docs/assets/readme-03-witness-specimen.png)
+
+After replay, the same accepted names can be projected into a board and witness page.
 
 Open `examples/static/witness-specimen.html` directly in a browser.
 
@@ -63,7 +108,7 @@ GobanFTP is a good candidate if you want to explore:
 
 GobanFTP is not:
 
-- a normal Go server
+- a normal online Go game server
 - a hosted Web UI
 - a production auth system
 - a production FTP safety proof
@@ -74,7 +119,8 @@ GobanFTP is not:
 
 ## Three-Minute Check
 
-Requirements: Perl 5.34+ and `make`.
+Requirements: Perl 5.34+ and `make`. No FTP server is required for this local
+check; it uses fixtures in the repository.
 
 ```sh
 perl Makefile.PL
@@ -83,11 +129,11 @@ make test
 prove -lr t/showcase-demo.t
 ```
 
-The showcase test checks a few core behaviors: a clean game replays, a race
-becomes a visible fork, and display surfaces, file bodies, and metadata do not
-silently decide the game.
+The showcase test checks this boundary: a clean game replays, a race becomes a
+visible fork, and display surfaces, file bodies, and metadata do not silently
+decide the game.
 
-Those views are read-only inspection output: static HTML is not hosted Web UI, and
+Those views are inspection output: static HTML is not hosted Web UI, and
 `--surface terminal` is not the local `play --tui` input surface.
 
 Run the clean fixture directly:
@@ -165,7 +211,7 @@ If two moves extend the same parent, listing order does not choose one. Default
 replay reports the fork and stops unless explicit ack-assisted recovery is
 requested.
 
-### Terminal Play
+### Terminal Input Surface
 
 ![GobanFTP terminal play surface with keyboard and optional SGR mouse two-step confirmation.](docs/assets/readme-02-tui.png)
 
@@ -564,10 +610,11 @@ bad signed profile -> rejected by that signed profile
 source art / C / asm / Web UI / TUI -> cannot change truth
 ```
 
-`v0.1` froze the `GOFTP/1` consensus boundary. `v1.0/P14` applies that boundary
-to package 1.000 across local files, FTP, WebDAV, read-only Git tree replay,
-read-only DNS record-file admission, terminal play, static witness output, and
-source art smoke.
+`v0.1` froze the `GOFTP/1` consensus boundary. The original `v1.0/P14` package
+1.000 release source applied that boundary across local files, FTP, WebDAV,
+read-only Git tree replay, read-only DNS record-file admission, terminal play,
+static witness output, and source art smoke. The current release line is
+`v1.0.1/package 1.001`.
 
 ## Documentation
 
