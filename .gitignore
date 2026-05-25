@@ -12,4 +12,7 @@ GobanFTP-[0-9]*.tar.gz
 *.bak
 *.tmp
 *.part
+!t/fixtures/**/*.bak
+!t/fixtures/**/*.tmp
+!t/fixtures/**/*.part
 docs/SESSION_RESTORE.md

@@ -337,7 +337,7 @@ v1.1.0-beta.1/package 1.100_001 已实现：
 - 检查材料：signed-HMAC fixture/preflight checks、attack fixtures，以及
   cross-substrate golden vectors。
 
-v1.0 明确不声称：hosted Web UI、final scoring/result events、live DNS / AXFR /
+v1.1.0-beta.1/package 1.100_001 明确不声称：hosted Web UI、final scoring/result events、live DNS / AXFR /
 DNSSEC trust / provider API、Git publish or fetch integration、生产级认证
 （production auth）、生产级密钥生命周期（production key lifecycle）、真实写入授权
 （real writer authorization），或 live FTP auth/integrity/deployment safety。
@@ -571,7 +571,6 @@ Build:        docs/BUILD.md
 CLI:          docs/CLI.md
 Roadmap:      docs/ROADMAP.md
 Decisions:    docs/DECISIONS.md
-README refs:  docs/references/README.md
 ```
 
 仓库结构：

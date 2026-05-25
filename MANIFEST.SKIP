@@ -17,5 +17,6 @@
 ^(?!t/fixtures/).*[.]bak$
 ^(?!t/fixtures/)(?:.*/)?[.]gobanftp-tmp-[^/]+$
 
-# Local resume memory; not part of release artifacts.
+# Local notes and reference material; not part of release artifacts.
+^docs/references(?:/|$)
 ^docs/SESSION_RESTORE\.md$

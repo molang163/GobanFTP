@@ -3287,7 +3287,7 @@ sub _showcase_transcript {
 sub _showcase_release_evidence {
     return join "\n",
         'GOFTP-SHOWCASE-EVIDENCE/1',
-        'scope=local-fixture-source-candidate',
+        'scope=local-fixture-beta-source-gate',
         'no_tag_push_upload_deploy=1',
         'no_make_dist_family=1',
         'recommended_checks=prove -l t/showcase-v1_1.t t/static-witness-specimen.t t/v1-cli-compare.t',

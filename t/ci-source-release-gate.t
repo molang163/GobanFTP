@@ -84,7 +84,7 @@ subtest 'documentation guard has no executable release commands' => sub {
         'README.ja.md',
         File::Spec->catfile(qw(docs SHOWCASE.md)),
         File::Spec->catfile(qw(docs PROFILES.md)),
-        File::Spec->catfile(qw(docs V1_1_RELEASE_GATE.md)),
+        _current_v1_1_docs(),
     );
 
     for my $rel (@docs) {
@@ -487,6 +487,17 @@ sub _fenced_command_lines {
     }
 
     return @lines;
+}
+
+sub _current_v1_1_docs {
+    return map {
+        File::Spec->catfile('docs', $_)
+    } qw(
+        V1_1_AUTH_BOUNDARY.md
+        V1_1_RELEASE_GATE.md
+        V1_1_RELEASE_NOTES.md
+        V1_1_UPDATE_CHECKLIST.md
+    );
 }
 
 sub _read_text {

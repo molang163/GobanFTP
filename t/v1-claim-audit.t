@@ -19,6 +19,8 @@ my %text = map { $_ => _read_text(File::Spec->catfile($repo_root, split '/', $_)
     docs/V1_1_RELEASE_NOTES.md
     docs/V1_1_UPDATE_CHECKLIST.md
     docs/V1_1_AUTH_BOUNDARY.md
+    docs/PROFILES.md
+    lib/GobanFTP/CLI.pm
     .gitignore
     MANIFEST
     MANIFEST.SKIP
@@ -44,6 +46,21 @@ subtest 'beta release state stays guarded' => sub {
         'gate does not run make disttest';
     unlike $text{'docs/V1_1_RELEASE_GATE.md'}, qr/^make distcheck$/m,
         'gate does not run make distcheck';
+};
+
+subtest 'public release hygiene wording stays source-gate scoped' => sub {
+    unlike $text{'docs/PROFILES.md'}, qr/source-candidate/,
+        'profiles avoid source-candidate wording';
+    like $text{'docs/PROFILES.md'},
+        qr{Optional maintainer-run live FTP provider smoke is outside the P1 beta\s+source gate and fixture-local source evidence},
+        'FTP live smoke stays outside the beta source gate and fixture-local source evidence';
+    like $text{'docs/PROFILES.md'},
+        qr{Optional maintainer-run live WebDAV smoke is outside the P1 beta source\s+gate and fixture-local source evidence},
+        'WebDAV live smoke stays outside the beta source gate and fixture-local source evidence';
+    unlike $text{'lib/GobanFTP/CLI.pm'}, qr/local-fixture-source-candidate/,
+        'showcase release evidence does not use source-candidate scope';
+    like $text{'lib/GobanFTP/CLI.pm'}, qr/scope=local-fixture-beta-source-gate/,
+        'showcase release evidence names the local fixture beta source gate';
 };
 
 subtest 'JSON contract is explicit and narrow' => sub {

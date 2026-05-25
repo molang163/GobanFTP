@@ -332,15 +332,11 @@ sub _hrefs_from_multistatus {
 sub _response_has_success_status {
     my ($response) = @_;
 
-    my @statuses;
-    while ($response =~ m{<(?:(?:[A-Za-z_][\w.-]*):)?status\b[^>]*>(.*?)</(?:(?:[A-Za-z_][\w.-]*):)?status>}gis) {
-        push @statuses, _xml_text_decode($1);
-    }
+    my @direct_statuses = _direct_child_texts($response, 'status');
+    return _all_statuses_success(@direct_statuses) if @direct_statuses;
 
-    return 0 if !@statuses;
-    for my $status (@statuses) {
-        return 1 if $status =~ m{\bHTTP/\S+\s+2[0-9][0-9]\b}i
-            || $status =~ m{\A\s*2[0-9][0-9]\b};
+    for my $status (_propstat_statuses($response)) {
+        return 1 if _status_is_success($status);
     }
 
     return 0;
@@ -349,14 +345,64 @@ sub _response_has_success_status {
 sub _direct_response_href {
     my ($response) = @_;
 
-    while ($response =~ m{<(?:(?:[A-Za-z_][\w.-]*):)?href\b[^>]*>(.*?)</(?:(?:[A-Za-z_][\w.-]*):)?href>}gis) {
-        my $before = substr($response, 0, $-[0]);
-        $before =~ s{<!--.*?-->}{}gs;
-        next if $before =~ m{<(?!(?:/)?(?:(?:[A-Za-z_][\w.-]*):)?href\b)[^>]+>}s;
-        return _xml_text_decode($1);
+    my ($href) = _direct_child_texts($response, 'href');
+    return $href;
+}
+
+sub _propstat_statuses {
+    my ($response) = @_;
+
+    my @statuses;
+    while ($response =~ m{<(?:(?:[A-Za-z_][\w.-]*):)?propstat\b[^>]*>(.*?)</(?:(?:[A-Za-z_][\w.-]*):)?propstat>}gis) {
+        push @statuses, _direct_child_texts($1, 'status');
+    }
+    return @statuses;
+}
+
+sub _all_statuses_success {
+    my (@statuses) = @_;
+
+    return 0 if !@statuses;
+    for my $status (@statuses) {
+        return 0 if !_status_is_success($status);
+    }
+    return 1;
+}
+
+sub _status_is_success {
+    my ($status) = @_;
+
+    return $status =~ m{\bHTTP/\S+\s+2[0-9][0-9]\b}i
+        || $status =~ m{\A\s*2[0-9][0-9]\b}
+        ? 1
+        : 0;
+}
+
+sub _direct_child_texts {
+    my ($xml, $name) = @_;
+
+    $xml =~ s{<!--.*?-->}{}gs;
+
+    my @values;
+    my $depth = 0;
+    while ($xml =~ m{<(/?)(?:(?:[A-Za-z_][\w.-]*):)?([A-Za-z_][\w.-]*)(?:\s[^<>]*)?(/?)>}gis) {
+        my ($closing, $local_name, $self_closing) = ($1, $2, $3);
+        if ($closing) {
+            $depth-- if $depth > 0;
+            next;
+        }
+
+        if ($depth == 0 && lc($local_name) eq lc($name) && !$self_closing) {
+            if ($xml =~ m{\G(.*?)</(?:(?:[A-Za-z_][\w.-]*):)?\Q$name\E\s*>}gis) {
+                push @values, _xml_text_decode($1);
+                next;
+            }
+        }
+
+        $depth++ if !$self_closing;
     }
 
-    return undef;
+    return @values;
 }
 
 sub _direct_href_child {

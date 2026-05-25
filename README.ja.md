@@ -660,7 +660,6 @@ Build:        docs/BUILD.md
 CLI:          docs/CLI.md
 Roadmap:      docs/ROADMAP.md
 Decisions:    docs/DECISIONS.md
-README refs:  docs/references/README.md
 ```
 
 repository map:

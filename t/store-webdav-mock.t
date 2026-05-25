@@ -209,6 +209,52 @@ subtest 'PROPFIND admits only successful direct response hrefs' => sub {
         'exists_name does not confirm a property or failed-response href';
 };
 
+subtest 'PROPFIND direct response status outranks nested propstat status' => sub {
+    my $http = MockWebDAV->new(root => 'goftp');
+    my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
+
+    ok $store->mkdir("$game/events"), 'created events collection';
+    $http->add_response("goftp/$game/events", dav_response(
+        href => "/goftp/$game/events/$move_b",
+        direct_status => 'HTTP/1.1 404 Not Found',
+        propstat_statuses => ['HTTP/1.1 200 OK'],
+    ));
+    $http->add_response("goftp/$game/events", dav_response(
+        href => "/goftp/$game/events/$move_w",
+        direct_status => 'HTTP/1.1 200 OK',
+        propstat_statuses => ['HTTP/1.1 404 Not Found'],
+    ));
+
+    is_deeply [ $store->list_names("$game/events") ], [$move_w],
+        'direct 404 rejects the href, while direct 200 accepts it despite nested propstat';
+    ok !$store->exists_name("$game/events", $move_b),
+        'nested propstat 200 does not override direct 404';
+    ok $store->exists_name("$game/events", $move_w),
+        'nested propstat 404 does not override direct 200';
+};
+
+subtest 'PROPFIND propstat-only responses keep compatibility without accepting failures' => sub {
+    my $http = MockWebDAV->new(root => 'goftp');
+    my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
+
+    ok $store->mkdir("$game/events"), 'created events collection';
+    $http->add_response("goftp/$game/events", dav_response(
+        href => "/goftp/$game/events/$move_b",
+        propstat_statuses => ['HTTP/1.1 200 OK'],
+    ));
+    $http->add_response("goftp/$game/events", dav_response(
+        href => "/goftp/$game/events/$move_w",
+        propstat_statuses => ['HTTP/1.1 404 Not Found'],
+    ));
+
+    is_deeply [ $store->list_names("$game/events") ], [$move_b],
+        'propstat-only 2xx remains accepted and propstat-only 4xx is rejected';
+    ok $store->exists_name("$game/events", $move_b),
+        'propstat-only 2xx can confirm an href';
+    ok !$store->exists_name("$game/events", $move_w),
+        'propstat-only 4xx does not confirm an href';
+};
+
 subtest 'PROPFIND href order and duplicates do not affect returned names' => sub {
     my $http = MockWebDAV->new(root => 'goftp');
     my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
@@ -340,6 +386,21 @@ sub exception {
     eval { $code->(); 1 } or $error = $@;
 
     return $error;
+}
+
+sub dav_response {
+    my (%args) = @_;
+
+    my $xml = '<D:response><D:href>' . $args{href} . '</D:href>';
+    $xml .= '<D:status>' . $args{direct_status} . '</D:status>'
+        if defined $args{direct_status};
+    for my $status (@{ $args{propstat_statuses} // [] }) {
+        $xml .= '<D:propstat><D:prop><D:getetag>"ignored"</D:getetag></D:prop>'
+            . '<D:status>' . $status . '</D:status></D:propstat>';
+    }
+    $xml .= '</D:response>';
+
+    return $xml;
 }
 
 sub response {

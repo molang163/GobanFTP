@@ -38,6 +38,8 @@ for my $rel (@readmes) {
 
     like $text{$rel}, _release_line_pattern($rel),
         "$rel keeps the v1.1.0-beta.1 release line";
+    unlike $text{$rel}, qr/^README refs:\s+docs\/references\/README[.]md$/m,
+        "$rel does not expose internal README reference notes";
     like $text{$rel}, qr/license-Apache--2[.]0-blue/,
         "$rel keeps the Apache-2.0 license badge";
     like $text{$rel}, qr/Apache License,\s+Version 2[.]0/,
@@ -68,6 +70,11 @@ for my $rel (@readmes) {
     unlike $text{$rel}, qr/\b(?:AI|ChatGPT|LLM|生成AI|人工智能|大模型|機械翻訳)\b/i,
         "$rel has no generated-content marker";
 }
+
+unlike $text{'README.zh-CN.md'}, qr/v1[.]0 明确不声称/,
+    'Chinese README does not keep stale v1.0 non-claim wording';
+like $text{'README.zh-CN.md'}, qr/v1[.]1[.]0-beta[.]1\/package 1[.]100_001 明确不声称/,
+    'Chinese README scopes non-claims to the current v1.1 beta line';
 
 my $manifest = _read_text(File::Spec->catfile($repo_root, 'MANIFEST'));
 for my $rel (@readmes) {
