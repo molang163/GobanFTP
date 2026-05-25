@@ -137,15 +137,10 @@ MYMETA.yml
 pm_to_blib
 ```
 
-Release hygiene is enforced by `MANIFEST.SKIP`. Before making a distribution,
-regenerate `MANIFEST` from the working tree so local build products stay out of
-the tarball:
-
-```sh
-make manifest
-make dist
-make disttest
-```
+Release hygiene is enforced by `MANIFEST.SKIP`. Maintainers preparing an actual
+distribution should regenerate `MANIFEST` from the working tree with
+`make manifest`, then build and test the distribution with `make dist` and
+`make disttest` so local build products stay out of the tarball.
 
 `MANIFEST.SKIP` must continue to exclude Inline::C caches, `blib/`,
 `MYMETA.json`, `MYMETA.yml`, `pm_to_blib`, and `*.part`, `*.tmp`, and `*.bak`
@@ -160,15 +155,9 @@ checkpoint than the working tree.
 
 When the project is not being published, prefer to keep those generated outputs
 outside the presentation root. Before a demo or public release, either move
-stale outputs aside or regenerate them from the current working tree and rerun
-the release gates:
-
-```sh
-make manifest
-make dist
-make disttest
-make distcheck
-```
+stale outputs aside or, for an actual release, regenerate them from the current
+working tree with `make manifest` and rerun the distribution checks as part of
+the maintainer release flow: `make dist`, `make disttest`, and `make distcheck`.
 
 If a tarball remains in the root after a local release check, document that it is
 a build artifact unless it is the artifact being intentionally distributed.

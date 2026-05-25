@@ -100,9 +100,8 @@ this beta.
 - The generated showcase bundle is static; optional P2 loopback preview helper
   is local-only/read-only and not hosted UI/deploy.
 - Preview helper support is limited to supported local platforms with the
-  required no-follow file-opening and process-test primitives; unsupported
-  platforms should report unsupported/skip rather than acting as release
-  evidence.
+  required local safety/process primitives; unsupported platforms should report
+  unsupported/skip and must not be used as release evidence.
 - Remaining P2 stretch work is deferred: no GitHub Pages/static hosting, TUI
   GIF/asciinema asset, broader Web observatory work beyond the accepted static
   generated-bundle navigation polish, sanitized debug bundle expansion, and no

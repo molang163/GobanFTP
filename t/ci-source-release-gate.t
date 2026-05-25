@@ -21,6 +21,8 @@ subtest 'forbidden command scanner catches executable release operations only' =
         ['make -C . dist', 'make dist'],
         ['make --directory . dist', 'make dist'],
         ['make --jobs=2 dist', 'make dist'],
+        ['make manifest dist distcheck', 'make dist'],
+        ['make test tardist zipdist', 'make tardist'],
         ["bash -lc 'git push'", 'git push'],
         ["bash -lc 'set -e; git push'", 'git push'],
         ["bash -lc 'git push && true'", 'git push'],
@@ -29,7 +31,27 @@ subtest 'forbidden command scanner catches executable release operations only' =
         [qq{run: "git push"}, 'git push'],
         ["run: >-\n  git\n  push", 'git push'],
         ["run: |\n  git \\\n    push", 'git push'],
-        ['gh release upload artifact.tar.gz', 'gh release'],
+        ['gh release create v1.1.0-beta.1 artifact.tar.gz', 'gh release create'],
+        ['gh release upload artifact.tar.gz', 'gh release upload'],
+        ['cpan-upload GobanFTP-1.000.tar.gz', 'cpan-upload'],
+        ['pause-upload GobanFTP-1.000.tar.gz', 'pause-upload'],
+        ['twine upload dist/*', 'twine upload'],
+        ['python -m twine upload dist/*', 'python -m twine upload'],
+        ['python3.11 -m twine upload dist/*', 'python -m twine upload'],
+        ['npm publish', 'npm publish'],
+        ['pnpm publish', 'pnpm publish'],
+        ['yarn publish', 'yarn publish'],
+        ['docker push ghcr.io/example/gobanftp:latest', 'docker push'],
+        ['firebase deploy --only hosting', 'firebase deploy'],
+        ['wrangler pages deploy public', 'wrangler pages deploy'],
+        ['npx wrangler pages deploy public', 'wrangler pages deploy'],
+        ['curl -T artifact.tar.gz ftp://example.invalid/artifact.tar.gz', 'curl upload'],
+        ['curl --upload-file artifact.tar.gz https://example.invalid/artifact.tar.gz', 'curl upload'],
+        ['scp artifact.tar.gz example.invalid:/tmp/', 'scp'],
+        ['rsync -a dist/ example.invalid:/srv/dist/', 'rsync'],
+        ['rclone copy dist remote:bucket', 'rclone'],
+        ['aws s3 cp artifact.tar.gz s3://example-bucket/artifact.tar.gz', 'aws s3'],
+        ['gsutil cp artifact.tar.gz gs://example-bucket/artifact.tar.gz', 'gsutil'],
         ['upload artifact.tar.gz', 'upload'],
         ['deploy production', 'deploy'],
         ["bash -lc 'upload artifact.tar.gz'", 'upload'],
@@ -48,6 +70,11 @@ subtest 'forbidden command scanner catches executable release operations only' =
         'no_tag_push_upload_deploy=1',
         'recommended_checks=prove -lr t/ci-source-release-gate.t',
         q{echo "git push; make dist"},
+        'The release gate mentions gh release create, docker push, and make dist as forbidden examples.',
+        'Build docs mention `make dist`, `make disttest`, and `make distcheck` inline.',
+        'perl -Ilib script/gobanftp publish-move g1.id-demo.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob aa',
+        'publish-move and publish-auth are GobanFTP protocol terms, not package publish commands',
+        'The phrase curl -T/--upload-file is documentation prose.',
     ) {
         is_deeply [_forbidden_command_hits($line)], [], "$line is not treated as a command";
     }
@@ -81,17 +108,35 @@ subtest 'release gate documents omissions without executing release commands' =>
     }
 };
 
-subtest 'documentation guard has no executable release commands' => sub {
+subtest 'documentation guard scans current README/docs with historical block exemptions' => sub {
     my @docs = _current_source_doc_paths();
     my %guarded_doc = map { $_ => 1 } @docs;
 
-    for my $rel (_legacy_release_command_docs()) {
-        ok !$guarded_doc{$rel},
-            "$rel is historical release-command documentation outside the current v1.1 source gate scan";
+    for my $rel (
+        qw(
+            README.md
+            README.zh-CN.md
+            README.ja.md
+            docs/BUILD.md
+            docs/P14_RELEASE_GATE.md
+            docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md
+            docs/V1_DOD.md
+        )
+    ) {
+        ok $guarded_doc{$rel}, "$rel is included in the current documentation scan";
+    }
+
+    for my $spec (_historical_release_command_block_specs()) {
+        my ($rel, $heading) = @$spec;
+        my $text = _read_text(File::Spec->catfile($repo_root, $rel));
+        my $block = _historical_release_command_block($rel, $heading, $text);
+        ok scalar(_forbidden_command_hits($block)) > 0,
+            "$rel $heading exemption covers an executable historical release command block";
     }
 
     for my $rel (@docs) {
         my $text = _read_text(File::Spec->catfile($repo_root, $rel));
+        $text = _without_historical_release_command_blocks($rel, $text);
         is_deeply [_forbidden_command_hits($text)], [],
             "$rel has no executable tag/push/upload/deploy/dist command";
     }
@@ -301,14 +346,14 @@ sub _forbidden_command_kind {
     my $git = _git_forbidden_kind($command);
     return $git if defined $git;
 
-    return 'gh release' if $command =~ /\Agh\s+release\b/;
+    my $gh = _gh_release_kind($command);
+    return $gh if defined $gh;
 
     my $make = _make_dist_kind($command);
     return $make if defined $make;
 
-    return 'vercel deploy' if $command =~ /\A(?:npx\s+)?vercel\s+deploy\b/;
-    return 'netlify deploy' if $command =~ /\A(?:npx\s+)?netlify\s+deploy\b/;
-    return 'wrangler deploy' if $command =~ /\A(?:npx\s+)?wrangler\s+deploy\b/;
+    my $publish_upload_deploy = _publish_upload_deploy_kind($command);
+    return $publish_upload_deploy if defined $publish_upload_deploy;
 
     my @tokens = _command_tokens($command);
     return 'upload' if @tokens && lc($tokens[0]) eq 'upload';
@@ -386,6 +431,165 @@ sub _git_forbidden_kind {
     return;
 }
 
+sub _gh_release_kind {
+    my ($command) = @_;
+
+    my @tokens = _command_tokens($command);
+    return if !@tokens || $tokens[0] ne 'gh';
+    shift @tokens;
+
+    while (@tokens) {
+        my $token = $tokens[0];
+        if ($token eq '-R' || $token eq '--repo'
+            || $token eq '--hostname' || $token eq '--config') {
+            shift @tokens;
+            shift @tokens if @tokens;
+            next;
+        }
+        if ($token =~ /\A--(?:repo|hostname|config)=/) {
+            shift @tokens;
+            next;
+        }
+        if ($token =~ /\A-/) {
+            shift @tokens;
+            next;
+        }
+        last;
+    }
+
+    return if @tokens < 2 || $tokens[0] ne 'release';
+    return "gh release $tokens[1]" if $tokens[1] =~ /\A(?:create|upload)\z/;
+    return;
+}
+
+sub _publish_upload_deploy_kind {
+    my ($command) = @_;
+
+    my @tokens = _command_tokens($command);
+    return if !@tokens;
+
+    return 'cpan-upload' if $tokens[0] eq 'cpan-upload';
+    return 'pause-upload' if $tokens[0] eq 'pause-upload';
+
+    return 'twine upload'
+        if @tokens >= 2 && $tokens[0] eq 'twine' && $tokens[1] eq 'upload';
+    return 'python -m twine upload'
+        if _python_twine_upload(@tokens);
+
+    if (@tokens >= 2 && $tokens[0] =~ /\A(?:npm|pnpm|yarn)\z/) {
+        my @rest = @tokens[1 .. $#tokens];
+        _drop_leading_cli_options(\@rest, qr/\A(?:--registry|--tag|--otp|--scope|--cwd|-C)\z/);
+        return "$tokens[0] publish" if @rest && $rest[0] eq 'publish';
+    }
+
+    my @runner_tokens = _npx_unwrapped_tokens(@tokens);
+
+    return 'docker push' if _subcommand_after_options(\@tokens, 'docker') eq 'push';
+    return 'firebase deploy'
+        if _subcommand_after_options(\@runner_tokens, 'firebase') eq 'deploy';
+    return 'vercel deploy'
+        if _subcommand_after_options(\@runner_tokens, 'vercel') eq 'deploy';
+    return 'netlify deploy'
+        if _subcommand_after_options(\@runner_tokens, 'netlify') eq 'deploy';
+    return 'wrangler pages deploy'
+        if @runner_tokens >= 3
+            && $runner_tokens[0] eq 'wrangler'
+            && $runner_tokens[1] eq 'pages'
+            && $runner_tokens[2] eq 'deploy';
+    return 'wrangler deploy'
+        if _subcommand_after_options(\@runner_tokens, 'wrangler') eq 'deploy';
+
+    return 'curl upload' if _curl_upload(@tokens);
+
+    return 'scp' if $tokens[0] eq 'scp';
+    return 'rsync' if $tokens[0] eq 'rsync';
+    return 'rclone'
+        if @tokens >= 2
+            && $tokens[0] eq 'rclone'
+            && $tokens[1] =~ /\A(?:copy|copyto|sync|move|moveto)\z/;
+    return 'aws s3'
+        if @tokens >= 3
+            && $tokens[0] eq 'aws'
+            && $tokens[1] eq 's3'
+            && $tokens[2] =~ /\A(?:cp|sync|mv|rm)\z/;
+    return 'gsutil'
+        if @tokens >= 2
+            && $tokens[0] eq 'gsutil'
+            && $tokens[1] =~ /\A(?:cp|rsync|mv|rm)\z/;
+
+    return;
+}
+
+sub _python_twine_upload {
+    my (@tokens) = @_;
+
+    return if @tokens < 4 || $tokens[0] !~ /\Apython(?:[0-9]+(?:[.][0-9]+)?)?\z/;
+    for (my $i = 1; $i < @tokens - 2; $i++) {
+        return 1 if $tokens[$i] eq '-m'
+            && $tokens[$i + 1] eq 'twine'
+            && $tokens[$i + 2] eq 'upload';
+    }
+    return;
+}
+
+sub _npx_unwrapped_tokens {
+    my (@tokens) = @_;
+
+    return @tokens if !@tokens || $tokens[0] ne 'npx';
+    shift @tokens;
+    _drop_leading_cli_options(\@tokens, qr/\A(?:--package|-p)\z/);
+    return @tokens;
+}
+
+sub _subcommand_after_options {
+    my ($tokens, $command_name) = @_;
+
+    my @tokens = @$tokens;
+    return '' if !@tokens || $tokens[0] ne $command_name;
+    shift @tokens;
+    _drop_leading_cli_options(\@tokens, qr/\A(?:--context|--config|--project|--cwd|-c|-C)\z/);
+    return $tokens[0] // '';
+}
+
+sub _drop_leading_cli_options {
+    my ($tokens, $takes_value) = @_;
+
+    while (@$tokens) {
+        my $token = $tokens->[0];
+        if ($token =~ /\A--[^=]+\z/ && $token =~ $takes_value) {
+            shift @$tokens;
+            shift @$tokens if @$tokens;
+            next;
+        }
+        if ($token =~ /\A-[A-Za-z]\z/ && $token =~ $takes_value) {
+            shift @$tokens;
+            shift @$tokens if @$tokens;
+            next;
+        }
+        if ($token =~ /\A--/) {
+            shift @$tokens;
+            next;
+        }
+        if ($token =~ /\A-[A-Za-z]+\z/) {
+            shift @$tokens;
+            next;
+        }
+        last;
+    }
+}
+
+sub _curl_upload {
+    my (@tokens) = @_;
+
+    return if !@tokens || $tokens[0] ne 'curl';
+    for (my $i = 1; $i < @tokens; $i++) {
+        my $token = $tokens[$i];
+        return 1 if $token eq '-T' || $token eq '--upload-file';
+        return 1 if $token =~ /\A-T\S/ || $token =~ /\A--upload-file=/;
+    }
+    return;
+}
+
 sub _strip_command_prefixes {
     my ($segment) = @_;
 
@@ -425,6 +629,8 @@ sub _make_dist_kind {
     my @tokens = _command_tokens($command);
     return if !@tokens || $tokens[0] ne 'make';
     shift @tokens;
+
+    my %forbidden_target = map { $_ => 1 } qw(dist disttest distcheck tardist zipdist);
     while (@tokens) {
         my $token = $tokens[0];
         if ($token eq '-C' || $token eq '--directory'
@@ -461,11 +667,12 @@ sub _make_dist_kind {
             shift @tokens;
             next;
         }
-        last;
+
+        return "make $token" if $forbidden_target{$token};
+        shift @tokens;
     }
 
-    return if !@tokens || $tokens[0] !~ /\Adist(?:test|check)?\z/;
-    return "make $tokens[0]";
+    return;
 }
 
 sub _command_tokens {
@@ -498,21 +705,70 @@ sub _fenced_command_lines {
 
 sub _current_source_doc_paths {
     my @entries = _manifest_entries();
-    my %legacy_release_command_doc = map { $_ => 1 } _legacy_release_command_docs();
 
     return grep {
-        !$legacy_release_command_doc{$_}
-            && (/\AREADME(?:[.][^\/]+)?[.]md\z/ || /\Adocs\/.*[.]md\z/)
+        /\AREADME(?:[.][^\/]+)?[.]md\z/ || /\Adocs\/.*[.]md\z/
     } @entries;
 }
 
-sub _legacy_release_command_docs {
-    return qw(
-        docs/BUILD.md
-        docs/P14_RELEASE_GATE.md
-        docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md
-        docs/V1_DOD.md
+sub _historical_release_command_block_specs {
+    return (
+        [ 'docs/P14_RELEASE_GATE.md', '## Final Source Gates' ],
+        [ 'docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md', '## Release Matrix' ],
+        [ 'docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md', '## Tag Procedure' ],
+        [ 'docs/V1_DOD.md', '## Release Gates' ],
     );
+}
+
+sub _without_historical_release_command_blocks {
+    my ($rel, $text) = @_;
+
+    my @lines = split /\n/, $text // '', -1;
+    for my $spec (_historical_release_command_block_specs()) {
+        my ($spec_rel, $heading) = @$spec;
+        next if $spec_rel ne $rel;
+
+        my ($start, $end) = _historical_release_command_block_span($rel, $heading, @lines);
+        for my $i ($start .. $end) {
+            $lines[$i] = '';
+        }
+    }
+
+    return join "\n", @lines;
+}
+
+sub _historical_release_command_block {
+    my ($rel, $heading, $text) = @_;
+
+    my @lines = split /\n/, $text // '', -1;
+    my ($start, $end) = _historical_release_command_block_span($rel, $heading, @lines);
+    return join "\n", @lines[$start .. $end];
+}
+
+sub _historical_release_command_block_span {
+    my ($rel, $heading, @lines) = @_;
+
+    my $saw_heading = 0;
+    my $start;
+    for (my $i = 0; $i < @lines; $i++) {
+        my $line = $lines[$i];
+        if (!$saw_heading) {
+            $saw_heading = 1 if $line eq $heading;
+            next;
+        }
+
+        die "no ```sh block before next heading for $rel $heading"
+            if !defined($start) && $line =~ /\A##\s+/;
+        if (!defined($start) && $line =~ /\A```sh\s*\z/) {
+            $start = $i;
+            next;
+        }
+        if (defined($start) && $line =~ /\A```\s*\z/) {
+            return ($start, $i);
+        }
+    }
+
+    die "missing historical release command block for $rel $heading";
 }
 
 sub _manifest_entries {

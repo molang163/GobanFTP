@@ -38,8 +38,8 @@ production auth, Git/DNS publishing, scoring/result, or release/deploy claim.
   local-only/read-only and not hosted UI/deploy. It binds only `127.0.0.1`,
   serves the fixed generated file set from memory, and exposes no preview JSON,
   CORS, remote-host, or provider-deploy mode. Preview support is limited to
-  supported local platforms with the required no-follow file-opening primitive;
-  unsupported platforms should report unsupported/skip rather than acting as
+  supported local platforms with the required local safety/process primitives;
+  unsupported platforms should report unsupported/skip and must not be used as
   release evidence.
 - Generated showcase pages include only local file links and same-document
   fragment navigation across supplied witness/projection sections; no script,
@@ -90,8 +90,8 @@ Generated bundle is static; optional P2 loopback preview helper is
 local-only/read-only and not hosted UI/deploy. It binds only `127.0.0.1` and
 does not provide a remote-host, CORS, provider-deploy, or preview JSON mode.
 Preview helper support is limited to supported local platforms with the
-required no-follow file-opening primitive; unsupported platforms should report
-unsupported/skip rather than acting as release evidence.
+required local safety/process primitives; unsupported platforms should report
+unsupported/skip and must not be used as release evidence.
 
 Remaining P2 stretch work is deferred: no GitHub Pages/static hosting, TUI
 GIF/asciinema asset, broader Web observatory work beyond the accepted static

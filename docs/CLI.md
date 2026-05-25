@@ -159,6 +159,10 @@ files into memory, and serves only `/` plus the exact generated filenames.
 `--once` exits after one successful `GET` or `HEAD`. Ready output remains
 key/value stdout; there is no preview `--json` mode and no `--host` option.
 
+Preview support is limited to supported local platforms with the required local
+safety/process primitives. Unsupported platforms report unsupported/skip, and
+an unsupported or skipped preview run must not be used as release evidence.
+
 The helper is read-only over the static bundle: it must not write events,
 rewrite generated artifacts, fetch remote resources, read credentials, publish
 to any provider, enable CORS, or act as release/deploy evidence. It is not a

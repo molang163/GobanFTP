@@ -158,6 +158,10 @@ The helper binds only `127.0.0.1`, preloads the fixed generated file set, serves
 only exact showcase paths from memory, and has no preview JSON/CORS/remote-host
 mode.
 
+Preview support is limited to supported local platforms with the required local
+safety/process primitives. Unsupported platforms report unsupported/skip, and
+an unsupported or skipped preview run must not be used as release evidence.
+
 The release smoke for this viewing path is:
 
 ```sh

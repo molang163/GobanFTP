@@ -298,6 +298,68 @@ subtest 'PROPFIND scanner handles self-closing tags and quoted attribute delimit
         'self-closing status is not treated as a successful status';
 };
 
+subtest 'PROPFIND malformed multistatus XML fails closed' => sub {
+    my $success_response = '<D:response><D:href>/goftp/' . $game . '/events/' . $move_b . '</D:href>'
+        . '<D:status>HTTP/1.1 200 OK</D:status></D:response>';
+    my @cases = (
+        [ 'missing multistatus close',
+            '<D:multistatus xmlns:D="DAV:">' . $success_response ],
+        [ 'trailing solitary less-than',
+            '<D:multistatus xmlns:D="DAV:"></D:multistatus><' ],
+        [ 'double root',
+            '<D:multistatus xmlns:D="DAV:"></D:multistatus><D:multistatus xmlns:D="DAV:"/>' ],
+        [ 'mismatched close',
+            '<D:multistatus xmlns:D="DAV:"><D:response></D:href></D:multistatus>' ],
+        [ 'non-multistatus root',
+            '<D:notmultistatus xmlns:D="DAV:"></D:notmultistatus>' ],
+        [ 'unclosed comment',
+            '<D:multistatus xmlns:D="DAV:"><!-- ' ],
+        [ 'unclosed CDATA',
+            '<D:multistatus xmlns:D="DAV:"><![CDATA[text]' ],
+        [ 'unclosed PI',
+            '<D:multistatus xmlns:D="DAV:"><?fake ' ],
+        [ 'unclosed tag',
+            '<D:multistatus xmlns:D="DAV:"><D:response>' ],
+        [ 'unknown declaration',
+            '<D:multistatus xmlns:D="DAV:"><!unknown></D:multistatus>' ],
+        [ 'DTD',
+            '<!DOCTYPE multistatus><D:multistatus xmlns:D="DAV:"></D:multistatus>' ],
+    );
+
+    for my $case (@cases) {
+        my ($name, $xml) = @$case;
+        like malformed_propfind_error($xml),
+            qr/\Awebdav multistatus XML malformed\b/,
+            "$name is rejected";
+    }
+};
+
+subtest 'malformed PROPFIND cannot confirm a published event' => sub {
+    my $http;
+    $http = MockWebDAV->new(
+        root => 'goftp',
+        move_hook => sub {
+            my ($self, $source, $target) = @_;
+            $self->create_file($target);
+            $self->set_propfind_content_hook(sub {
+                return '<D:multistatus xmlns:D="DAV:"><D:response><D:href>/goftp/'
+                    . $game . '/events/' . $move_b . '</D:href>'
+                    . '<D:status>HTTP/1.1 200 OK</D:status></D:response>';
+            });
+            return response(201, 'Created');
+        },
+    );
+    my $store = GobanFTP::Store::WebDAV->new(
+        url => $root_url,
+        client => $http,
+        publish_confirm_attempts => 1,
+    );
+
+    like exception(sub { $store->publish_event_name($game, $move_b) }),
+        qr/confirm \Q$game\/events\/$move_b\E failed after 1 propfind attempt\(s\): webdav multistatus XML malformed/,
+        'publish confirmation rejects malformed multistatus even when the target href is present';
+};
+
 subtest 'PROPFIND href order and duplicates do not affect returned names' => sub {
     my $http = MockWebDAV->new(root => 'goftp');
     my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
@@ -446,6 +508,18 @@ sub dav_response {
     return $xml;
 }
 
+sub malformed_propfind_error {
+    my ($xml) = @_;
+
+    my $http = MockWebDAV->new(
+        root => 'goftp',
+        propfind_content_hook => sub { return $xml },
+    );
+    my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
+
+    return exception(sub { $store->list_names('') });
+}
+
 sub response {
     my ($status, $reason, %args) = @_;
     return {
@@ -475,6 +549,7 @@ sub new {
         calls   => [],
         put_sizes => [],
         move_hook => $args{move_hook},
+        propfind_content_hook => $args{propfind_content_hook},
         scheduled_creates => [],
         extra_hrefs => {},
         extra_responses => {},
@@ -529,6 +604,12 @@ sub add_response {
     return 1;
 }
 
+sub set_propfind_content_hook {
+    my ($self, $hook) = @_;
+    $self->{propfind_content_hook} = $hook;
+    return 1;
+}
+
 sub request {
     my ($self, $method, $url, $opts) = @_;
     $opts //= {};
@@ -559,6 +640,12 @@ sub _propfind {
 
     return main::response(404, 'Not Found')
         if ($self->{entries}{$path} // '') ne 'dir';
+
+    if (my $hook = $self->{propfind_content_hook}) {
+        my $content = $hook->($self, $path, $opts);
+        return main::response(207, 'Multi-Status', content => $content)
+            if defined $content;
+    }
 
     my @children = sort
         grep { $_ ne '' && _parent($_) eq $path }

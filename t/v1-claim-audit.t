@@ -117,6 +117,10 @@ subtest 'claim audit rows carry evidence, test, non-goal, and status' => sub {
 subtest 'P2 preview helper claim stays narrow' => sub {
     my $preview_boundary =
         qr/Generated\s+bundle is static; optional P2 loopback preview helper is\s+local-only\/read-only\s+and not hosted UI\/deploy/;
+    my $preview_platform_caveat =
+        qr/Preview(?: helper)? support is limited to supported local platforms with the\s+required local\s+safety\/process primitives/;
+    my $preview_unsupported_caveat =
+        qr/unsupported platforms (?:should )?report\s+unsupported\/skip(?:, and\s+an unsupported or skipped preview run)?\s+(?:and\s+)?must not be used as release evidence/i;
 
     for my $rel (qw(
         docs/CLI.md
@@ -126,6 +130,10 @@ subtest 'P2 preview helper claim stays narrow' => sub {
     )) {
         like $text{$rel}, $preview_boundary,
             "$rel keeps static bundle and local preview boundary";
+        like $text{$rel}, $preview_platform_caveat,
+            "$rel limits preview support to required local safety/process primitives";
+        like $text{$rel}, $preview_unsupported_caveat,
+            "$rel keeps unsupported preview runs out of release evidence";
     }
 
     unlike $text{'docs/CLI.md'}, qr/does not\s*start\s+a\s+server/,

@@ -319,9 +319,11 @@ sub _hrefs_from_multistatus {
     my @stack;
     my $position = 0;
     my ($response, $capture);
+    my ($root_seen, $root_closed);
 
     while (my $token = _next_xml_token(\$content, \$position)) {
         if ($token->{type} eq 'text') {
+            _croak_malformed_xml() if !@stack && $token->{text} !~ /\A\s*\z/;
             $capture->{text} .= $token->{text}
                 if $capture && @stack == $capture->{depth};
             next;
@@ -331,7 +333,15 @@ sub _hrefs_from_multistatus {
             my $name = $token->{name};
             my $empty = $token->{empty};
 
-            if (!$empty && !$response && $name eq 'response'
+            if (!@stack) {
+                _croak_malformed_xml() if $root_seen || $root_closed || $name ne 'multistatus';
+                $root_seen = 1;
+                if ($empty) {
+                    $root_closed = 1;
+                    next;
+                }
+            }
+            elsif (!$empty && !$response && $name eq 'response'
                 && @stack == 1 && $stack[0] eq 'multistatus') {
                 $response = {
                     depth             => @stack + 1,
@@ -372,6 +382,8 @@ sub _hrefs_from_multistatus {
         }
 
         my $name = $token->{name};
+        _croak_malformed_xml() if !@stack || $stack[-1] ne $name;
+
         if ($capture && $name eq $capture->{name} && @stack == $capture->{depth}) {
             if ($capture->{kind} eq 'href') {
                 push @{ $response->{hrefs} }, $capture->{text};
@@ -400,16 +412,11 @@ sub _hrefs_from_multistatus {
             undef $capture;
         }
 
-        if (@stack && $stack[-1] eq $name) {
-            pop @stack;
-        }
-        else {
-            @stack = ();
-            undef $response;
-            undef $capture;
-        }
+        pop @stack;
+        $root_closed = 1 if !@stack;
     }
 
+    _croak_malformed_xml() if !$root_seen || !$root_closed || @stack || $response || $capture;
     return @hrefs;
 }
 
@@ -455,16 +462,14 @@ sub _next_xml_token {
 
         if (substr($xml, $start, 4) eq '<!--') {
             my $end = index($xml, '-->', $start + 4);
-            $$position_ref = $end < 0 ? $length : $end + 3;
+            _croak_malformed_xml() if $end < 0;
+            $$position_ref = $end + 3;
             next;
         }
 
         if (substr($xml, $start, 9) eq '<![CDATA[') {
             my $end = index($xml, ']]>', $start + 9);
-            if ($end < 0) {
-                $$position_ref = $length;
-                return { type => 'text', text => substr($xml, $start + 9) };
-            }
+            _croak_malformed_xml() if $end < 0;
 
             $$position_ref = $end + 3;
             return { type => 'text', text => substr($xml, $start + 9, $end - ($start + 9)) };
@@ -472,33 +477,36 @@ sub _next_xml_token {
 
         if (substr($xml, $start, 2) eq '<?') {
             my $end = index($xml, '?>', $start + 2);
-            $$position_ref = $end < 0 ? $length : $end + 2;
+            _croak_malformed_xml() if $end < 0;
+            $$position_ref = $end + 2;
             next;
         }
 
+        _croak_malformed_xml() if substr($xml, $start, 2) eq '<!';
+
         my $end = _xml_tag_end($xml, $start + 1);
-        if (!defined $end) {
-            $$position_ref = $length;
-            return undef;
-        }
+        _croak_malformed_xml() if !defined $end;
 
         my $body = substr($xml, $start + 1, $end - $start - 1);
         $$position_ref = $end + 1;
 
-        next if $body =~ /\A!/;
-
         if ($body =~ s{\A/}{}) {
             my $name = _xml_local_name($body);
-            return { type => 'end', name => $name } if defined $name;
-            next;
+            _croak_malformed_xml() if !defined $name;
+            return { type => 'end', name => $name };
         }
 
         my $empty = $body =~ s{/\s*\z}{};
         my $name = _xml_local_name($body);
-        return { type => 'start', name => $name, empty => $empty ? 1 : 0 } if defined $name;
+        _croak_malformed_xml() if !defined $name;
+        return { type => 'start', name => $name, empty => $empty ? 1 : 0 };
     }
 
     return undef;
+}
+
+sub _croak_malformed_xml {
+    croak 'webdav multistatus XML malformed';
 }
 
 sub _xml_tag_end {
