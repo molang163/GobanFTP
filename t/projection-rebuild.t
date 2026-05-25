@@ -263,7 +263,14 @@ subtest 'projection writers reject symlinked projection directories' => sub {
     my $outside = tempdir(CLEANUP => 1);
     my $projection_root = File::Spec->catdir($game_root, 'projections');
     if (!eval { symlink $outside, $projection_root }) {
-        plan skip_all => 'symlink unavailable on this platform';
+        my $message = "symlink unavailable on this platform: $!";
+        BAIL_OUT($message) if $ENV{GOBANFTP_REQUIRE_SYMLINK_TESTS};
+        plan skip_all => $message;
+    }
+    if (!-l $projection_root) {
+        my $message = "symlink did not create an lstat-visible link: $projection_root";
+        BAIL_OUT($message) if $ENV{GOBANFTP_REQUIRE_SYMLINK_TESTS};
+        plan skip_all => $message;
     }
 
     my $result = replay(game_descriptor => $game, events => $events);

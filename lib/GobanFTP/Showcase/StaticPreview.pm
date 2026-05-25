@@ -230,11 +230,12 @@ sub _load_bundle {
     _reject_control_text($dir, 'dir');
 
     my $abs = File::Spec->rel2abs($dir);
-    _assert_no_symlink_components($abs);
+    croak "storage: preview dir is a symlink: $dir" if -l $abs;
 
     my $resolved = abs_path($abs);
     croak "storage: preview dir does not exist: $dir" if !defined $resolved;
     croak "storage: preview dir is not a directory: $dir" if !-d $resolved;
+    _assert_no_symlink_components($resolved);
     croak "storage: preview dir is a symlink: $dir" if -l $abs || -l $resolved;
 
     opendir my $dh, $resolved or croak "storage: opendir $resolved: $!";

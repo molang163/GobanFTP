@@ -195,15 +195,17 @@ subtest 'publish_event_name rejects symlinked event leaf' => sub {
 
     my $outside_event = File::Spec->catfile($outside, 'outside-event');
     open my $fh, '>', $outside_event or die "create outside event: $!";
+    binmode $fh;
     print {$fh} "sentinel\n";
     close $fh or die "close outside event: $!";
+    my $outside_size_before = -s $outside_event;
 
     make_symlink_or_skip($outside_event, File::Spec->catfile($events, $move_b));
 
     my $store = GobanFTP::Store::Local->new(root => $root);
     like dies(sub { $store->publish_event_name($game, $move_b) }), qr/symlink/,
         'symlinked event leaf is rejected';
-    is -s $outside_event, length("sentinel\n"), 'outside event was not truncated';
+    is -s $outside_event, $outside_size_before, 'outside event was not truncated';
 };
 
 done_testing;

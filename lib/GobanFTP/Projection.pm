@@ -76,16 +76,16 @@ sub write_projection {
     );
     _assert_no_projection_symlinks($game_root, $paths);
 
-    _write_text($paths->{main_sgf},           $rendered->{sgf_main});
-    _write_text($paths->{variations_sgf},     $rendered->{sgf_variations});
-    _write_text($paths->{board_current},      $rendered->{board_current});
-    _write_text($paths->{graveyard_captures}, $rendered->{graveyard_captures});
-    _write_text($paths->{board},              $rendered->{board});
-    _write_text($paths->{verdict},            $rendered->{verdict});
-    _write_text($paths->{listing},            $rendered->{listing});
+    _write_text($paths->{main_sgf},           $rendered->{sgf_main},           $game_root);
+    _write_text($paths->{variations_sgf},     $rendered->{sgf_variations},     $game_root);
+    _write_text($paths->{board_current},      $rendered->{board_current},      $game_root);
+    _write_text($paths->{graveyard_captures}, $rendered->{graveyard_captures}, $game_root);
+    _write_text($paths->{board},              $rendered->{board},              $game_root);
+    _write_text($paths->{verdict},            $rendered->{verdict},            $game_root);
+    _write_text($paths->{listing},            $rendered->{listing},            $game_root);
 
     for my $point (sort keys %{ $rendered->{board_points} }) {
-        _write_text(_point_path($paths, $point), $rendered->{board_points}{$point});
+        _write_text(_point_path($paths, $point), $rendered->{board_points}{$point}, $game_root);
     }
 
     return {
@@ -104,7 +104,7 @@ sub write_sgf_projection {
     _assert_no_projection_symlinks($game_root, $paths);
     _make_path($paths->{sgf_dir});
     _assert_no_projection_symlinks($game_root, $paths);
-    _write_text($paths->{sgf}, $rendered->{sgf});
+    _write_text($paths->{sgf}, $rendered->{sgf}, $game_root);
 
     return {
         path => $paths->{sgf},
@@ -482,12 +482,12 @@ sub _point_path {
 }
 
 sub _write_text {
-    my ($path, $text) = @_;
+    my ($path, $text, $game_root) = @_;
 
     my $dir = _parent_dir($path);
-    _assert_no_symlink_path($dir);
+    _assert_no_symlink_path($dir, $game_root);
     _make_path($dir);
-    _assert_no_symlink_path($dir);
+    _assert_no_symlink_path($dir, $game_root);
 
     my ($fh, $tmp) = tempfile('.gobanftp-tmp-XXXXXX', DIR => $dir, UNLINK => 0);
     binmode $fh, ':encoding(UTF-8)';
@@ -530,6 +530,7 @@ sub _assert_no_projection_symlinks {
     my ($game_root, $paths) = @_;
 
     for my $dir (
+        $game_root,
         File::Spec->catdir($game_root, 'projections'),
         $paths->{board_dir},
         $paths->{board_points_dir},
@@ -544,7 +545,11 @@ sub _assert_no_projection_symlinks {
 }
 
 sub _assert_no_symlink_path {
-    my ($path) = @_;
+    my ($path, $game_root) = @_;
+
+    if (defined $game_root && $game_root ne '') {
+        return _assert_no_symlink_path_under($game_root, $path);
+    }
 
     my @parts = File::Spec->splitdir($path);
     my $current = File::Spec->file_name_is_absolute($path) ? File::Spec->rootdir : '';
@@ -553,6 +558,32 @@ sub _assert_no_symlink_path {
         $current = $current eq '' || $current eq File::Spec->rootdir
             ? File::Spec->catdir($current, $part)
             : File::Spec->catdir($current, $part);
+        next if !-e $current && !-l $current;
+        croak "storage: path component is a symlink: $current" if -l $current;
+    }
+
+    return 1;
+}
+
+sub _assert_no_symlink_path_under {
+    my ($game_root, $path) = @_;
+
+    my $base = File::Spec->rel2abs($game_root);
+    my $abs  = File::Spec->rel2abs($path);
+    my $rel  = File::Spec->abs2rel($abs, $base);
+
+    croak "storage: projection path escapes game root: $path"
+        if File::Spec->file_name_is_absolute($rel)
+        || $rel eq File::Spec->updir
+        || $rel =~ m{\A[.][.](?:\z|[\\/])};
+
+    croak "storage: path component is a symlink: $base" if -l $base;
+
+    my $current = $base;
+    for my $part (File::Spec->splitdir($rel)) {
+        next if !defined($part) || $part eq '' || $part eq File::Spec->curdir;
+        croak "storage: projection path escapes game root: $path" if $part eq File::Spec->updir;
+        $current = File::Spec->catdir($current, $part);
         next if !-e $current && !-l $current;
         croak "storage: path component is a symlink: $current" if -l $current;
     }
