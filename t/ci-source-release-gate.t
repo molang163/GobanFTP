@@ -26,6 +26,12 @@ subtest 'forbidden command scanner catches executable release operations only' =
         ["bash -lc 'git push'", 'git push'],
         ["bash -lc 'set -e; git push'", 'git push'],
         ["bash -lc 'git push && true'", 'git push'],
+        ['printf ok | git push', 'git push'],
+        ["bash -lc 'printf ok | git push'", 'git push'],
+        ['if true; then git push; fi', 'git push'],
+        ["bash -lc 'if true; then git push; fi'", 'git push'],
+        ['if git push; then true; fi', 'git push'],
+        ['! git push', 'git push'],
         ['run: git -C . push', 'git push'],
         [q{run: 'git push'}, 'git push'],
         [qq{run: "git push"}, 'git push'],
@@ -39,9 +45,11 @@ subtest 'forbidden command scanner catches executable release operations only' =
         ['python -m twine upload dist/*', 'python -m twine upload'],
         ['python3.11 -m twine upload dist/*', 'python -m twine upload'],
         ['npm publish', 'npm publish'],
+        ['npm --registry https://registry.example.invalid publish', 'npm publish'],
         ['pnpm publish', 'pnpm publish'],
         ['yarn publish', 'yarn publish'],
         ['docker push ghcr.io/example/gobanftp:latest', 'docker push'],
+        ['docker --log-level debug push ghcr.io/example/gobanftp:latest', 'docker push'],
         ['firebase deploy --only hosting', 'firebase deploy'],
         ['wrangler pages deploy public', 'wrangler pages deploy'],
         ['npx wrangler pages deploy public', 'wrangler pages deploy'],
@@ -75,6 +83,8 @@ subtest 'forbidden command scanner catches executable release operations only' =
         'perl -Ilib script/gobanftp publish-move g1.id-demo.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob aa',
         'publish-move and publish-auth are GobanFTP protocol terms, not package publish commands',
         'The phrase curl -T/--upload-file is documentation prose.',
+        'npm --script-shell publish test',
+        'printf ok | cat',
     ) {
         is_deeply [_forbidden_command_hits($line)], [], "$line is not treated as a command";
     }
@@ -130,8 +140,11 @@ subtest 'documentation guard scans current README/docs with historical block exe
         my ($rel, $heading) = @$spec;
         my $text = _read_text(File::Spec->catfile($repo_root, $rel));
         my $block = _historical_release_command_block($rel, $heading, $text);
-        ok scalar(_forbidden_command_hits($block)) > 0,
+        my @hits = _forbidden_command_hits($block);
+        ok scalar(@hits) > 0,
             "$rel $heading exemption covers an executable historical release command block";
+        is_deeply [_unexpected_historical_release_command_hits($spec, @hits)], [],
+            "$rel $heading exemption contains only expected historical release command kinds";
     }
 
     for my $rel (@docs) {
@@ -318,6 +331,11 @@ sub _shell_segments {
             $i++;
             next;
         }
+        if ($char eq '|') {
+            _push_shell_segment(\@segments, $buffer);
+            $buffer = '';
+            next;
+        }
 
         $buffer .= $char;
     }
@@ -478,13 +496,23 @@ sub _publish_upload_deploy_kind {
 
     if (@tokens >= 2 && $tokens[0] =~ /\A(?:npm|pnpm|yarn)\z/) {
         my @rest = @tokens[1 .. $#tokens];
-        _drop_leading_cli_options(\@rest, qr/\A(?:--registry|--tag|--otp|--scope|--cwd|-C)\z/);
+        _drop_leading_cli_options(
+            \@rest,
+            qr/\A(?:--registry|--tag|--otp|--scope|--cwd|--script-shell|-C)\z/,
+            qr/\A(?:--dry-run|--force|--ignore-scripts|--no-git-checks)\z/,
+        );
         return "$tokens[0] publish" if @rest && $rest[0] eq 'publish';
     }
 
     my @runner_tokens = _npx_unwrapped_tokens(@tokens);
 
-    return 'docker push' if _subcommand_after_options(\@tokens, 'docker') eq 'push';
+    return 'docker push'
+        if _subcommand_after_options(
+            \@tokens,
+            'docker',
+            qr/\A(?:--config|--context|--host|--log-level|-H)\z/,
+            qr/\A(?:--debug|-D)\z/,
+        ) eq 'push';
     return 'firebase deploy'
         if _subcommand_after_options(\@runner_tokens, 'firebase') eq 'deploy';
     return 'vercel deploy'
@@ -537,25 +565,38 @@ sub _npx_unwrapped_tokens {
 
     return @tokens if !@tokens || $tokens[0] ne 'npx';
     shift @tokens;
-    _drop_leading_cli_options(\@tokens, qr/\A(?:--package|-p)\z/);
+    _drop_leading_cli_options(
+        \@tokens,
+        qr/\A(?:--package|-p)\z/,
+        qr/\A(?:--yes|-y|--no-install)\z/,
+    );
     return @tokens;
 }
 
 sub _subcommand_after_options {
-    my ($tokens, $command_name) = @_;
+    my ($tokens, $command_name, $takes_value, $value_less) = @_;
 
     my @tokens = @$tokens;
     return '' if !@tokens || $tokens[0] ne $command_name;
     shift @tokens;
-    _drop_leading_cli_options(\@tokens, qr/\A(?:--context|--config|--project|--cwd|-c|-C)\z/);
+    _drop_leading_cli_options(
+        \@tokens,
+        $takes_value // qr/\A(?:--context|--config|--project|--cwd|-c|-C)\z/,
+        $value_less // qr/\A(?:--debug|--verbose|--quiet|-v|-q)\z/,
+    );
     return $tokens[0] // '';
 }
 
 sub _drop_leading_cli_options {
-    my ($tokens, $takes_value) = @_;
+    my ($tokens, $takes_value, $value_less) = @_;
+    $value_less //= qr/(?!)/;
 
     while (@$tokens) {
         my $token = $tokens->[0];
+        if ($token =~ /\A(--[A-Za-z0-9_-]+)=/ && $1 =~ $takes_value) {
+            shift @$tokens;
+            next;
+        }
         if ($token =~ /\A--[^=]+\z/ && $token =~ $takes_value) {
             shift @$tokens;
             shift @$tokens if @$tokens;
@@ -566,11 +607,11 @@ sub _drop_leading_cli_options {
             shift @$tokens if @$tokens;
             next;
         }
-        if ($token =~ /\A--/) {
+        if ($token =~ /\A--/ && $token =~ $value_less) {
             shift @$tokens;
             next;
         }
-        if ($token =~ /\A-[A-Za-z]+\z/) {
+        if ($token =~ /\A-[A-Za-z]+\z/ && $token =~ $value_less) {
             shift @$tokens;
             next;
         }
@@ -615,8 +656,16 @@ sub _strip_command_prefixes {
     }
 
     $command =~ s/\A(?:command|builtin)\s+//;
+    while ($command =~ s/\A(?:!|if|then|elif|else|while|until|do|time)\s+//) {
+        next;
+    }
     while ($command =~ s/\A[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|\S+)\s+//) {
         next;
+    }
+    while ($command =~ s/\A(?:command|builtin)\s+// || $command =~ s/\A(?:!|if|then|elif|else|while|until|do|time)\s+//) {
+        while ($command =~ s/\A[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|\S+)\s+//) {
+            next;
+        }
     }
     $command =~ s/\A\s+|\s+\z//g;
 
@@ -713,11 +762,27 @@ sub _current_source_doc_paths {
 
 sub _historical_release_command_block_specs {
     return (
-        [ 'docs/P14_RELEASE_GATE.md', '## Final Source Gates' ],
-        [ 'docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md', '## Release Matrix' ],
-        [ 'docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md', '## Tag Procedure' ],
-        [ 'docs/V1_DOD.md', '## Release Gates' ],
+        [ 'docs/P14_RELEASE_GATE.md', '## Final Source Gates',
+            [ 'make dist', 'make disttest', 'make distcheck' ] ],
+        [ 'docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md', '## Release Matrix',
+            [ 'make dist', 'make disttest', 'make distcheck' ] ],
+        [ 'docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md', '## Tag Procedure',
+            [ 'git tag' ] ],
+        [ 'docs/V1_DOD.md', '## Release Gates',
+            [ 'make dist', 'make disttest', 'make distcheck' ] ],
     );
+}
+
+sub _unexpected_historical_release_command_hits {
+    my ($spec, @hits) = @_;
+
+    my %allowed = map { $_ => 1 } @{ $spec->[2] // [] };
+    my @unexpected;
+    for my $hit (@hits) {
+        my ($kind) = $hit =~ /\A[0-9]+:([^:]+):/;
+        push @unexpected, $hit if !defined($kind) || !$allowed{$kind};
+    }
+    return @unexpected;
 }
 
 sub _without_historical_release_command_blocks {

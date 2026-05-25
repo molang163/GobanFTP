@@ -491,13 +491,13 @@ sub _next_xml_token {
         $$position_ref = $end + 1;
 
         if ($body =~ s{\A/}{}) {
-            my $name = _xml_local_name($body);
+            my $name = _xml_end_name($body);
             _croak_malformed_xml() if !defined $name;
             return { type => 'end', name => $name };
         }
 
         my $empty = $body =~ s{/\s*\z}{};
-        my $name = _xml_local_name($body);
+        my $name = _xml_start_name($body);
         _croak_malformed_xml() if !defined $name;
         return { type => 'start', name => $name, empty => $empty ? 1 : 0 };
     }
@@ -531,10 +531,29 @@ sub _xml_tag_end {
     return undef;
 }
 
-sub _xml_local_name {
+sub _xml_start_name {
     my ($body) = @_;
 
-    return undef if $body !~ /\A\s*([A-Za-z_][A-Za-z0-9_.:-]*)/;
+    my $xml_name = qr/[A-Za-z_][A-Za-z0-9_.:-]*/;
+    return undef if $body !~ s/\A\s*($xml_name)//;
+    my $name = $1;
+    while ($body !~ /\A\s*\z/) {
+        return undef if $body !~ s/\A\s+($xml_name)\s*=\s*(["'])//;
+        my $quote = $2;
+        return undef if $body !~ s/\A([^$quote]*)\Q$quote\E//;
+        my $value = $1;
+        return undef if $value =~ /</;
+        _xml_text_decode($value);
+    }
+
+    $name =~ s/\A.*://;
+    return lc $name;
+}
+
+sub _xml_end_name {
+    my ($body) = @_;
+
+    return undef if $body !~ /\A\s*([A-Za-z_][A-Za-z0-9_.:-]*)\s*\z/;
     my $name = $1;
     $name =~ s/\A.*://;
     return lc $name;
@@ -683,12 +702,41 @@ sub _percent_decode_once {
 sub _xml_text_decode {
     my ($value) = @_;
 
-    $value =~ s/&lt;/</g;
-    $value =~ s/&gt;/>/g;
-    $value =~ s/&quot;/"/g;
-    $value =~ s/&apos;/'/g;
-    $value =~ s/&amp;/&/g;
+    _croak_malformed_xml()
+        if $value =~ /&(?![A-Za-z][A-Za-z0-9]*;|#[0-9]+;|#x[0-9A-Fa-f]+;)/;
+    $value =~ s/&([A-Za-z][A-Za-z0-9]*|#[0-9]+|#x[0-9A-Fa-f]+);/_xml_entity_decode($1)/eg;
     return $value;
+}
+
+sub _xml_entity_decode {
+    my ($entity) = @_;
+
+    my %named = (
+        lt   => '<',
+        gt   => '>',
+        quot => '"',
+        apos => "'",
+        amp  => '&',
+    );
+    return $named{$entity} if exists $named{$entity};
+
+    my $codepoint;
+    if ($entity =~ /\A#([0-9]+)\z/) {
+        $codepoint = 0 + $1;
+    }
+    elsif ($entity =~ /\A#x([0-9A-Fa-f]+)\z/) {
+        $codepoint = hex $1;
+    }
+    else {
+        _croak_malformed_xml();
+    }
+
+    _croak_malformed_xml()
+        if $codepoint == 0
+            || $codepoint > 0x10FFFF
+            || ($codepoint >= 0xD800 && $codepoint <= 0xDFFF)
+            || ($codepoint < 0x20 && $codepoint != 0x09 && $codepoint != 0x0A && $codepoint != 0x0D);
+    return chr $codepoint;
 }
 
 sub _load_class {

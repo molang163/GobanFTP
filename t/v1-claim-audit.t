@@ -11,6 +11,8 @@ my $repo_root = File::Spec->rel2abs("$FindBin::Bin/..");
 my %text = map { $_ => _read_text(File::Spec->catfile($repo_root, split '/', $_)) } qw(
     Changes
     README.md
+    README.zh-CN.md
+    README.ja.md
     docs/CLI.md
     docs/DIAGNOSTICS.md
     docs/ROADMAP.md
@@ -140,6 +142,18 @@ subtest 'P2 preview helper claim stays narrow' => sub {
         'CLI no longer uses the old server-start wording';
     unlike $text{'docs/SHOWCASE.md'}, qr/not\s+a\s+server/,
         'showcase doc no longer uses the old generated-artifact wording';
+
+    for my $rel (qw(
+        Changes
+        README.md
+        README.zh-CN.md
+        README.ja.md
+    )) {
+        unlike $text{$rel}, qr/\bshowcase\s+preview\b/i,
+            "$rel keeps preview-helper details out of user entry docs";
+        unlike $text{$rel}, qr/\bpreview\b[^\n.]{0,120}\b(?:hosted|deploy|release evidence)\b/i,
+            "$rel does not introduce preview hosted/deploy/evidence claims";
+    }
 
 };
 

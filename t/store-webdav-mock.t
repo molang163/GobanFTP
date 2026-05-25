@@ -298,6 +298,19 @@ subtest 'PROPFIND scanner handles self-closing tags and quoted attribute delimit
         'self-closing status is not treated as a successful status';
 };
 
+subtest 'PROPFIND scanner decodes valid XML entities in status text' => sub {
+    my $http = MockWebDAV->new(root => 'goftp');
+    my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
+
+    ok $store->mkdir("$game/events"), 'created events collection';
+    $http->add_response("goftp/$game/events",
+        '<D:response><D:href>/goftp/' . $game . '/events/' . $move_b . '</D:href>'
+            . '<D:status>HTTP/1.1 2&#48;0 OK &amp; visible</D:status></D:response>');
+
+    is_deeply [ $store->list_names("$game/events") ], [$move_b],
+        'known and numeric XML entities are decoded before status matching';
+};
+
 subtest 'PROPFIND malformed multistatus XML fails closed' => sub {
     my $success_response = '<D:response><D:href>/goftp/' . $game . '/events/' . $move_b . '</D:href>'
         . '<D:status>HTTP/1.1 200 OK</D:status></D:response>';
@@ -324,6 +337,28 @@ subtest 'PROPFIND malformed multistatus XML fails closed' => sub {
             '<D:multistatus xmlns:D="DAV:"><!unknown></D:multistatus>' ],
         [ 'DTD',
             '<!DOCTYPE multistatus><D:multistatus xmlns:D="DAV:"></D:multistatus>' ],
+        [ 'malformed root attribute',
+            '<D:multistatus xmlns:D="DAV:" broken=>' . $success_response . '</D:multistatus>' ],
+        [ 'malformed response attribute',
+            '<D:multistatus xmlns:D="DAV:"><D:response broken=>'
+                . '<D:href>/goftp/' . $game . '/events/' . $move_b . '</D:href>'
+                . '<D:status>HTTP/1.1 200 OK</D:status></D:response></D:multistatus>' ],
+        [ 'malformed end tag body',
+            '<D:multistatus xmlns:D="DAV:"><D:response><D:href>/goftp/'
+                . $game . '/events/' . $move_b . '</D:href bogus>'
+                . '<D:status>HTTP/1.1 200 OK</D:status></D:response></D:multistatus>' ],
+        [ 'unknown entity in status',
+            '<D:multistatus xmlns:D="DAV:"><D:response><D:href>/goftp/'
+                . $game . '/events/' . $move_b . '</D:href>'
+                . '<D:status>HTTP/1.1 200 OK &bogus;</D:status></D:response></D:multistatus>' ],
+        [ 'incomplete entity in status',
+            '<D:multistatus xmlns:D="DAV:"><D:response><D:href>/goftp/'
+                . $game . '/events/' . $move_b . '</D:href>'
+                . '<D:status>HTTP/1.1 200 OK &bogus</D:status></D:response></D:multistatus>' ],
+        [ 'unknown entity in href',
+            '<D:multistatus xmlns:D="DAV:"><D:response><D:href>/goftp/'
+                . $game . '/events/' . $move_b . '&bogus;</D:href>'
+                . '<D:status>HTTP/1.1 200 OK</D:status></D:response></D:multistatus>' ],
     );
 
     for my $case (@cases) {
