@@ -66,6 +66,10 @@ for my $case (@required_skip_rules) {
 
 ok _path_is_skipped('docs/references/README.md', \@skip_patterns),
     'MANIFEST.SKIP excludes docs/references';
+ok _path_is_skipped('docs/references/nested/note.md', \@skip_patterns),
+    'MANIFEST.SKIP excludes the full docs/references tree';
+like $gitignore, qr/^docs\/references\/$/m,
+    '.gitignore excludes local docs/references material';
 ok !-e File::Spec->catfile($repo_root, qw(docs references README.md)),
     'public source tree omits README reference notes';
 ok !-e File::Spec->catfile($repo_root, qw(docs references paul-hibbitts README.md)),

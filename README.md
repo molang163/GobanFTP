@@ -579,12 +579,14 @@ prove -lr t/showcase-demo.t
 prove -lr t
 ```
 
-The current P14 release record is in `docs/P14_RELEASE_GATE.md`. It records the
-final release-source checks and points to the external release/tag record plan;
-the final tarball hash belongs outside the source tree.
+The current beta source gate is in `docs/V1_1_RELEASE_GATE.md`. It records the
+fixture-local checks for `v1.1.0-beta.1/package 1.100_001` and explicitly omits
+tag, push, upload, deploy, and distribution commands.
 
-The final distribution identity, version decision, and tag preconditions are tracked
-in `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
+Public beta release notes are in `docs/V1_1_RELEASE_NOTES.md`. Historical
+`v1.0/P14` release records remain in `docs/P14_RELEASE_GATE.md` and
+`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`; they are not the current beta
+release/tag identity.
 
 For the P1 fixture-local review scope, live provider smoke, distribution
 packaging, tag, upload, and deploy are outside P1 and require a later separate
@@ -638,9 +640,10 @@ Protocol:     docs/PROTOCOL.md
 Profiles:     docs/PROFILES.md
 Grammar:      docs/GRAMMAR.md
 Attacks:      docs/ATTACKS.md
+v1.1 gate:    docs/V1_1_RELEASE_GATE.md
+v1.1 notes:   docs/V1_1_RELEASE_NOTES.md
 v1.0 DoD:     docs/V1_DOD.md
-P14 checks:   docs/P14_RELEASE_GATE.md
-P14 tag plan: docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md
+v1.0 history: docs/P14_RELEASE_GATE.md
 Algorithms:   docs/ALGORITHMS.md
 Rules:        docs/RULES.md
 Diagnostics:  docs/DIAGNOSTICS.md
@@ -658,7 +661,7 @@ Repository map:
 |-- README.md              this text
 |-- README.zh-CN.md        Simplified Chinese README
 |-- README.ja.md           Japanese README
-|-- docs/                  protocol, roadmap, decisions, references, release records
+|-- docs/                  protocol, roadmap, decisions, release records
 |-- oracle/goban.pl        executable source-art smoke wrapper
 |-- lib/GobanFTP/          Perl implementation modules
 |-- script/gobanftp        CLI entry point

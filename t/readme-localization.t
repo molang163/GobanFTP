@@ -38,8 +38,16 @@ for my $rel (@readmes) {
 
     like $text{$rel}, _release_line_pattern($rel),
         "$rel keeps the v1.1.0-beta.1 release line";
+    like $text{$rel}, _current_beta_gate_pattern($rel),
+        "$rel points the current beta source gate at V1_1_RELEASE_GATE";
+    like $text{$rel}, _current_beta_notes_pattern($rel),
+        "$rel points the current beta notes at V1_1_RELEASE_NOTES";
+    unlike $text{$rel}, _current_p14_release_pattern($rel),
+        "$rel does not point the current beta release identity at P14 docs";
     unlike $text{$rel}, qr/^README refs:\s+docs\/references\/README[.]md$/m,
         "$rel does not expose internal README reference notes";
+    unlike $text{$rel}, qr/^\|-- docs\/\s+.*\breferences\b/m,
+        "$rel repository map does not expose reference-only docs";
     like $text{$rel}, qr/license-Apache--2[.]0-blue/,
         "$rel keeps the Apache-2.0 license badge";
     like $text{$rel}, qr/Apache License,\s+Version 2[.]0/,
@@ -121,6 +129,30 @@ sub _release_line_pattern {
     return qr{Current beta release: `v1[.]1[.]0-beta[.]1/package 1[.]100_001`[.]} if $rel eq 'README.md';
     return qr{当前 beta 版本：`v1[.]1[.]0-beta[.]1/package 1[.]100_001`。} if $rel eq 'README.zh-CN.md';
     return qr{現在の beta リリース: `v1[.]1[.]0-beta[.]1/package 1[.]100_001`[.]} if $rel eq 'README.ja.md';
+    die "unknown README $rel";
+}
+
+sub _current_beta_gate_pattern {
+    my ($rel) = @_;
+    return qr/The current beta source gate is in `docs\/V1_1_RELEASE_GATE[.]md`/ if $rel eq 'README.md';
+    return qr/当前 beta source gate 在 `docs\/V1_1_RELEASE_GATE[.]md`/ if $rel eq 'README.zh-CN.md';
+    return qr/現在の beta source gate は `docs\/V1_1_RELEASE_GATE[.]md`/ if $rel eq 'README.ja.md';
+    die "unknown README $rel";
+}
+
+sub _current_beta_notes_pattern {
+    my ($rel) = @_;
+    return qr/Public beta release notes are in `docs\/V1_1_RELEASE_NOTES[.]md`/ if $rel eq 'README.md';
+    return qr/公开 beta release notes 在 `docs\/V1_1_RELEASE_NOTES[.]md`/ if $rel eq 'README.zh-CN.md';
+    return qr/public beta release notes は `docs\/V1_1_RELEASE_NOTES[.]md`/ if $rel eq 'README.ja.md';
+    die "unknown README $rel";
+}
+
+sub _current_p14_release_pattern {
+    my ($rel) = @_;
+    return qr/The current P14 release record is in `docs\/P14_RELEASE_GATE[.]md`/ if $rel eq 'README.md';
+    return qr/当前 P14 release 记录在 `docs\/P14_RELEASE_GATE[.]md`/ if $rel eq 'README.zh-CN.md';
+    return qr/現在の P14 release 記録は `docs\/P14_RELEASE_GATE[.]md`/ if $rel eq 'README.ja.md';
     die "unknown README $rel";
 }
 

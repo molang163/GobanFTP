@@ -507,12 +507,14 @@ prove -lr t/showcase-demo.t
 prove -lr t
 ```
 
-当前 P14 release 记录在 `docs/P14_RELEASE_GATE.md`。它记录 final
-release-source 检查，并指向外部 release/tag record plan；final tarball
-hash 位于 source tree 外。
+当前 beta source gate 在 `docs/V1_1_RELEASE_GATE.md`。它记录
+`v1.1.0-beta.1/package 1.100_001` 的 fixture-local 检查，并明确省略
+tag、push、upload、deploy 和 distribution 命令。
 
-最终 distribution identity、version decision 和 tag preconditions 记录在
-`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`。
+公开 beta release notes 在 `docs/V1_1_RELEASE_NOTES.md`。历史
+`v1.0/P14` release 记录仍保留在 `docs/P14_RELEASE_GATE.md` 和
+`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`；它们不是当前 beta 的
+release/tag identity。
 
 对 P1 fixture-local review scope 而言，live provider smoke、distribution
 packaging、tag、upload 和 deploy 都在 P1 外；它们需要后续单独的 maintainer-run gate。
@@ -560,9 +562,10 @@ Protocol:     docs/PROTOCOL.md
 Profiles:     docs/PROFILES.md
 Grammar:      docs/GRAMMAR.md
 Attacks:      docs/ATTACKS.md
+v1.1 gate:    docs/V1_1_RELEASE_GATE.md
+v1.1 notes:   docs/V1_1_RELEASE_NOTES.md
 v1.0 DoD:     docs/V1_DOD.md
-P14 release:  docs/P14_RELEASE_GATE.md
-P14 tag plan: docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md
+v1.0 history: docs/P14_RELEASE_GATE.md
 Algorithms:   docs/ALGORITHMS.md
 Rules:        docs/RULES.md
 Diagnostics:  docs/DIAGNOSTICS.md
@@ -580,7 +583,7 @@ Decisions:    docs/DECISIONS.md
 |-- README.md              English README
 |-- README.zh-CN.md        this text
 |-- README.ja.md           Japanese README
-|-- docs/                  protocol, roadmap, decisions, references, release records
+|-- docs/                  protocol, roadmap, decisions, release records
 |-- oracle/goban.pl        executable source-art smoke wrapper
 |-- lib/GobanFTP/          Perl implementation modules
 |-- script/gobanftp        CLI entry point

@@ -255,6 +255,49 @@ subtest 'PROPFIND propstat-only responses keep compatibility without accepting f
         'propstat-only 4xx does not confirm an href';
 };
 
+subtest 'PROPFIND scanner accepts only root multistatus direct responses' => sub {
+    my $http = MockWebDAV->new(root => 'goftp');
+    my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
+    my $fake = '<D:response><D:href>/goftp/' . $game . '/events/' . $move_w . '</D:href>'
+        . '<D:status>HTTP/1.1 200 OK</D:status></D:response>';
+
+    ok $store->mkdir("$game/events"), 'created events collection';
+    $http->add_response("goftp/$game/events", dav_response(
+        href => "/goftp/$game/events/$move_b",
+        direct_status => 'HTTP/1.1 200 OK',
+    ));
+    $http->add_response("goftp/$game/events", '<D:wrapper>' . $fake . '</D:wrapper>');
+    $http->add_response("goftp/$game/events", '<!-- ' . $fake . ' -->');
+    $http->add_response("goftp/$game/events", '<![CDATA[' . $fake . ']]>');
+    $http->add_response("goftp/$game/events", '<?fake ' . $fake . '?>');
+
+    is_deeply [ $store->list_names("$game/events") ], [$move_b],
+        'nested, commented, CDATA, and PI fake responses do not create entries';
+    ok !$store->exists_name("$game/events", $move_w),
+        'fake responses cannot confirm an event';
+};
+
+subtest 'PROPFIND scanner handles self-closing tags and quoted attribute delimiters' => sub {
+    my $http = MockWebDAV->new(root => 'goftp');
+    my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
+
+    ok $store->mkdir("$game/events"), 'created events collection';
+    $http->add_response("goftp/$game/events",
+        '<D:response data="a > b"><D:ignored/><D:ignored />'
+            . '<D:href data="x > y">/goftp/' . $game . '/events/' . $move_b . '</D:href>'
+            . q{<D:status data='x > y'>HTTP/1.1 200 OK</D:status></D:response>});
+    $http->add_response("goftp/$game/events",
+        '<D:response><D:href>/goftp/' . $game . '/events/' . $move_w . '</D:href>'
+            . '<D:status /></D:response>');
+    $http->add_response("goftp/$game/events",
+        '<D:response><D:href/><D:status>HTTP/1.1 200 OK</D:status></D:response>');
+
+    is_deeply [ $store->list_names("$game/events") ], [$move_b],
+        'self-closing elements do not disturb direct href/status parsing';
+    ok !$store->exists_name("$game/events", $move_w),
+        'self-closing status is not treated as a successful status';
+};
+
 subtest 'PROPFIND href order and duplicates do not affect returned names' => sub {
     my $http = MockWebDAV->new(root => 'goftp');
     my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);

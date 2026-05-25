@@ -30,6 +30,10 @@ subtest 'forbidden command scanner catches executable release operations only' =
         ["run: >-\n  git\n  push", 'git push'],
         ["run: |\n  git \\\n    push", 'git push'],
         ['gh release upload artifact.tar.gz', 'gh release'],
+        ['upload artifact.tar.gz', 'upload'],
+        ['deploy production', 'deploy'],
+        ["bash -lc 'upload artifact.tar.gz'", 'upload'],
+        ["bash -lc 'deploy production'", 'deploy'],
         ['npx vercel deploy', 'vercel deploy'],
     ) {
         my ($line, $kind) = @$case;
@@ -78,14 +82,13 @@ subtest 'release gate documents omissions without executing release commands' =>
 };
 
 subtest 'documentation guard has no executable release commands' => sub {
-    my @docs = (
-        'README.md',
-        'README.zh-CN.md',
-        'README.ja.md',
-        File::Spec->catfile(qw(docs SHOWCASE.md)),
-        File::Spec->catfile(qw(docs PROFILES.md)),
-        _current_v1_1_docs(),
-    );
+    my @docs = _current_source_doc_paths();
+    my %guarded_doc = map { $_ => 1 } @docs;
+
+    for my $rel (_legacy_release_command_docs()) {
+        ok !$guarded_doc{$rel},
+            "$rel is historical release-command documentation outside the current v1.1 source gate scan";
+    }
 
     for my $rel (@docs) {
         my $text = _read_text(File::Spec->catfile($repo_root, $rel));
@@ -307,6 +310,10 @@ sub _forbidden_command_kind {
     return 'netlify deploy' if $command =~ /\A(?:npx\s+)?netlify\s+deploy\b/;
     return 'wrangler deploy' if $command =~ /\A(?:npx\s+)?wrangler\s+deploy\b/;
 
+    my @tokens = _command_tokens($command);
+    return 'upload' if @tokens && lc($tokens[0]) eq 'upload';
+    return 'deploy' if @tokens && lc($tokens[0]) eq 'deploy';
+
     return;
 }
 
@@ -489,15 +496,34 @@ sub _fenced_command_lines {
     return @lines;
 }
 
-sub _current_v1_1_docs {
-    return map {
-        File::Spec->catfile('docs', $_)
-    } qw(
-        V1_1_AUTH_BOUNDARY.md
-        V1_1_RELEASE_GATE.md
-        V1_1_RELEASE_NOTES.md
-        V1_1_UPDATE_CHECKLIST.md
+sub _current_source_doc_paths {
+    my @entries = _manifest_entries();
+    my %legacy_release_command_doc = map { $_ => 1 } _legacy_release_command_docs();
+
+    return grep {
+        !$legacy_release_command_doc{$_}
+            && (/\AREADME(?:[.][^\/]+)?[.]md\z/ || /\Adocs\/.*[.]md\z/)
+    } @entries;
+}
+
+sub _legacy_release_command_docs {
+    return qw(
+        docs/BUILD.md
+        docs/P14_RELEASE_GATE.md
+        docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md
+        docs/V1_DOD.md
     );
+}
+
+sub _manifest_entries {
+    my $manifest = _read_text(File::Spec->catfile($repo_root, 'MANIFEST'));
+    my @entries;
+    for my $line (split /\n/, $manifest) {
+        next if $line =~ /\A\s*\z/;
+        my ($entry) = split /\s+/, $line, 2;
+        push @entries, $entry;
+    }
+    return @entries;
 }
 
 sub _read_text {

@@ -563,9 +563,9 @@ WebDAV replay は `PROPFIND Depth: 1` で `events/` を読み、direct href base
 だけを使います。publishing は `tmp/` に zero-byte temporary resource を書き、
 `events/<event-name>` へ move し、fresh `PROPFIND` で visibility を確認します。
 
-`ftp-goftp1` の default publishing は、`tmp/` の下に zero-byte temporary entry を
-upload し、`RNTO` で `events/<event-name>` へ rename し、listing で visibility を
-確認します。`GOBANFTP_FTP_PUBLISH_MODE=mkdir` は directory-shaped alternative として
+`ftp-goftp1` の default publishing は、zero-byte temporary entry を `tmp/`
+の下へ upload し、`RNTO` で `events/<event-name>` へ rename し、listing で
+visibility を確認します。`GOBANFTP_FTP_PUBLISH_MODE=mkdir` は directory-shaped alternative として
 残ります。
 
 Projection writes は local-only です。nonlocal `project` と `sgf --write` は拒否
@@ -581,12 +581,14 @@ prove -lr t/showcase-demo.t
 prove -lr t
 ```
 
-現在の P14 release 記録は `docs/P14_RELEASE_GATE.md` にあります。final release-source
-の確認内容を記録し、external release/tag record plan を指します。final tarball
-hash は source tree の外に置かれます。
+現在の beta source gate は `docs/V1_1_RELEASE_GATE.md` にあります。
+`v1.1.0-beta.1/package 1.100_001` の fixture-local checks を記録し、tag、
+push、upload、deploy、distribution command を明示的に省略しています。
 
-final distribution identity、version decision、tag preconditions は
-`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` で追跡されます。
+public beta release notes は `docs/V1_1_RELEASE_NOTES.md` にあります。historical
+`v1.0/P14` release records は `docs/P14_RELEASE_GATE.md` と
+`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` に残しますが、現在の beta
+release/tag identity ではありません。
 
 P1 fixture-local review scope では、live provider smoke、distribution
 packaging、tag、upload、deploy は P1 の外にあります。これらには後続の
@@ -649,9 +651,10 @@ Protocol:     docs/PROTOCOL.md
 Profiles:     docs/PROFILES.md
 Grammar:      docs/GRAMMAR.md
 Attacks:      docs/ATTACKS.md
+v1.1 gate:    docs/V1_1_RELEASE_GATE.md
+v1.1 notes:   docs/V1_1_RELEASE_NOTES.md
 v1.0 DoD:     docs/V1_DOD.md
-P14 release:  docs/P14_RELEASE_GATE.md
-P14 tag plan: docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md
+v1.0 history: docs/P14_RELEASE_GATE.md
 Algorithms:   docs/ALGORITHMS.md
 Rules:        docs/RULES.md
 Diagnostics:  docs/DIAGNOSTICS.md
@@ -669,7 +672,7 @@ repository map:
 |-- README.md              English README
 |-- README.zh-CN.md        Simplified Chinese README
 |-- README.ja.md           this text
-|-- docs/                  protocol, roadmap, decisions, references, release records
+|-- docs/                  protocol, roadmap, decisions, release records
 |-- oracle/goban.pl        executable source-art smoke wrapper
 |-- lib/GobanFTP/          Perl implementation modules
 |-- script/gobanftp        CLI entry point

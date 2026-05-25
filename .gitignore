@@ -15,4 +15,5 @@ GobanFTP-[0-9]*.tar.gz
 !t/fixtures/**/*.bak
 !t/fixtures/**/*.tmp
 !t/fixtures/**/*.part
+docs/references/
 docs/SESSION_RESTORE.md

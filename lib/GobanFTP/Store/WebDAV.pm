@@ -316,47 +316,220 @@ sub _hrefs_from_multistatus {
     $max_href_count //= DEFAULT_MAX_HREF_COUNT;
 
     my @hrefs;
-    while ($content =~ m{<(?:(?:[A-Za-z_][\w.-]*):)?response\b[^>]*>(.*?)</(?:(?:[A-Za-z_][\w.-]*):)?response>}gis) {
-        my $response = $1;
-        next if !_response_has_success_status($response);
+    my @stack;
+    my $position = 0;
+    my ($response, $capture);
 
-        my $href = _direct_response_href($response);
-        if (defined $href) {
-            croak 'webdav href limit exceeded' if @hrefs >= $max_href_count;
-            push @hrefs, $href;
+    while (my $token = _next_xml_token(\$content, \$position)) {
+        if ($token->{type} eq 'text') {
+            $capture->{text} .= $token->{text}
+                if $capture && @stack == $capture->{depth};
+            next;
+        }
+
+        if ($token->{type} eq 'start') {
+            my $name = $token->{name};
+            my $empty = $token->{empty};
+
+            if (!$empty && !$response && $name eq 'response'
+                && @stack == 1 && $stack[0] eq 'multistatus') {
+                $response = {
+                    depth             => @stack + 1,
+                    hrefs             => [],
+                    direct_statuses   => [],
+                    propstat_statuses => [],
+                    propstat_depth    => undef,
+                };
+            }
+            elsif (!$empty && $response && @stack == $response->{depth}
+                && ($stack[-1] // '') eq 'response') {
+                if ($name eq 'href' || $name eq 'status') {
+                    $capture = {
+                        name  => $name,
+                        kind  => $name eq 'href' ? 'href' : 'direct_status',
+                        depth => @stack + 1,
+                        text  => '',
+                    };
+                }
+                elsif ($name eq 'propstat') {
+                    $response->{propstat_depth} = @stack + 1;
+                }
+            }
+            elsif (!$empty && $response && defined $response->{propstat_depth}
+                && @stack == $response->{propstat_depth}
+                && ($stack[-1] // '') eq 'propstat'
+                && $name eq 'status') {
+                $capture = {
+                    name  => $name,
+                    kind  => 'propstat_status',
+                    depth => @stack + 1,
+                    text  => '',
+                };
+            }
+
+            push @stack, $name if !$empty;
+            next;
+        }
+
+        my $name = $token->{name};
+        if ($capture && $name eq $capture->{name} && @stack == $capture->{depth}) {
+            if ($capture->{kind} eq 'href') {
+                push @{ $response->{hrefs} }, $capture->{text};
+            }
+            elsif ($capture->{kind} eq 'direct_status') {
+                push @{ $response->{direct_statuses} }, $capture->{text};
+            }
+            elsif ($capture->{kind} eq 'propstat_status') {
+                push @{ $response->{propstat_statuses} }, $capture->{text};
+            }
+            undef $capture;
+        }
+
+        if ($response && defined $response->{propstat_depth}
+            && $name eq 'propstat' && @stack == $response->{propstat_depth}) {
+            $response->{propstat_depth} = undef;
+        }
+
+        if ($response && $name eq 'response' && @stack == $response->{depth}) {
+            my $href = _response_success_href($response);
+            if (defined $href) {
+                croak 'webdav href limit exceeded' if @hrefs >= $max_href_count;
+                push @hrefs, $href;
+            }
+            undef $response;
+            undef $capture;
+        }
+
+        if (@stack && $stack[-1] eq $name) {
+            pop @stack;
+        }
+        else {
+            @stack = ();
+            undef $response;
+            undef $capture;
         }
     }
+
     return @hrefs;
 }
 
-sub _response_has_success_status {
+sub _response_success_href {
     my ($response) = @_;
 
-    my @direct_statuses = _direct_child_texts($response, 'status');
-    return _all_statuses_success(@direct_statuses) if @direct_statuses;
+    my $success = @{ $response->{direct_statuses} }
+        ? _all_statuses_success(@{ $response->{direct_statuses} })
+        : _any_status_success(@{ $response->{propstat_statuses} });
+    return undef if !$success;
 
-    for my $status (_propstat_statuses($response)) {
+    return $response->{hrefs}[0];
+}
+
+sub _any_status_success {
+    my (@statuses) = @_;
+
+    for my $status (@statuses) {
         return 1 if _status_is_success($status);
     }
-
     return 0;
 }
 
-sub _direct_response_href {
-    my ($response) = @_;
+sub _next_xml_token {
+    my ($xml_ref, $position_ref) = @_;
+    my $xml = $$xml_ref;
+    my $length = length $xml;
 
-    my ($href) = _direct_child_texts($response, 'href');
-    return $href;
+    while ($$position_ref < $length) {
+        my $start = index($xml, '<', $$position_ref);
+        if ($start < 0) {
+            my $text = substr($xml, $$position_ref);
+            $$position_ref = $length;
+            return { type => 'text', text => _xml_text_decode($text) } if $text ne '';
+            return undef;
+        }
+
+        if ($start > $$position_ref) {
+            my $text = substr($xml, $$position_ref, $start - $$position_ref);
+            $$position_ref = $start;
+            return { type => 'text', text => _xml_text_decode($text) };
+        }
+
+        if (substr($xml, $start, 4) eq '<!--') {
+            my $end = index($xml, '-->', $start + 4);
+            $$position_ref = $end < 0 ? $length : $end + 3;
+            next;
+        }
+
+        if (substr($xml, $start, 9) eq '<![CDATA[') {
+            my $end = index($xml, ']]>', $start + 9);
+            if ($end < 0) {
+                $$position_ref = $length;
+                return { type => 'text', text => substr($xml, $start + 9) };
+            }
+
+            $$position_ref = $end + 3;
+            return { type => 'text', text => substr($xml, $start + 9, $end - ($start + 9)) };
+        }
+
+        if (substr($xml, $start, 2) eq '<?') {
+            my $end = index($xml, '?>', $start + 2);
+            $$position_ref = $end < 0 ? $length : $end + 2;
+            next;
+        }
+
+        my $end = _xml_tag_end($xml, $start + 1);
+        if (!defined $end) {
+            $$position_ref = $length;
+            return undef;
+        }
+
+        my $body = substr($xml, $start + 1, $end - $start - 1);
+        $$position_ref = $end + 1;
+
+        next if $body =~ /\A!/;
+
+        if ($body =~ s{\A/}{}) {
+            my $name = _xml_local_name($body);
+            return { type => 'end', name => $name } if defined $name;
+            next;
+        }
+
+        my $empty = $body =~ s{/\s*\z}{};
+        my $name = _xml_local_name($body);
+        return { type => 'start', name => $name, empty => $empty ? 1 : 0 } if defined $name;
+    }
+
+    return undef;
 }
 
-sub _propstat_statuses {
-    my ($response) = @_;
+sub _xml_tag_end {
+    my ($xml, $position) = @_;
+    my $quote;
 
-    my @statuses;
-    while ($response =~ m{<(?:(?:[A-Za-z_][\w.-]*):)?propstat\b[^>]*>(.*?)</(?:(?:[A-Za-z_][\w.-]*):)?propstat>}gis) {
-        push @statuses, _direct_child_texts($1, 'status');
+    for (my $index = $position; $index < length($xml); $index++) {
+        my $char = substr($xml, $index, 1);
+        if (defined $quote) {
+            undef $quote if $char eq $quote;
+            next;
+        }
+
+        if ($char eq q{"} || $char eq q{'}) {
+            $quote = $char;
+            next;
+        }
+
+        return $index if $char eq '>';
     }
-    return @statuses;
+
+    return undef;
+}
+
+sub _xml_local_name {
+    my ($body) = @_;
+
+    return undef if $body !~ /\A\s*([A-Za-z_][A-Za-z0-9_.:-]*)/;
+    my $name = $1;
+    $name =~ s/\A.*://;
+    return lc $name;
 }
 
 sub _all_statuses_success {
@@ -376,33 +549,6 @@ sub _status_is_success {
         || $status =~ m{\A\s*2[0-9][0-9]\b}
         ? 1
         : 0;
-}
-
-sub _direct_child_texts {
-    my ($xml, $name) = @_;
-
-    $xml =~ s{<!--.*?-->}{}gs;
-
-    my @values;
-    my $depth = 0;
-    while ($xml =~ m{<(/?)(?:(?:[A-Za-z_][\w.-]*):)?([A-Za-z_][\w.-]*)(?:\s[^<>]*)?(/?)>}gis) {
-        my ($closing, $local_name, $self_closing) = ($1, $2, $3);
-        if ($closing) {
-            $depth-- if $depth > 0;
-            next;
-        }
-
-        if ($depth == 0 && lc($local_name) eq lc($name) && !$self_closing) {
-            if ($xml =~ m{\G(.*?)</(?:(?:[A-Za-z_][\w.-]*):)?\Q$name\E\s*>}gis) {
-                push @values, _xml_text_decode($1);
-                next;
-            }
-        }
-
-        $depth++ if !$self_closing;
-    }
-
-    return @values;
 }
 
 sub _direct_href_child {

@@ -21,6 +21,7 @@ our @EXPORT_OK = qw(
     load_static_bundle
     preview_static_bundle
     serve_static_bundle
+    unsupported_reason
 );
 
 use constant {
@@ -68,6 +69,21 @@ my $CSP = join '; ',
 
 sub expected_files {
     return @EXPECTED_FILES;
+}
+
+sub unsupported_reason {
+    state $reason = do {
+        if ($^O eq 'MSWin32') {
+            'Windows path and symlink/junction semantics do not provide the required O_NOFOLLOW-style guarantees';
+        }
+        elsif (!defined eval { Fcntl::O_NOFOLLOW() }) {
+            'O_NOFOLLOW is unavailable';
+        }
+        else {
+            undef;
+        }
+    };
+    return $reason;
 }
 
 sub load_static_bundle {
@@ -210,6 +226,7 @@ sub DESTROY {
 sub _load_bundle {
     my ($dir) = @_;
 
+    _assert_supported_platform();
     _reject_control_text($dir, 'dir');
 
     my $abs = File::Spec->rel2abs($dir);
@@ -527,8 +544,12 @@ sub _assert_no_symlink_components {
     my ($path) = @_;
 
     my $abs = File::Spec->rel2abs($path);
-    my $current = File::Spec->rootdir;
-    for my $component (grep { $_ ne '' } split m{/+}, $abs) {
+    my ($volume, $dirs, $file) = File::Spec->splitpath($abs);
+    my @components = grep { $_ ne '' } File::Spec->splitdir($dirs);
+    push @components, $file if $file ne '';
+
+    my $current = $volume . File::Spec->rootdir;
+    for my $component (@components) {
         $current = File::Spec->catdir($current, $component);
         croak "storage: path component is a symlink: $current" if -l $current;
         croak "storage: path component does not exist: $current" if !-e $current;
@@ -549,9 +570,17 @@ sub _croak_bundle {
     croak 'storage: showcase preview bundle is not clean: ' . ($message // 'invalid bundle');
 }
 
+sub _assert_supported_platform {
+    if (defined(my $reason = unsupported_reason())) {
+        croak "storage: showcase preview unsupported on this platform: $reason";
+    }
+    return 1;
+}
+
 sub _o_nofollow {
     state $flag = eval { Fcntl::O_NOFOLLOW() };
-    croak 'storage: O_NOFOLLOW is required for showcase preview' if !defined $flag;
+    croak 'storage: showcase preview unsupported on this platform: O_NOFOLLOW is unavailable'
+        if !defined $flag;
     return $flag;
 }
 
@@ -579,6 +608,11 @@ GobanFTP::Showcase::StaticPreview - loopback-only showcase preview helper
 =item expected_files()
 
 Returns the fixed six-file static showcase allowlist.
+
+=item unsupported_reason()
+
+Returns a short reason when the preview helper is unsupported on the current
+platform, otherwise C<undef>.
 
 =item load_static_bundle(bundle_dir => $dir)
 

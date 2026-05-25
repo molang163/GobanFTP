@@ -17,12 +17,12 @@ beta hardens admission, storage confirmation, diagnostics, bounded input
 handling, and release-facing claims around that existing boundary.
 
 The only P2 runtime addition accepted into this beta is the local
-loopback-only showcase preview helper. The P2.1 static showcase navigation
-polish is generated-bundle/static HTML only: it adds local file links and
-same-document fragment navigation without adding runtime, hosted UI, deploy,
-provider, or network behavior. Remaining P2 stretch work is deferred and has no
-hosted UI, provider, production auth, Git/DNS publishing, scoring/result, or
-release/deploy claim.
+loopback-only showcase preview helper on supported local platforms. The P2.1
+static showcase navigation polish is generated-bundle/static HTML only: it adds
+local file links and same-document fragment navigation without adding runtime,
+hosted UI, deploy, provider, or network behavior. Remaining P2 stretch work is
+deferred and has no hosted UI, provider, production auth, Git/DNS publishing,
+scoring/result, or release/deploy claim.
 
 This beta source gate covers the public source line for
 `v1.1.0-beta.1/package 1.100_001`. Distribution creation, upload, and tag
@@ -88,7 +88,7 @@ this beta.
 | Compact live watch is recordable and still listing-derived. | `prove -l t/play-watch.t` | `t/play-watch.t` | Does not claim live truth, fork winner selection, or replay inputs beyond direct event basenames. | BETA |
 | Static showcase generation is local fixture output only. | `prove -l t/showcase-v1_1.t t/static-witness-specimen.t` | `t/showcase-v1_1.t` | Generated bundle is static; optional P2 loopback preview helper is local-only/read-only and not hosted UI/deploy. | BETA |
 | Static showcase navigation polish is generated-bundle-only. | `prove -l t/showcase-v1_1.t t/v1-cli-witness-surface-golden.t t/v1-claim-audit.t` | `t/showcase-v1_1.t` | Does not claim hosted Web UI, browser application, server deployment, provider deploy, network fetch, or production network service. | BETA |
-| P2 local showcase preview helper is loopback-only and read-only. | `prove -l t/showcase-preview.t t/showcase-v1_1.t t/v1-claim-audit.t` | `t/showcase-preview.t` | Does not claim hosted Web UI, browser application, server deployment, provider deploy, or production network service. | BETA |
+| P2 local showcase preview helper is loopback-only and read-only. | `prove -l t/showcase-preview.t t/showcase-v1_1.t t/v1-claim-audit.t` | `t/showcase-preview.t` | Supported local platforms only; does not claim hosted Web UI, browser application, server deployment, provider deploy, production network service, or preview support on platforms missing required local safety/process primitives. | BETA |
 | Static HTML/Web projection is not hosted Web UI. | `prove -l t/static-witness-specimen.t t/readme-localization.t` | `t/static-witness-specimen.t` | Does not claim a hosted Web UI, browser application, or production network service. | BETA |
 | Git and DNS remain read-only runtime substrates. | `prove -l t/store-git-tree.t t/store-dns-record.t t/profile-adapter.t` | `t/store-git-tree.t` | Does not claim Git publish, Git remote fetch, DNS dynamic update, or provider writes. | BETA |
 | Scoring/result events remain outside GOFTP/1. | `prove -l t/readme-localization.t t/v1-claim-audit.t` | `t/v1-claim-audit.t` | Does not claim a complete scoring/result system. | BETA |
@@ -99,6 +99,10 @@ this beta.
 
 - The generated showcase bundle is static; optional P2 loopback preview helper
   is local-only/read-only and not hosted UI/deploy.
+- Preview helper support is limited to supported local platforms with the
+  required no-follow file-opening and process-test primitives; unsupported
+  platforms should report unsupported/skip rather than acting as release
+  evidence.
 - Remaining P2 stretch work is deferred: no GitHub Pages/static hosting, TUI
   GIF/asciinema asset, broader Web observatory work beyond the accepted static
   generated-bundle navigation polish, sanitized debug bundle expansion, and no

@@ -2,19 +2,28 @@ use v5.34;
 use strict;
 use warnings;
 
+use Config qw(%Config);
 use FindBin;
 use Digest::SHA qw(sha256_hex);
 use File::Path qw(make_path);
 use File::Spec;
 use File::Temp qw(tempdir);
 use IO::Socket::INET;
-use POSIX qw(WNOHANG);
+use POSIX ();
 use Test::More;
 
 use lib "$FindBin::Bin/../lib";
 
 use GobanFTP::CLI;
-use GobanFTP::Showcase::StaticPreview qw(expected_files);
+use GobanFTP::Showcase::StaticPreview qw(expected_files unsupported_reason);
+
+if (defined(my $unsupported = unsupported_reason())) {
+    plan skip_all => "showcase preview unsupported on this platform: $unsupported";
+}
+
+my $HAS_FORK = _fork_available();
+my $WNOHANG = eval { POSIX::WNOHANG() };
+$WNOHANG = 1 if !defined $WNOHANG;
 
 my $lib = File::Spec->catdir($FindBin::Bin, '..', 'lib');
 my $script = File::Spec->catfile($FindBin::Bin, '..', 'script', 'gobanftp');
@@ -84,6 +93,8 @@ subtest 'preview rejects non-showcase and tampered bundles' => sub {
 };
 
 subtest 'preview serves allowed GET and exits after --once without mutating read-only manifest' => sub {
+    _skip_without_fork();
+
     my ($out) = _generated_showcase();
     my $roots_path = File::Spec->catfile($out, 'roots.json');
     chmod 0444, $roots_path or die "chmod roots.json read-only: $!";
@@ -110,6 +121,8 @@ subtest 'preview serves allowed GET and exits after --once without mutating read
 };
 
 subtest 'preview serves HEAD without a body' => sub {
+    _skip_without_fork();
+
     my ($out) = _generated_showcase();
     my $process = _start_preview($out);
     my $response = _http_request($process->{port}, _request('HEAD', '/roots.json', $process->{port}));
@@ -122,6 +135,8 @@ subtest 'preview serves HEAD without a body' => sub {
 };
 
 subtest 'preview rejects methods, hosts, and paths without consuming --once' => sub {
+    _skip_without_fork();
+
     for my $case (
         ['POST is rejected',     _request('POST', '/', 0),                      qr/\AHTTP\/1[.]1 405 Method Not Allowed/],
         ['bad Host is rejected', "GET / HTTP/1.1\r\nHost: evil.test:PORT\r\nConnection: close\r\n\r\n", qr/\AHTTP\/1[.]1 400 Bad Request/],
@@ -149,6 +164,8 @@ subtest 'preview rejects methods, hosts, and paths without consuming --once' => 
 };
 
 subtest 'preview long-running mode stays foreground and terminates cleanly' => sub {
+    _skip_without_fork();
+
     my ($out) = _generated_showcase();
     my $process = _start_preview($out, once => 0);
     my $response = _http_request($process->{port}, _request('GET', '/release-evidence.txt', $process->{port}));
@@ -216,7 +233,7 @@ sub _start_preview {
     push @cmd, '--once' if $opts{once} // 1;
 
     my $pid = fork();
-    die "fork preview: $!" if !defined $pid;
+    die "fork unavailable for showcase preview process tests: $!" if !defined $pid;
     if ($pid == 0) {
         open STDOUT, '>', $stdout_path or die "open preview stdout: $!";
         open STDERR, '>', $stderr_path or die "open preview stderr: $!";
@@ -229,7 +246,7 @@ sub _start_preview {
     my $port;
     my $deadline = time + 10;
     while (time < $deadline) {
-        if (waitpid($pid, WNOHANG) == $pid) {
+        if (waitpid($pid, $WNOHANG) == $pid) {
             die "preview exited before ready; stdout="
                 . _slurp_maybe($stdout_path)
                 . " stderr="
@@ -290,7 +307,7 @@ sub _wait_preview {
     my ($process) = @_;
 
     for (1 .. 50) {
-        my $done = waitpid($process->{pid}, WNOHANG);
+        my $done = waitpid($process->{pid}, $WNOHANG);
         if ($done == $process->{pid}) {
             $process->{stdout} = _slurp_maybe($process->{stdout_path});
             $process->{stderr} = _slurp_maybe($process->{stderr_path});
@@ -309,7 +326,7 @@ sub _terminate_preview {
     return if !_process_running($process->{pid});
     kill 'TERM', $process->{pid};
     for (1 .. 30) {
-        my $done = waitpid($process->{pid}, WNOHANG);
+        my $done = waitpid($process->{pid}, $WNOHANG);
         if ($done == $process->{pid}) {
             $process->{stdout} = _slurp_maybe($process->{stdout_path});
             $process->{stderr} = _slurp_maybe($process->{stderr_path});
@@ -324,6 +341,25 @@ sub _terminate_preview {
 sub _process_running {
     my ($pid) = @_;
     return kill(0, $pid) ? 1 : 0;
+}
+
+sub _skip_without_fork {
+    plan skip_all => 'fork unavailable on this platform; preview CLI process tests skipped'
+        if !$HAS_FORK;
+    return;
+}
+
+sub _fork_available {
+    return 0 if ($Config{d_fork} // '') ne 'define';
+
+    my $pid = fork();
+    return 0 if !defined $pid;
+    if ($pid == 0) {
+        eval { POSIX::_exit(0) };
+        exit 0;
+    }
+    waitpid($pid, 0);
+    return 1;
 }
 
 sub _can_connect {
