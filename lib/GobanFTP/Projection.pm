@@ -538,7 +538,7 @@ sub _assert_no_projection_symlinks {
         $paths->{sgf_dir},
         $paths->{oracle_dir},
     ) {
-        _assert_no_symlink_path($dir);
+        _assert_no_symlink_path($dir, $game_root);
     }
 
     return 1;
