@@ -13,6 +13,9 @@ use MIME::Base64 qw(encode_base64);
 use constant {
     DEFAULT_MAX_RESPONSE_BYTES => 1_048_576,
     DEFAULT_MAX_HREF_COUNT     => 10_000,
+    DAV_NAMESPACE              => 'DAV:',
+    XML_NAMESPACE              => 'http://www.w3.org/XML/1998/namespace',
+    XMLNS_NAMESPACE            => 'http://www.w3.org/2000/xmlns/',
 };
 
 sub new {
@@ -314,12 +317,19 @@ sub _resource_url {
 sub _hrefs_from_multistatus {
     my ($content, $max_href_count) = @_;
     $max_href_count //= DEFAULT_MAX_HREF_COUNT;
+    $content = _xml_unicode_content($content);
+    $content =~ s/\A\x{FEFF}//;
 
     my @hrefs;
     my @stack;
+    my @namespace_stack = ({
+        ''    => undef,
+        xml   => XML_NAMESPACE,
+        xmlns => XMLNS_NAMESPACE,
+    });
     my $position = 0;
     my ($response, $capture);
-    my ($root_seen, $root_closed);
+    my ($root_seen, $root_closed, $xml_decl_seen);
 
     while (my $token = _next_xml_token(\$content, \$position)) {
         if ($token->{type} eq 'text') {
@@ -329,20 +339,35 @@ sub _hrefs_from_multistatus {
             next;
         }
 
+        if ($token->{type} eq 'pi') {
+            if (lc($token->{target}) eq 'xml') {
+                _croak_malformed_xml()
+                    if $token->{target} ne 'xml'
+                        || $xml_decl_seen
+                        || $root_seen
+                        || $root_closed
+                        || @stack
+                        || $token->{position} != 0;
+                $xml_decl_seen = 1;
+            }
+            next;
+        }
+
         if ($token->{type} eq 'start') {
-            my $name = $token->{name};
+            my ($namespace, $element) = _xml_start_namespace($token, $namespace_stack[-1]);
             my $empty = $token->{empty};
 
             if (!@stack) {
-                _croak_malformed_xml() if $root_seen || $root_closed || $name ne 'multistatus';
+                _croak_malformed_xml()
+                    if $root_seen || $root_closed || !_is_dav_element($element, 'multistatus');
                 $root_seen = 1;
                 if ($empty) {
                     $root_closed = 1;
                     next;
                 }
             }
-            elsif (!$empty && !$response && $name eq 'response'
-                && @stack == 1 && $stack[0] eq 'multistatus') {
+            elsif (!$empty && !$response && _is_dav_element($element, 'response')
+                && @stack == 1 && _is_dav_element($stack[0], 'multistatus')) {
                 $response = {
                     depth             => @stack + 1,
                     hrefs             => [],
@@ -352,39 +377,42 @@ sub _hrefs_from_multistatus {
                 };
             }
             elsif (!$empty && $response && @stack == $response->{depth}
-                && ($stack[-1] // '') eq 'response') {
-                if ($name eq 'href' || $name eq 'status') {
+                && _is_dav_element($stack[-1], 'response')) {
+                if (_is_dav_element($element, 'href') || _is_dav_element($element, 'status')) {
                     $capture = {
-                        name  => $name,
-                        kind  => $name eq 'href' ? 'href' : 'direct_status',
+                        qname => $token->{qname},
+                        kind  => $element->{local} eq 'href' ? 'href' : 'direct_status',
                         depth => @stack + 1,
                         text  => '',
                     };
                 }
-                elsif ($name eq 'propstat') {
+                elsif (_is_dav_element($element, 'propstat')) {
                     $response->{propstat_depth} = @stack + 1;
                 }
             }
             elsif (!$empty && $response && defined $response->{propstat_depth}
                 && @stack == $response->{propstat_depth}
-                && ($stack[-1] // '') eq 'propstat'
-                && $name eq 'status') {
+                && _is_dav_element($stack[-1], 'propstat')
+                && _is_dav_element($element, 'status')) {
                 $capture = {
-                    name  => $name,
+                    qname => $token->{qname},
                     kind  => 'propstat_status',
                     depth => @stack + 1,
                     text  => '',
                 };
             }
 
-            push @stack, $name if !$empty;
+            if (!$empty) {
+                push @stack, $element;
+                push @namespace_stack, $namespace;
+            }
             next;
         }
 
-        my $name = $token->{name};
-        _croak_malformed_xml() if !@stack || $stack[-1] ne $name;
+        my $qname = $token->{qname};
+        _croak_malformed_xml() if !@stack || $stack[-1]{qname} ne $qname;
 
-        if ($capture && $name eq $capture->{name} && @stack == $capture->{depth}) {
+        if ($capture && $qname eq $capture->{qname} && @stack == $capture->{depth}) {
             if ($capture->{kind} eq 'href') {
                 push @{ $response->{hrefs} }, $capture->{text};
             }
@@ -398,11 +426,11 @@ sub _hrefs_from_multistatus {
         }
 
         if ($response && defined $response->{propstat_depth}
-            && $name eq 'propstat' && @stack == $response->{propstat_depth}) {
+            && _is_dav_element($stack[-1], 'propstat') && @stack == $response->{propstat_depth}) {
             $response->{propstat_depth} = undef;
         }
 
-        if ($response && $name eq 'response' && @stack == $response->{depth}) {
+        if ($response && _is_dav_element($stack[-1], 'response') && @stack == $response->{depth}) {
             my $href = _response_success_href($response);
             if (defined $href) {
                 croak 'webdav href limit exceeded' if @hrefs >= $max_href_count;
@@ -413,6 +441,7 @@ sub _hrefs_from_multistatus {
         }
 
         pop @stack;
+        pop @namespace_stack;
         $root_closed = 1 if !@stack;
     }
 
@@ -450,19 +479,22 @@ sub _next_xml_token {
         if ($start < 0) {
             my $text = substr($xml, $$position_ref);
             $$position_ref = $length;
-            return { type => 'text', text => _xml_text_decode($text) } if $text ne '';
+            return { type => 'text', text => _xml_text_decode($text, char_data => 1) } if $text ne '';
             return undef;
         }
 
         if ($start > $$position_ref) {
             my $text = substr($xml, $$position_ref, $start - $$position_ref);
             $$position_ref = $start;
-            return { type => 'text', text => _xml_text_decode($text) };
+            return { type => 'text', text => _xml_text_decode($text, char_data => 1) };
         }
 
         if (substr($xml, $start, 4) eq '<!--') {
             my $end = index($xml, '-->', $start + 4);
             _croak_malformed_xml() if $end < 0;
+            my $comment = substr($xml, $start + 4, $end - ($start + 4));
+            _xml_assert_valid_chars($comment);
+            _croak_malformed_xml() if $comment =~ /--/ || $comment =~ /-\z/;
             $$position_ref = $end + 3;
             next;
         }
@@ -472,14 +504,19 @@ sub _next_xml_token {
             _croak_malformed_xml() if $end < 0;
 
             $$position_ref = $end + 3;
-            return { type => 'text', text => substr($xml, $start + 9, $end - ($start + 9)) };
+            my $text = substr($xml, $start + 9, $end - ($start + 9));
+            _xml_assert_valid_chars($text);
+            return { type => 'text', text => $text };
         }
 
         if (substr($xml, $start, 2) eq '<?') {
             my $end = index($xml, '?>', $start + 2);
             _croak_malformed_xml() if $end < 0;
+            my $body = substr($xml, $start + 2, $end - ($start + 2));
+            my $target = _xml_pi_target($body);
+            _croak_malformed_xml() if !defined $target;
             $$position_ref = $end + 2;
-            next;
+            return { type => 'pi', target => $target, position => $start };
         }
 
         _croak_malformed_xml() if substr($xml, $start, 2) eq '<!';
@@ -491,15 +528,16 @@ sub _next_xml_token {
         $$position_ref = $end + 1;
 
         if ($body =~ s{\A/}{}) {
-            my $name = _xml_end_name($body);
-            _croak_malformed_xml() if !defined $name;
-            return { type => 'end', name => $name };
+            my $qname = _xml_end_name($body);
+            _croak_malformed_xml() if !defined $qname;
+            return { type => 'end', qname => $qname };
         }
 
         my $empty = $body =~ s{/\s*\z}{};
-        my $name = _xml_start_name($body);
-        _croak_malformed_xml() if !defined $name;
-        return { type => 'start', name => $name, empty => $empty ? 1 : 0 };
+        my $token = _xml_start_token($body);
+        _croak_malformed_xml() if !defined $token;
+        $token->{empty} = $empty ? 1 : 0;
+        return $token;
     }
 
     return undef;
@@ -531,32 +569,189 @@ sub _xml_tag_end {
     return undef;
 }
 
-sub _xml_start_name {
+sub _xml_unicode_content {
+    my ($content) = @_;
+
+    $content //= '';
+    if (!utf8::is_utf8($content)) {
+        _croak_malformed_xml() if !utf8::decode($content);
+    }
+    _xml_assert_valid_chars($content);
+    return $content;
+}
+
+sub _xml_pi_target {
     my ($body) = @_;
 
-    my $xml_name = qr/[A-Za-z_][A-Za-z0-9_.:-]*/;
+    my $xml_name = _xml_name_re();
+    return $1 if $body =~ /\A($xml_name)(?:\s|\z)/;
+    return undef;
+}
+
+sub _xml_start_token {
+    my ($body) = @_;
+
+    my $xml_name = _xml_name_re();
     return undef if $body !~ s/\A\s*($xml_name)//;
-    my $name = $1;
+    my $qname = $1;
+    my ($prefix, $local) = _xml_qname_parts($qname);
+    return undef if !defined $local;
+
+    my (%seen_attr, %ns_decls, @attrs);
     while ($body !~ /\A\s*\z/) {
         return undef if $body !~ s/\A\s+($xml_name)\s*=\s*(["'])//;
-        my $quote = $2;
-        return undef if $body !~ s/\A([^$quote]*)\Q$quote\E//;
-        my $value = $1;
+        my ($attr_qname, $quote) = ($1, $2);
+        return undef if $seen_attr{$attr_qname}++;
+
+        my $value;
+        if ($quote eq q{"}) {
+            return undef if $body !~ s/\A([^"]*)"//s;
+            $value = $1;
+        }
+        else {
+            return undef if $body !~ s/\A([^']*)'//s;
+            $value = $1;
+        }
         return undef if $value =~ /</;
-        _xml_text_decode($value);
+        $value = _xml_text_decode($value);
+
+        my ($attr_prefix, $attr_local) = _xml_qname_parts($attr_qname);
+        return undef if !defined $attr_local;
+
+        if (!defined($attr_prefix) && $attr_local eq 'xmlns') {
+            return undef if !_xml_namespace_declaration_valid('', $value);
+            $ns_decls{''} = $value;
+        }
+        elsif (defined($attr_prefix) && $attr_prefix eq 'xmlns') {
+            return undef if !_xml_namespace_declaration_valid($attr_local, $value);
+            $ns_decls{$attr_local} = $value;
+        }
+        else {
+            push @attrs, {
+                qname  => $attr_qname,
+                prefix => $attr_prefix,
+                local  => $attr_local,
+                value  => $value,
+            };
+        }
     }
 
-    $name =~ s/\A.*://;
-    return lc $name;
+    return {
+        type     => 'start',
+        qname    => $qname,
+        prefix   => $prefix,
+        local    => $local,
+        ns_decls => \%ns_decls,
+        attrs    => \@attrs,
+    };
 }
 
 sub _xml_end_name {
     my ($body) = @_;
 
-    return undef if $body !~ /\A\s*([A-Za-z_][A-Za-z0-9_.:-]*)\s*\z/;
-    my $name = $1;
-    $name =~ s/\A.*://;
-    return lc $name;
+    my $xml_name = _xml_name_re();
+    return undef if $body !~ /\A\s*($xml_name)\s*\z/;
+    my $qname = $1;
+    my (undef, $local) = _xml_qname_parts($qname);
+    return defined($local) ? $qname : undef;
+}
+
+sub _xml_name_re {
+    return qr/[:A-Z_a-z\p{L}\p{Nl}](?:[:A-Z_a-z\p{L}\p{Nl}\-.0-9\x{B7}\p{Mn}\p{Mc}\p{Nd}\x{203F}\x{2040}])*/;
+}
+
+sub _xml_qname_parts {
+    my ($qname) = @_;
+
+    return if !defined($qname) || $qname eq '';
+    return if $qname =~ tr/:/:/ > 1;
+    return (undef, $qname) if $qname !~ /:/;
+    return if $qname !~ /\A([^:]+):([^:]+)\z/;
+    return ($1, $2);
+}
+
+sub _xml_namespace_declaration_valid {
+    my ($prefix, $value) = @_;
+
+    if ($prefix eq '') {
+        return 0 if $value eq XML_NAMESPACE || $value eq XMLNS_NAMESPACE;
+        return 1;
+    }
+
+    return 0 if $value eq '';
+    return 0 if $prefix eq 'xmlns';
+    return 0 if $prefix eq 'xml' && $value ne XML_NAMESPACE;
+    return 0 if $prefix ne 'xml' && $value eq XML_NAMESPACE;
+    return 0 if $value eq XMLNS_NAMESPACE;
+    return 1;
+}
+
+sub _xml_start_namespace {
+    my ($token, $parent_namespace) = @_;
+
+    my %namespace = %$parent_namespace;
+    for my $prefix (keys %{ $token->{ns_decls} }) {
+        my $value = $token->{ns_decls}{$prefix};
+        if ($prefix eq '') {
+            $namespace{''} = $value eq '' ? undef : $value;
+        }
+        else {
+            $namespace{$prefix} = $value;
+        }
+    }
+
+    _croak_malformed_xml()
+        if defined($token->{prefix}) && $token->{prefix} eq 'xmlns';
+
+    my $uri = _xml_resolve_element_namespace($token->{prefix}, \%namespace);
+    _xml_validate_attribute_names($token->{attrs}, \%namespace);
+
+    return (
+        \%namespace,
+        {
+            qname  => $token->{qname},
+            prefix => $token->{prefix},
+            local  => $token->{local},
+            uri    => $uri,
+        },
+    );
+}
+
+sub _xml_resolve_element_namespace {
+    my ($prefix, $namespace) = @_;
+
+    return $namespace->{''} if !defined $prefix;
+    _croak_malformed_xml() if !exists($namespace->{$prefix}) || !defined($namespace->{$prefix});
+    return $namespace->{$prefix};
+}
+
+sub _xml_validate_attribute_names {
+    my ($attrs, $namespace) = @_;
+
+    my %seen;
+    for my $attr (@$attrs) {
+        my $uri = '';
+        if (defined $attr->{prefix}) {
+            _croak_malformed_xml()
+                if !exists($namespace->{ $attr->{prefix} }) || !defined($namespace->{ $attr->{prefix} });
+            $uri = $namespace->{ $attr->{prefix} };
+        }
+        my $key = $uri . "\0" . $attr->{local};
+        _croak_malformed_xml() if $seen{$key}++;
+    }
+
+    return 1;
+}
+
+sub _is_dav_element {
+    my ($element, $local) = @_;
+
+    return defined($element)
+        && defined($element->{uri})
+        && $element->{uri} eq DAV_NAMESPACE
+        && $element->{local} eq $local
+        ? 1
+        : 0;
 }
 
 sub _all_statuses_success {
@@ -700,11 +895,14 @@ sub _percent_decode_once {
 }
 
 sub _xml_text_decode {
-    my ($value) = @_;
+    my ($value, %opts) = @_;
 
+    _xml_assert_valid_chars($value);
+    _croak_malformed_xml() if $opts{char_data} && index($value, ']]>') >= 0;
     _croak_malformed_xml()
         if $value =~ /&(?![A-Za-z][A-Za-z0-9]*;|#[0-9]+;|#x[0-9A-Fa-f]+;)/;
     $value =~ s/&([A-Za-z][A-Za-z0-9]*|#[0-9]+|#x[0-9A-Fa-f]+);/_xml_entity_decode($1)/eg;
+    _xml_assert_valid_chars($value);
     return $value;
 }
 
@@ -731,12 +929,32 @@ sub _xml_entity_decode {
         _croak_malformed_xml();
     }
 
-    _croak_malformed_xml()
-        if $codepoint == 0
+    _croak_malformed_xml() if !_xml_codepoint_allowed($codepoint);
+    return chr $codepoint;
+}
+
+sub _xml_assert_valid_chars {
+    my ($value) = @_;
+
+    for my $char (split //, $value) {
+        _croak_malformed_xml() if !_xml_codepoint_allowed(ord $char);
+    }
+    return 1;
+}
+
+sub _xml_codepoint_allowed {
+    my ($codepoint) = @_;
+
+    return 0
+        if !defined($codepoint)
+            || $codepoint == 0
             || $codepoint > 0x10FFFF
             || ($codepoint >= 0xD800 && $codepoint <= 0xDFFF)
+            || ($codepoint >= 0xFDD0 && $codepoint <= 0xFDEF)
+            || (($codepoint & 0xFFFF) == 0xFFFE)
+            || (($codepoint & 0xFFFF) == 0xFFFF)
             || ($codepoint < 0x20 && $codepoint != 0x09 && $codepoint != 0x0A && $codepoint != 0x0D);
-    return chr $codepoint;
+    return 1;
 }
 
 sub _load_class {

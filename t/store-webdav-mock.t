@@ -359,6 +359,38 @@ subtest 'PROPFIND malformed multistatus XML fails closed' => sub {
             '<D:multistatus xmlns:D="DAV:"><D:response><D:href>/goftp/'
                 . $game . '/events/' . $move_b . '&bogus;</D:href>'
                 . '<D:status>HTTP/1.1 200 OK</D:status></D:response></D:multistatus>' ],
+        [ 'invalid numeric entity in href',
+            '<D:multistatus xmlns:D="DAV:"><D:response><D:href>/goftp/'
+                . $game . '/events/' . $move_b . '&#xFDD0;</D:href>'
+                . '<D:status>HTTP/1.1 200 OK</D:status></D:response></D:multistatus>' ],
+        [ 'invalid numeric entity in status',
+            '<D:multistatus xmlns:D="DAV:"><D:response><D:href>/goftp/'
+                . $game . '/events/' . $move_b . '</D:href>'
+                . '<D:status>HTTP/1.1 200 OK &#x1FFFF;</D:status></D:response></D:multistatus>' ],
+        [ 'comment containing double hyphen',
+            '<D:multistatus xmlns:D="DAV:"><!-- bad -- comment --></D:multistatus>' ],
+        [ 'comment ending with hyphen',
+            '<D:multistatus xmlns:D="DAV:"><!-- bad ---></D:multistatus>' ],
+        [ 'XML declaration inside root',
+            '<D:multistatus xmlns:D="DAV:"><?xml version="1.0"?>' . $success_response . '</D:multistatus>' ],
+        [ 'CDATA close marker in ordinary text',
+            '<D:multistatus xmlns:D="DAV:"><D:response><D:href>/goftp/'
+                . $game . '/events/' . $move_b . '</D:href>'
+                . '<D:status>HTTP/1.1 200 OK ]]></D:status></D:response></D:multistatus>' ],
+        [ 'duplicate attributes',
+            '<D:multistatus xmlns:D="DAV:"><D:response a="1" a="2">'
+                . '<D:href>/goftp/' . $game . '/events/' . $move_b . '</D:href>'
+                . '<D:status>HTTP/1.1 200 OK</D:status></D:response></D:multistatus>' ],
+        [ 'duplicate xmlns attributes',
+            '<D:multistatus xmlns:D="DAV:" xmlns:D="DAV:">' . $success_response . '</D:multistatus>' ],
+        [ 'wrong DAV namespace',
+            '<D:multistatus xmlns:D="urn:not-dav">' . $success_response . '</D:multistatus>' ],
+        [ 'missing DAV namespace',
+            '<multistatus>' . $success_response . '</multistatus>' ],
+        [ 'unbound namespace prefix',
+            '<D:multistatus xmlns:D="DAV:"><X:response><X:href>/goftp/'
+                . $game . '/events/' . $move_b . '</X:href>'
+                . '<X:status>HTTP/1.1 200 OK</X:status></X:response></D:multistatus>' ],
     );
 
     for my $case (@cases) {
@@ -367,6 +399,71 @@ subtest 'PROPFIND malformed multistatus XML fails closed' => sub {
             qr/\Awebdav multistatus XML malformed\b/,
             "$name is rejected";
     }
+};
+
+subtest 'PROPFIND XML-invalid numeric entities fail closed' => sub {
+    my @codepoints = (
+        0x00,
+        0xD800,
+        0xDFFF,
+        0x110000,
+        0xFDD0 .. 0xFDEF,
+        map { (($_ << 16) + 0xFFFE, ($_ << 16) + 0xFFFF) } 0 .. 0x10,
+    );
+    my %seen;
+    @codepoints = grep { !$seen{$_}++ } @codepoints;
+
+    for my $codepoint (@codepoints) {
+        my $hex = sprintf '%X', $codepoint;
+        my $xml = '<D:multistatus xmlns:D="DAV:"><D:response><D:href>/goftp/'
+            . $game . '/events/' . $move_b . '</D:href>'
+            . '<D:status>HTTP/1.1 200 OK &#x' . $hex . ';</D:status></D:response></D:multistatus>';
+
+        like malformed_propfind_error($xml),
+            qr/\Awebdav multistatus XML malformed\b/,
+            "U+$hex numeric entity is rejected";
+    }
+};
+
+subtest 'PROPFIND scanner accepts DAV namespace forms and XML prolog' => sub {
+    my $default_ns = '<multistatus xmlns="DAV:"><response><href>/goftp/'
+        . $game . '/events/' . $move_b . '</href>'
+        . '<status>HTTP/1.1 200 OK</status></response></multistatus>';
+    is_deeply propfind_names_from_xml($default_ns, "$game/events"), [$move_b],
+        'default DAV namespace is accepted';
+
+    my $bom_xml_decl = "\xEF\xBB\xBF" . '<?xml version="1.0" encoding="utf-8"?>'
+        . '<D:multistatus xmlns:D="DAV:"><D:response><D:href>/goftp/'
+        . $game . '/events/' . $move_b . '</D:href>'
+        . '<D:status>HTTP/1.1 200 OK</D:status></D:response></D:multistatus>';
+    is_deeply propfind_names_from_xml($bom_xml_decl, "$game/events"), [$move_b],
+        'UTF-8 BOM and XML declaration are accepted';
+
+    my $prefix = "\x{03C0}";
+    my $non_ascii_prefix = '<' . $prefix . ':multistatus xmlns:' . $prefix . '="DAV:">'
+        . '<' . $prefix . ':response><' . $prefix . ':href>/goftp/'
+        . $game . '/events/' . $move_b . '</' . $prefix . ':href>'
+        . '<' . $prefix . ':status>HTTP/1.1 200 OK</' . $prefix . ':status>'
+        . '</' . $prefix . ':response></' . $prefix . ':multistatus>';
+    utf8::encode($non_ascii_prefix);
+    is_deeply propfind_names_from_xml($non_ascii_prefix, "$game/events"), [$move_b],
+        'non-ASCII namespace prefix bound to DAV is accepted';
+};
+
+subtest 'PROPFIND scanner admits only DAV-namespaced response data' => sub {
+    my $xml = '<D:multistatus xmlns:D="DAV:" xmlns:X="urn:not-dav">'
+        . '<X:response><X:href>/goftp/' . $game . '/events/' . $move_w . '</X:href>'
+        . '<X:status>HTTP/1.1 200 OK</X:status></X:response>'
+        . '<response><href>/goftp/' . $game . '/events/' . $move_w . '</href>'
+        . '<status>HTTP/1.1 200 OK</status></response>'
+        . dav_response(
+            href => "/goftp/$game/events/$move_b",
+            direct_status => 'HTTP/1.1 200 OK',
+        )
+        . '</D:multistatus>';
+
+    is_deeply propfind_names_from_xml($xml, "$game/events"), [$move_b],
+        'wrong-namespace and no-namespace response children cannot create entries';
 };
 
 subtest 'malformed PROPFIND cannot confirm a published event' => sub {
@@ -553,6 +650,19 @@ sub malformed_propfind_error {
     my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
 
     return exception(sub { $store->list_names('') });
+}
+
+sub propfind_names_from_xml {
+    my ($xml, $path) = @_;
+
+    my $http = MockWebDAV->new(
+        root => 'goftp',
+        propfind_content_hook => sub { return $xml },
+    );
+    $http->_mkdir_internal("goftp/$path") if defined($path) && $path ne '';
+    my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
+
+    return [ $store->list_names($path) ];
 }
 
 sub response {
