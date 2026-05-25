@@ -25,9 +25,10 @@ single-line records on stderr beginning with `diagnostic`, followed by stable
 ### Global Flags
 
 `gobanftp --version` prints the package command version, for example
-`gobanftp 1.001`. It does not declare a v1.1 public release.
+`gobanftp 1.100_001`. This package version corresponds to
+`v1.1.0-beta.1`; JSON `version=1.1` remains the command contract version.
 
-Default command output remains key/value stdout. The v1.1 candidate adds a
+Default command output remains key/value stdout. The v1.1.0-beta.1 beta adds a
 small set of explicit `--json` modes for automation-facing inspection:
 `config show --json`, `doctor --json`, `publish-move --json`,
 `publish-ack --json`, `v1 compare-roots --json`, `v1 compare-replay --json`,

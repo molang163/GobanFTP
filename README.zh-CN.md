@@ -5,11 +5,11 @@
 GobanFTP 把一盘围棋存在目录列表里。文件名就是事件。
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
-![Version 1.001](https://img.shields.io/badge/version-1.001-333333)
+![Version 1.100_001](https://img.shields.io/badge/version-1.100_001-333333)
 ![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Showcase check](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
-当前版本：`v1.0.1/package 1.001`。
+当前 beta 版本：`v1.1.0-beta.1/package 1.100_001`。
 
 [文件名就是事件](#the-shape) · [分叉长什么样](#the-fork) ·
 [为什么做这个](#why-this-exists) · [先看一眼](#see-it-first) · [适合用来做什么](#what-this-is-for) ·
@@ -325,7 +325,7 @@ SGF 是见证输出，不是棋局正本。
 
 ## 现在实现了什么
 
-v1.0.1/package 1.001 已实现：
+v1.1.0-beta.1/package 1.100_001 已实现：
 
 - 共识核心：filename grammar、event ids、`event_set_root`、DAG replay、
   `chinese-area-v1` rules、SGF witness，以及 ack-assisted fork recovery。
@@ -548,7 +548,7 @@ bad signed profile -> rejected by that signed profile
 
 `v0.1` 冻结 `GOFTP/1` consensus boundary。最初的 `v1.0/P14` package 1.000
 release source 把这条边界应用到 local、FTP、WebDAV、read-only Git tree 和
-read-only DNS record-file。当前发布线是 `v1.0.1/package 1.001`。
+read-only DNS record-file。当前 beta 发布线是 `v1.1.0-beta.1/package 1.100_001`。
 
 ## 文档
 

@@ -5,11 +5,11 @@
 A record of the board game Go where the filename is the event.
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
-![Version 1.001](https://img.shields.io/badge/version-1.001-333333)
+![Version 1.100_001](https://img.shields.io/badge/version-1.100_001-333333)
 ![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Showcase test](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
-Current release: `v1.0.1/package 1.001`.
+Current beta release: `v1.1.0-beta.1/package 1.100_001`.
 
 [Filename is the event](#the-shape) · [The fork](#the-fork) ·
 [Why this exists](#why-this-exists) · [See it first](#see-it-first) · [What this is for](#what-this-is-for) ·
@@ -359,7 +359,7 @@ SGF is generated from replay. It is not read back as the source game.
 
 ## What Runs Now
 
-Implemented in v1.0.1/package 1.001:
+Implemented in v1.1.0-beta.1/package 1.100_001:
 
 - Consensus core: filename grammar, event ids, `event_set_root`, DAG replay,
   `chinese-area-v1` rules, SGF, and ack-assisted fork recovery.
@@ -373,7 +373,7 @@ Implemented in v1.0.1/package 1.001:
 - Checks and fixtures: showcase test, attack fixtures, cross-substrate golden
   vectors, and profile publish fixtures.
 
-Deliberately out of scope in v1.0.1/package 1.001:
+Deliberately out of scope in v1.1.0-beta.1/package 1.100_001:
 
 - `git-tree-goftp1` is read-only at runtime; publish commands fail at the
   storage boundary.
@@ -625,12 +625,12 @@ source art / C / asm / Web UI / TUI -> cannot change truth
 `v0.1` froze the `GOFTP/1` consensus boundary. The original `v1.0/P14` package
 1.000 release source applied that boundary across local files, FTP, WebDAV,
 read-only Git tree replay, read-only DNS record-file admission, terminal play,
-static witness output, and source art smoke. The current release line is
-`v1.0.1/package 1.001`.
+static witness output, and source art smoke. The current beta release line is
+`v1.1.0-beta.1/package 1.100_001`.
 
 ## Documentation
 
-Fast paths:
+Quick links:
 
 ```text
 Showcase:     docs/SHOWCASE.md

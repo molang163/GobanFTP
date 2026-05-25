@@ -360,7 +360,7 @@ every CLI command. The stable command surface remains the documented key/value
 stdout, `diagnostic ...` stderr, `storage: ...` stderr, exit codes, and the
 explicit fixture JSONL files named by tests.
 
-The v1.1 hardening candidate adds only command-scoped opt-in JSON documents for
+The v1.1.0-beta.1 beta adds only command-scoped opt-in JSON documents for
 specific inspection paths. These documents must carry
 `schema = gobanftp.<name>.v1` and `version = 1.1`, must be rendered from
 structured data, and must exclude secrets from JSON, JSONL, stdout,

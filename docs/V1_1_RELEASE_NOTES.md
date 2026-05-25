@@ -1,12 +1,11 @@
-# GobanFTP v1.1 Candidate Release Notes
+# GobanFTP v1.1.0-beta.1 Release Notes
 
-Status: integration candidate notes only; not released.
+Status: public beta release notes for v1.1.0-beta.1 / package 1.100_001.
 
-These notes describe the v1.1 hardening candidate prepared for local source
-review. The current public release remains
-`v1.0.1/package 1.001` until a maintainer performs a separate release.
+These notes describe the v1.1.0-beta.1 hardening and showcase beta. This is a
+research-prototype release line, not a production service certification.
 
-P2 status: this candidate includes the local loopback showcase preview helper
+P2 status: this beta includes the local loopback showcase preview helper
 and generated static-bundle navigation polish only. Remaining P2 stretch work is
 deferred and has no hosted UI, provider, production auth, Git/DNS publishing,
 scoring/result, or release/deploy claim.
@@ -91,9 +90,9 @@ does not provide a remote-host, CORS, provider-deploy, or preview JSON mode.
 Remaining P2 stretch work is deferred: no GitHub Pages/static hosting, TUI
 GIF/asciinema asset, broader Web observatory work beyond the accepted static
 generated-bundle navigation polish, sanitized debug bundle expansion, and no
-result/scoring profile in this candidate.
+  result/scoring profile in this beta.
 
-This candidate does not claim hosted Web UI, browser application, server
+This beta does not claim hosted Web UI, browser application, server
 deployment, provider deploy, production auth, production writer authorization,
 production key lifecycle, Git publishing, Git remote fetch, live DNS, AXFR,
 DNSSEC trust, provider APIs, DNS dynamic update, DNS record publishing,

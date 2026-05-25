@@ -1,9 +1,9 @@
-# GobanFTP v1.1 Auth Boundary Candidate
+# GobanFTP v1.1.0-beta.1 Auth Boundary
 
-Status: v1.1 integration candidate only; not released.
+Status: v1.1.0-beta.1 / package 1.100_001 beta auth-boundary reference.
 Date: 2026-05-25 Asia/Shanghai
 
-This document names the auth scopes used by the v1.1 candidate. It is a
+This document names the auth scopes used by the v1.1.0-beta.1 beta. It is a
 boundary document, not a production authorization design.
 
 ## Scopes

@@ -24,17 +24,17 @@ my %text = map { $_ => _read_text(File::Spec->catfile($repo_root, split '/', $_)
     MANIFEST.SKIP
 );
 
-subtest 'candidate release state stays guarded' => sub {
-    like $text{'README.md'}, qr/^Current release: `v1[.]0[.]1\/package 1[.]001`[.]$/m,
-        'README current release remains v1.0.1/package 1.001';
+subtest 'beta release state stays guarded' => sub {
+    like $text{'README.md'}, qr/^Current beta release: `v1[.]1[.]0-beta[.]1\/package 1[.]100_001`[.]$/m,
+        'README current beta release is v1.1.0-beta.1/package 1.100_001';
     like $text{'docs/V1_1_RELEASE_GATE.md'},
-        qr/^Status: v1[.]1 integration candidate only; not released[.]$/m,
-        'v1.1 release gate is candidate-only';
+        qr/^Status: v1[.]1[.]0-beta[.]1 \/ package 1[.]100_001 beta source gate[.]$/m,
+        'v1.1 release gate names the beta source gate';
     like $text{'docs/V1_1_RELEASE_NOTES.md'},
-        qr/^Status: integration candidate notes only; not released[.]$/m,
-        'v1.1 release notes are candidate-only';
-    like $text{Changes}, qr/^v1[.]1-candidate  2026-05-25 [(]not released[)]$/m,
-        'Changes records the v1.1 candidate without making it a release';
+        qr/^Status: public beta release notes for v1[.]1[.]0-beta[.]1 \/ package 1[.]100_001[.]$/m,
+        'v1.1 release notes name the beta release';
+    like $text{Changes}, qr/^1[.]100_001  2026-05-25$/m,
+        'Changes records the v1.1.0-beta.1 package heading';
     like $text{'docs/V1_1_RELEASE_GATE.md'},
         qr/not tag, push, upload,\ndeploy/,
         'gate records no tag/push/upload/deploy';
@@ -93,7 +93,7 @@ subtest 'claim audit rows carry evidence, test, non-goal, and status' => sub {
         like $row->{evidence}, qr/\bprove -l\b/, "$claim has an evidence command";
         like $row->{test}, qr/\bt\/[A-Za-z0-9_.\/-]+[.]t\b/, "$claim has a test file";
         ok length($row->{non_goal}) > 20, "$claim has a non-goal";
-        is $row->{status}, 'CANDIDATE', "$claim is candidate status";
+        is $row->{status}, 'BETA', "$claim is beta status";
     }
 };
 
@@ -193,9 +193,9 @@ subtest 'release notes document compatibility, diagnostics, and non-goals' => su
         'release notes keep scoring/result out of GOFTP/1';
 };
 
-subtest 'roadmap and manifest are candidate-safe' => sub {
+subtest 'roadmap and manifest are beta-safe' => sub {
     unlike $text{'docs/ROADMAP.md'}, qr/does not claim any fix is present/,
-        'roadmap no longer says no v1.1 fix is present in the candidate';
+        'roadmap no longer says no v1.1 fix is present in the beta';
     for my $stale (
         qr/currently extracts every/,
         qr/scan whole rows/,
@@ -226,24 +226,7 @@ subtest 'roadmap and manifest are candidate-safe' => sub {
         like $text{MANIFEST}, qr/^\Q$entry\E$/m, "MANIFEST includes $entry";
     }
 
-    for my $entry (qw(
-        docs/V1_1_GATE_MEMO.md
-        docs/v1.1-unattended-plan.md
-        evidence
-    )) {
-        unlike $text{MANIFEST}, qr/^\Q$entry\E(?:\/|\z)/m, "MANIFEST excludes internal $entry";
-    }
-
-    like $text{'MANIFEST.SKIP'}, qr/^\^evidence\//m, 'MANIFEST.SKIP excludes evidence directory';
-    like $text{'MANIFEST.SKIP'}, qr/^\^docs\/V1_1_GATE_MEMO[\\][.]md\$$/m,
-        'MANIFEST.SKIP excludes local gate memo';
-    like $text{'MANIFEST.SKIP'}, qr/^\^docs\/v1[\\][.]1-unattended-plan[\\][.]md\$$/m,
-        'MANIFEST.SKIP excludes unattended plan';
-    like $text{'.gitignore'}, qr/^evidence\/$/m, '.gitignore excludes evidence directory';
-    like $text{'.gitignore'}, qr/^docs\/V1_1_GATE_MEMO[.]md$/m,
-        '.gitignore excludes local gate memo';
-    like $text{'.gitignore'}, qr/^docs\/v1[.]1-unattended-plan[.]md$/m,
-        '.gitignore excludes unattended plan';
+    unlike $text{MANIFEST}, qr/^evidence(?:\/|\z)/m, 'MANIFEST excludes local evidence directories';
 };
 
 done_testing;

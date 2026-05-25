@@ -3,7 +3,7 @@ package GobanFTP;
 use strict;
 use warnings;
 
-our $VERSION = '1.001';
+our $VERSION = '1.100_001';
 
 1;
 

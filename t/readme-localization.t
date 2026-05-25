@@ -37,7 +37,7 @@ for my $rel (@readmes) {
     }
 
     like $text{$rel}, _release_line_pattern($rel),
-        "$rel keeps the v1.0/package release line";
+        "$rel keeps the v1.1.0-beta.1 release line";
     like $text{$rel}, qr/license-Apache--2[.]0-blue/,
         "$rel keeps the Apache-2.0 license badge";
     like $text{$rel}, qr/Apache License,\s+Version 2[.]0/,
@@ -111,9 +111,9 @@ sub _read_text {
 
 sub _release_line_pattern {
     my ($rel) = @_;
-    return qr/Current release: `v1[.]0[.]1\/package 1[.]001`[.]/ if $rel eq 'README.md';
-    return qr/当前版本：`v1[.]0[.]1\/package 1[.]001`。/ if $rel eq 'README.zh-CN.md';
-    return qr/現在のリリース: `v1[.]0[.]1\/package 1[.]001`[.]/ if $rel eq 'README.ja.md';
+    return qr{Current beta release: `v1[.]1[.]0-beta[.]1/package 1[.]100_001`[.]} if $rel eq 'README.md';
+    return qr{当前 beta 版本：`v1[.]1[.]0-beta[.]1/package 1[.]100_001`。} if $rel eq 'README.zh-CN.md';
+    return qr{現在の beta リリース: `v1[.]1[.]0-beta[.]1/package 1[.]100_001`[.]} if $rel eq 'README.ja.md';
     die "unknown README $rel";
 }
 

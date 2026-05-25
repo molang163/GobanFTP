@@ -16,7 +16,7 @@ my $doc = json_doc(
 );
 
 is $doc->{schema}, 'gobanftp.example.v1', 'json_doc keeps the scoped schema';
-is $doc->{version}, '1.1', 'json_doc pins the candidate JSON version';
+is $doc->{version}, '1.1', 'json_doc pins the beta JSON contract version';
 is $doc->{status}, 'ok', 'json_doc carries caller fields';
 
 my $version_override = json_doc(

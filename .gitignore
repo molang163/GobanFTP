@@ -12,7 +12,4 @@ GobanFTP-[0-9]*.tar.gz
 *.bak
 *.tmp
 *.part
-evidence/
 docs/SESSION_RESTORE.md
-docs/V1_1_GATE_MEMO.md
-docs/v1.1-unattended-plan.md

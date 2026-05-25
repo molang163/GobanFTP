@@ -19,9 +19,9 @@ P1    should ship in v1.1 if schedule allows
 P2    useful stretch work; can move to v1.2 without weakening the core release
 ```
 
-Status note for this source-review candidate: P0, the implemented P1 subset, and
+Status note for this beta line: P0, the implemented P1 subset, and
 the P2 local showcase preview helper are recorded in
-the internal gate memo and `docs/V1_1_RELEASE_GATE.md`. Unmarked boxes below
+`docs/V1_1_RELEASE_GATE.md`. Unmarked boxes below
 remain planning granularity and do not by themselves claim that every stretch
 detail is shipped.
 
@@ -377,9 +377,9 @@ detail is shipped.
 - [x] Local read-only `showcase preview` helper for generated showcase
   directories, limited to loopback static files and not a hosted UI/deploy claim.
 - [ ] GitHub Pages static showcase, if clearly labeled as documentation.
-  Deferred for this candidate because automatic deploy/publish actions are out
+  Deferred for this beta because automatic deploy/publish actions are out
   of scope.
-- [ ] TUI GIF/asciinema path. Deferred for this candidate; no generated cast,
+- [ ] TUI GIF/asciinema path. Deferred for this beta; no generated cast,
   GIF, binary asset, or external recording-tool dependency is included.
 - [x] Static generated showcase navigation polish. Limited to generated-bundle
   file links and same-document fragment anchors; no hosted UI/deploy/runtime

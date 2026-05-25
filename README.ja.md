@@ -6,11 +6,11 @@ GobanFTP は、囲碁の一局をディレクトリの名前一覧から replay 
 ファイル名が event です。
 
 ![Perl 5.34+](https://img.shields.io/badge/Perl-5.34%2B-39457E)
-![Version 1.001](https://img.shields.io/badge/version-1.001-333333)
+![Version 1.100_001](https://img.shields.io/badge/version-1.100_001-333333)
 ![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Showcase check](https://img.shields.io/badge/showcase-prove--lr%20t%2Fshowcase--demo.t-success)
 
-現在のリリース: `v1.0.1/package 1.001`.
+現在の beta リリース: `v1.1.0-beta.1/package 1.100_001`.
 
 [ファイル名が event](#the-shape) · [fork を見る](#the-fork) ·
 [なぜ作ったか](#why-this-exists) · [まず見るもの](#see-it-first) · [何に向いているか](#what-this-is-for) ·
@@ -363,7 +363,7 @@ SGF は witness です。正本ではありません。
 
 ## いま動く範囲
 
-v1.0.1/package 1.001 で実装済みの範囲です。
+v1.1.0-beta.1/package 1.100_001 で実装済みの範囲です。
 
 - 中核: filename grammar、event ids、`event_set_root`、DAG replay、
   `chinese-area-v1` rules、SGF、ack-assisted fork recovery。
@@ -377,7 +377,7 @@ v1.0.1/package 1.001 で実装済みの範囲です。
 - 検証材料: showcase check、attack fixtures、cross-substrate golden vectors、
   profile publish fixtures。
 
-v1.0.1/package 1.001 の範囲は次の通りです。
+v1.1.0-beta.1/package 1.100_001 の範囲は次の通りです。
 
 - `git-tree-goftp1` は runtime で read-only です。publish commands は storage
   boundary で失敗します。
@@ -636,7 +636,8 @@ source art / C / asm / Web UI / TUI -> replay の真実を変えられません
 
 `v0.1` は `GOFTP/1` consensus boundary を固定しました。最初の `v1.0/P14`
 package 1.000 release source は、その境界を複数の substrate にまたがる検証の
-出発点にしました。現在の release line は `v1.0.1/package 1.001` です。
+出発点にしました。現在の beta release line は `v1.1.0-beta.1/package 1.100_001`
+です。
 
 ## 資料
 

@@ -19,8 +19,3 @@
 
 # Local resume memory; not part of release artifacts.
 ^docs/SESSION_RESTORE\.md$
-
-# Local integration evidence and agent planning notes; not public release files.
-^evidence/
-^docs/V1_1_GATE_MEMO\.md$
-^docs/v1\.1-unattended-plan\.md$

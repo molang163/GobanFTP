@@ -1,8 +1,9 @@
 Revision history for GobanFTP
 
-v1.1-candidate  2026-05-25 (not released)
-  - Prepare an integration candidate for v1.1 hardening without tagging,
-    publishing, uploading, deploying, or producing a distribution artifact.
+1.100_001  2026-05-25
+  - Release v1.1.0-beta.1 / package 1.100_001 as a public beta
+    hardening and showcase line. This release-prep commit does not tag,
+    publish, upload, deploy, or produce a distribution artifact.
   - Harden WebDAV, DNS record-file, local symlink, FTP exact-basename,
     malformed signed-HMAC JSONL, CLI single-line diagnostic, temporary publish
     name, and invalid-descriptor root boundaries.
@@ -20,7 +21,7 @@ v1.1-candidate  2026-05-25 (not released)
     showcase artifact generation from checked-in fixtures.
   - Document the v1.1 JSON contract, claim audit, compatibility notes,
     diagnostic changes, upgrade notes, and explicit non-goals while keeping the
-    current public release line at v1.0.1/package 1.001.
+    v1.1.0-beta.1 public beta line at package 1.100_001.
 
 1.001  2026-05-20
   - Release v1.0.1 / package 1.001 as a point release over the v1.0 proof

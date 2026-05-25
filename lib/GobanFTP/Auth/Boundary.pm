@@ -59,6 +59,6 @@ __END__
 
 =head1 NAME
 
-GobanFTP::Auth::Boundary - explicit auth scope records for v1.1 candidate docs
+GobanFTP::Auth::Boundary - explicit auth scope records for v1.1.0-beta.1 beta docs
 
 =cut

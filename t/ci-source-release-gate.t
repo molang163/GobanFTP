@@ -40,7 +40,7 @@ subtest 'forbidden command scanner catches executable release operations only' =
 
     for my $line (
         'must not tag, push, upload, deploy',
-        'not P1 source-candidate evidence',
+        'not P1 fixture-local beta evidence',
         'no_tag_push_upload_deploy=1',
         'recommended_checks=prove -lr t/ci-source-release-gate.t',
         q{echo "git push; make dist"},

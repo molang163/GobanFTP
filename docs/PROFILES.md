@@ -337,7 +337,7 @@ Publish tokens are verifier-local preflight evidence for one proposed event
 basename. They are not replay input, not event-set attestations, and not a
 transport credential. The regular publish commands can explicitly opt into a
 default-off preflight gate that verifies such a token after candidate replay
-validation and before the store write. A denied token leaves the candidate
+validation and before the store write. A denied token leaves the beta
 unpublished. This remains a verifier-local fixture gate; it is not production
 writer authorization and does not change unsigned replay.
 
@@ -541,7 +541,7 @@ t/ftp-cli-parity.t
 ```
 
 Optional maintainer-run live FTP provider smoke is outside P1
-source-candidate fixture evidence, is not a default P1 gate, and requires a
+fixture-local beta evidence, is not a default P1 gate, and requires a
 later separate maintainer-run gate.
 
 ## Additional Profiles

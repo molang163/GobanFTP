@@ -35,12 +35,14 @@ for my $case (@release_files) {
 }
 
 subtest 'release-state guardrails are explicit' => sub {
+    _like('Changes', qr/^1[.]100_001  2026-05-25$/m,
+        'Changes keeps the current beta package version and date');
     _like('Changes', qr/^1[.]001  2026-05-20$/m,
-        'Changes keeps the current package version and date');
-    _like('lib/GobanFTP.pm', qr/^our \$VERSION = '1[.]001';$/m,
-        'module declares the current package version');
-    _like('README.md', qr/^Current release: `v1[.]0[.]1\/package 1[.]001`[.]$/m,
-        'README names the current release');
+        'Changes preserves the v1.0.1 historical package entry');
+    _like('lib/GobanFTP.pm', qr/^our \$VERSION = '1[.]100_001';$/m,
+        'module declares the current beta package version');
+    _like('README.md', qr/^Current beta release: `v1[.]1[.]0-beta[.]1\/package 1[.]100_001`[.]$/m,
+        'README names the current beta release');
     _like('README.md',
         qr/static HTML is not hosted Web UI, and\n`--surface terminal` is not the local `play --tui` input surface[.]/,
         'README separates static witness surfaces from hosted Web UI and local TUI input');

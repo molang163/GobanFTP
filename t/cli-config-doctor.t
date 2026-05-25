@@ -10,10 +10,10 @@ use lib "$FindBin::Bin/../lib";
 
 use GobanFTP::CLI;
 
-subtest '--version and help expose P1 commands without claiming a v1.1 release' => sub {
+subtest '--version and help expose P1 commands for the v1.1.0-beta.1 package' => sub {
     my ($version_exit, $version_stdout, $version_stderr) = _run_cli('--version');
     is $version_exit, 0, '--version exits success';
-    is $version_stdout, "gobanftp 1.001\n", '--version reports the package version';
+    is $version_stdout, "gobanftp 1.100_001\n", '--version reports the package version';
     is $version_stderr, '', '--version has no diagnostics';
 
     my ($help_exit, $help_stdout, $help_stderr) = _run_cli('--help');
