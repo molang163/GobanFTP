@@ -1,6 +1,7 @@
 use v5.34;
 use strict;
 use warnings;
+use utf8;
 
 use FindBin;
 use File::Spec;
@@ -8,24 +9,30 @@ use Test::More;
 
 my $repo_root = File::Spec->rel2abs("$FindBin::Bin/..");
 
-my %text = map { $_ => _read_text(File::Spec->catfile($repo_root, split '/', $_)) } qw(
+my @user_entry_files = qw(
     Changes
     README.md
     README.zh-CN.md
     README.ja.md
-    docs/CLI.md
-    docs/DIAGNOSTICS.md
-    docs/ROADMAP.md
-    docs/SHOWCASE.md
-    docs/V1_1_RELEASE_GATE.md
-    docs/V1_1_RELEASE_NOTES.md
-    docs/V1_1_UPDATE_CHECKLIST.md
-    docs/V1_1_AUTH_BOUNDARY.md
-    docs/PROFILES.md
-    lib/GobanFTP/CLI.pm
-    .gitignore
-    MANIFEST
-    MANIFEST.SKIP
+);
+
+my %text = map { $_ => _read_text(File::Spec->catfile($repo_root, split '/', $_)) } (
+    @user_entry_files,
+    qw(
+        docs/CLI.md
+        docs/DIAGNOSTICS.md
+        docs/ROADMAP.md
+        docs/SHOWCASE.md
+        docs/V1_1_RELEASE_GATE.md
+        docs/V1_1_RELEASE_NOTES.md
+        docs/V1_1_UPDATE_CHECKLIST.md
+        docs/V1_1_AUTH_BOUNDARY.md
+        docs/PROFILES.md
+        lib/GobanFTP/CLI.pm
+        .gitignore
+        MANIFEST
+        MANIFEST.SKIP
+    )
 );
 
 subtest 'beta release state stays guarded' => sub {
@@ -143,18 +150,33 @@ subtest 'P2 preview helper claim stays narrow' => sub {
     unlike $text{'docs/SHOWCASE.md'}, qr/not\s+a\s+server/,
         'showcase doc no longer uses the old generated-artifact wording';
 
-    for my $rel (qw(
-        Changes
-        README.md
-        README.zh-CN.md
-        README.ja.md
-    )) {
-        unlike $text{$rel}, qr/\bshowcase\s+preview\b/i,
+    for my $rel (@user_entry_files) {
+        my @hits = _user_entry_preview_detail_hits($rel, $text{$rel});
+        is_deeply \@hits, [],
             "$rel keeps preview-helper details out of user entry docs";
-        unlike $text{$rel}, qr/\bpreview\b[^\n.]{0,120}\b(?:hosted|deploy|release evidence)\b/i,
-            "$rel does not introduce preview hosted/deploy/evidence claims";
     }
 
+};
+
+subtest 'user-entry preview detail scanner covers synthetic cases' => sub {
+    for my $case (
+        [ showcase_preview => 'showcase preview' ],
+        [ preview_ip       => 'Preview helper binds 127.0.0.1' ],
+        [ zh_preview       => '本地预览' ],
+        [ ja_preview       => 'プレビュー ヘルパー' ],
+        [ loopback_helper  => 'loopback-only showcase helper' ],
+    ) {
+        my @hits = _user_entry_preview_detail_hits('synthetic-hit', $case->[1]);
+        ok @hits, "scanner rejects $case->[0]";
+    }
+
+    for my $case (
+        'read-only Git tree',
+        'local-only showcase artifact generation from checked-in fixtures',
+    ) {
+        my @hits = _user_entry_preview_detail_hits('synthetic-pass', $case);
+        is_deeply \@hits, [], "scanner allows: $case";
+    }
 };
 
 subtest 'remaining P2 stretch work stays deferred' => sub {
@@ -292,6 +314,48 @@ sub _claim_rows {
     }
 
     return %rows;
+}
+
+sub _user_entry_preview_detail_hits {
+    my ($source, $body) = @_;
+
+    my @rules = (
+        [ 'showcase preview', qr/\bshowcase\b.*\bpreview\b/is ],
+        [
+            'preview helper/detail',
+            qr/\bpreview\b.*(?:\b(?:helper|loopback|localhost|local-only|read-only|hosted|deploy)\b|127[.]0[.]0[.]1|\brelease\s+evidence\b)/is,
+        ],
+        [ 'Chinese preview wording', qr/预览/ ],
+        [ 'Japanese preview wording', qr/プレビュー/ ],
+        [
+            'loopback preview/showcase detail',
+            qr/(?:(?:\bshowcase\b|\bpreview\b).*(?:\bloopback\b|\blocalhost\b|127[.]0[.]0[.]1)|(?:\bloopback\b|\blocalhost\b|127[.]0[.]0[.]1).*(?:\bshowcase\b|\bpreview\b))/is,
+        ],
+        [ 'local-only/read-only combo', qr/(?:\blocal-only\b.*\bread-only\b|\bread-only\b.*\blocal-only\b)/is ],
+        [ 'helper/showcase local-read combo', qr/(?=.*\b(?:helper|showcase)\b)(?=.*\blocal-only\b)(?=.*\bread-only\b)/is ],
+    );
+
+    my @lines = split /\n/, $body, -1;
+    my @hits;
+    for my $idx (0 .. $#lines) {
+        my @window = ($lines[$idx]);
+        push @window, $lines[$idx + 1] if $idx + 1 <= $#lines;
+        my $window = join "\n", @window;
+
+        for my $rule (@rules) {
+            next if $window !~ $rule->[1];
+
+            my $excerpt = $window;
+            $excerpt =~ s/\s+/ /g;
+            $excerpt =~ s/\A\s+//;
+            $excerpt =~ s/\s+\z//;
+            push @hits, sprintf '%s:%d-%d %s: %s',
+                $source, $idx + 1, $idx + @window, $rule->[0], $excerpt;
+            last;
+        }
+    }
+
+    return @hits;
 }
 
 sub _read_text {
