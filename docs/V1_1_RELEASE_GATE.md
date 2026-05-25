@@ -30,27 +30,107 @@ publication remain separate maintainer actions.
 
 ## Beta Evidence Matrix
 
-The beta source gate uses local, fixture-only commands:
+The beta source gate uses local, fixture-only commands. Every source-gate
+evidence command must run through `gate_env` so live-provider and writer
+environment cannot leak into source evidence:
 
 ```sh
-perl -c oracle/goban.pl
-perl oracle/goban.pl --smoke
-
-perl Makefile.PL
-GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make test
-GOBANFTP_RULES_ENGINE=shadow make test
-prove -lr t
-
-GOBANFTP_REQUIRE_SYMLINK_TESTS=1 prove -l t/store-webdav-mock.t t/store-ftp-mock.t t/store-dns-record.t t/profile-adapter.t t/store-local.t t/create-game.t t/projection-rebuild.t t/cli-auth-hmac.t t/witness-api.t t/store-config.t t/cli-auth-publish-token.t
-prove -l t/store-webdav-mock.t t/store-dns-record.t t/store-ftp-mock.t t/cli-auth-hmac.t t/cli-auth-publish-token.t t/store-config.t
-prove -l t/v1-conformance-boundary.t t/v1-cross-substrate.t t/v1-cli-compare.t t/v1-golden-vectors.t t/v1-attack-fixtures.t t/v1-profile-attack-fixtures.t
-prove -l t/json-helper.t t/cli-config-doctor.t t/publish-result-json.t t/auth-boundary.t t/showcase-v1_1.t t/showcase-preview.t
-prove -l t/v1-claim-audit.t t/ci-source-release-gate.t t/readme-localization.t t/dist-manifest-hygiene.t
+gate_env() {
+  env \
+    -u GOBANFTP_FTP_TEST \
+    -u GOBANFTP_FTP_HOST \
+    -u GOBANFTP_FTP_USER \
+    -u GOBANFTP_FTP_PASSWORD \
+    -u GOBANFTP_FTP_ROOT \
+    -u GOBANFTP_WEBDAV_URL \
+    -u GOBANFTP_WEBDAV_USER \
+    -u GOBANFTP_WEBDAV_PASSWORD \
+    -u GOBANFTP_WEBDAV_TOKEN \
+    -u GOBANFTP_DNS_RECORD_FILE \
+    -u GOBANFTP_GIT_REPO \
+    -u GOBANFTP_STORE \
+    "$@"
+}
 ```
 
-The beta source gate intentionally omits release packaging commands. Distribution
-creation and release tagging are follow-up maintainer actions, not beta source-gate
-actions.
+The forbidden source/archive residue set is: `Makefile`, `Makefile.old`,
+`META.json`, `META.yml`, `MYMETA.*`, `pm_to_blib`, `blib/`, `_Inline/`,
+`docs/V1_1_UPDATE_CHECKLIST.md`, `docs/references/`, `docs/SESSION_RESTORE.md`,
+nested `GobanFTP-*` distributions, and non-fixture `.bak`, `.tmp`, and `.part`
+scratch files.
+
+### Uncommitted Worktree Candidate
+
+Use this phase while the reviewed candidate still includes uncommitted worktree
+changes. Before those changes are committed, `git archive HEAD` describes the
+previous committed tree, not the current candidate, so it must not be used as
+current-candidate evidence.
+
+```sh
+gate_env perl -c oracle/goban.pl
+gate_env perl oracle/goban.pl --smoke
+
+gate_env prove -lr t
+gate_env env GOBANFTP_REQUIRE_SYMLINK_TESTS=1 prove -l t/store-webdav-mock.t t/store-ftp-mock.t t/store-dns-record.t t/profile-adapter.t t/store-local.t t/create-game.t t/projection-rebuild.t t/cli-auth-hmac.t t/witness-api.t t/store-config.t t/cli-auth-publish-token.t
+gate_env prove -l t/store-webdav-mock.t t/store-dns-record.t t/store-ftp-mock.t t/cli-auth-hmac.t t/cli-auth-publish-token.t t/store-config.t
+gate_env prove -l t/v1-conformance-boundary.t t/v1-cross-substrate.t t/v1-cli-compare.t t/v1-golden-vectors.t t/v1-attack-fixtures.t t/v1-profile-attack-fixtures.t
+gate_env prove -l t/json-helper.t t/cli-config-doctor.t t/publish-result-json.t t/auth-boundary.t t/showcase-v1_1.t t/showcase-preview.t
+gate_env prove -l t/v1-claim-audit.t t/ci-source-release-gate.t t/readme-localization.t t/dist-manifest-hygiene.t
+
+gate_env git diff --check
+gate_env perl -MExtUtils::Manifest=fullcheck -e 'my ($missing, $extra) = fullcheck(); exit(@$missing || @$extra ? 1 : 0)'
+gate_env perl -MExtUtils::Manifest=maniread -E 'say for sort keys %{ maniread() }' | gate_env perl -ne 'chomp; next if m{^t/fixtures/}; die "forbidden source entry $_\n" if m{^(?:Makefile(?:[.]old)?$|META[.](?:json|yml)$|MYMETA[.](?:json|yml)$|pm_to_blib$|(?:blib|_Inline)(?:/|$)|docs/references(?:/|$)|docs/V1_1_UPDATE_CHECKLIST[.]md$|docs/SESSION_RESTORE[.]md$|GobanFTP-[0-9][^/]*/|GobanFTP-[0-9][^/]*[.]tar[.]gz$)} || m{[.](?:bak|tmp|part)$}'
+```
+
+A disposable worktree copy is the MakeMaker/shadow evidence path for an
+uncommitted candidate. Run it only in a one-time copy made from the reviewed
+worktree:
+
+```sh
+tmpdir=$(mktemp -d)
+gate_env perl -MExtUtils::Manifest=maniread -E 'say for sort keys %{ maniread() }' | gate_env tar -T - -cf - | gate_env tar -x -C "$tmpdir" -f -
+(
+  cd "$tmpdir"
+  gate_env perl Makefile.PL
+  gate_env env GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make test
+  gate_env env -u GOBANFTP_RULES_DISABLE_C GOBANFTP_RULES_ENGINE=shadow make test
+)
+rm -rf "$tmpdir"
+```
+
+### Committed HEAD Candidate
+
+Use this phase only after all reviewed changes have been committed and
+`git status --short` is clean. At that point `git archive HEAD` is valid
+current-candidate evidence.
+
+```sh
+gate_env sh -c 'test -z "$(git status --short)"'
+gate_env git diff --check
+gate_env perl -MExtUtils::Manifest=fullcheck -e 'my ($missing, $extra) = fullcheck(); exit(@$missing || @$extra ? 1 : 0)'
+gate_env git archive --format=tar HEAD | gate_env tar -tf - | gate_env perl -ne 'chomp; next if m{^t/fixtures/}; die "forbidden archive entry $_\n" if m{^(?:Makefile(?:[.]old)?$|META[.](?:json|yml)$|MYMETA[.](?:json|yml)$|pm_to_blib$|(?:blib|_Inline)(?:/|$)|docs/references(?:/|$)|docs/V1_1_UPDATE_CHECKLIST[.]md$|docs/SESSION_RESTORE[.]md$|GobanFTP-[0-9][^/]*/|GobanFTP-[0-9][^/]*[.]tar[.]gz$)} || m{[.](?:bak|tmp|part)$}'
+
+tmpdir=$(mktemp -d)
+gate_env git archive --format=tar HEAD | gate_env tar -x -C "$tmpdir"
+(
+  cd "$tmpdir"
+  gate_env perl Makefile.PL
+  gate_env env GOBANFTP_RULES_DISABLE_C=1 GOBANFTP_RULES_ENGINE=perl make test
+  gate_env env -u GOBANFTP_RULES_DISABLE_C GOBANFTP_RULES_ENGINE=shadow make test
+)
+rm -rf "$tmpdir"
+```
+
+Failure conditions: any non-zero evidence command in the applicable candidate
+phase fails the gate; any `ExtUtils::Manifest::fullcheck` missing or extra file
+fails the gate; any forbidden worktree source entry or committed archive entry
+fails the gate; any enabled live-provider or writer environment in a source-gate
+command fails the gate; and any tag, push, upload, deploy, distribution build,
+or real provider write action fails the gate.
+
+The beta source gate intentionally omits release packaging commands.
+Distribution creation and release tagging are follow-up maintainer actions, not
+beta source-gate actions.
 
 ## JSON Contract
 

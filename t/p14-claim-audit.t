@@ -66,8 +66,17 @@ subtest 'release-state guardrails are explicit' => sub {
         qr/^### Completed\n.*^### Deferred\n.*^### Next$/ms,
         'roadmap current status is split into Completed, Deferred, and Next');
     _like('docs/ROADMAP.md',
-        qr/Git publish, Git remote fetch, live FTP auth, live FTP integrity,\s+production\s+FTP deployment safety, live DNS, AXFR, DNSSEC trust, provider APIs,\s+dynamic\s+update, DNS\s+record publishing, hosted Web UI, production key lifecycle\s+completion, publish\s+auth completion,/,
-        'roadmap keeps deferred capabilities outside the final v1.0 claim');
+        qr/The current `v1[.]1[.]0-beta[.]1\/package 1[.]100_001` line is a hardening and showcase\s+beta over the unchanged `GOFTP\/1` boundary[.]/,
+        'roadmap names the current v1.1 beta line');
+    _like('docs/ROADMAP.md',
+        qr/^Beta repair scope: these changes are reviewed as beta source-gate repairs with\s+fixture-local and mock-provider evidence[.]/m,
+        'roadmap records the beta repair scope');
+    _like('docs/ROADMAP.md',
+        qr/^Beta evidence guardrails: keep evidence local, reproducible, and source-gate\s+scoped in `docs\/V1_1_RELEASE_GATE[.]md`;/m,
+        'roadmap records the beta evidence guardrails');
+    _like('docs/ROADMAP.md',
+        qr/Git publish, Git remote fetch, live FTP auth, live FTP integrity,\s+production\s+FTP deployment safety, live DNS, AXFR, DNSSEC trust, provider APIs,\s+dynamic\s+update, DNS\s+record publishing, hosted Web UI, production key lifecycle\s+completion, publish\s+auth completion, complete JSON output for every command,\s+complete future attack coverage, provider smoke, distribution packaging, tag,\s+upload, and deploy remain outside the v1[.]1[.]0-beta[.]1\/package 1[.]100_001 beta\s+claim[.]/,
+        'roadmap keeps deferred capabilities outside the current beta claim');
 };
 
 subtest 'final tarball hash is not embedded in source release docs' => sub {

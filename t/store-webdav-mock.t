@@ -161,6 +161,113 @@ subtest 'mkcol publish mode creates directory-shaped events without upload' => s
     is_deeply \@write_ops, [], 'MKCOL mode does not upload or move';
 };
 
+subtest 'mkcol publish mode confirms ambiguous target failures through PROPFIND' => sub {
+    for my $case (
+        [ 500, 'Internal Server Error' ],
+        [ 409, 'Conflict' ],
+        [ 405, 'Method Not Allowed' ],
+    ) {
+        my ($status, $reason) = @$case;
+
+        subtest "target MKCOL $status becomes visible" => sub {
+            my $target_path = "goftp/$game/events/$move_b";
+            my $http = MockWebDAV->new(
+                root => 'goftp',
+                mkcol_hook => sub {
+                    my ($self, $path) = @_;
+                    return undef if $path ne $target_path;
+                    $self->schedule_create_dir($path, after_propfinds => 2);
+                    return response($status, $reason);
+                },
+            );
+            my $store = GobanFTP::Store::WebDAV->new(
+                url => $root_url,
+                client => $http,
+                publish_mode => 'mkcol',
+                publish_confirm_attempts => 3,
+            );
+
+            ok $store->publish_event_name($game, $move_b),
+                "MKCOL $status is success once PROPFIND sees the event";
+            is $http->entry_type($target_path), 'dir',
+                "MKCOL $status publishes a directory-shaped event";
+
+            my @calls = $http->calls;
+            my @mkcol_urls = map { $_->[1] } grep { $_->[0] eq 'MKCOL' } @calls;
+            my $events_at = first_index(\@mkcol_urls, "$root_url/$game/events/");
+            my $target_at = first_index(\@mkcol_urls, "$root_url/$game/events/$move_b/");
+            ok defined($events_at), "MKCOL $status ensures the events parent first";
+            ok defined($target_at), "MKCOL $status directly attempts the event collection";
+            ok $events_at < $target_at, "MKCOL $status creates parent before target";
+            is scalar(grep { $_->[0] eq 'MKCOL' && $_->[1] eq "$root_url/$game/events/$move_b/" } @calls), 1,
+                "MKCOL $status does not retry the target after confirmation";
+            is scalar(grep { $_->[0] eq 'PROPFIND' && $_->[1] eq "$root_url/$game/events/" } @calls), 2,
+                "MKCOL $status uses bounded PROPFIND confirmation until visible";
+            is_deeply [ grep { $_->[0] =~ /\A(?:PUT|MOVE)\z/ } @calls ],
+                [],
+                "MKCOL $status does not PUT or MOVE";
+        };
+    }
+};
+
+subtest 'mkcol publish mode reports target failure after bounded invisible confirm' => sub {
+    my $target_path = "goftp/$game/events/$move_b";
+    my $http = MockWebDAV->new(
+        root => 'goftp',
+        mkcol_hook => sub {
+            my ($self, $path) = @_;
+            return undef if $path ne $target_path;
+            return response(500, 'Internal Server Error');
+        },
+    );
+    my $store = GobanFTP::Store::WebDAV->new(
+        url => $root_url,
+        client => $http,
+        publish_mode => 'mkcol',
+        publish_confirm_attempts => 2,
+    );
+
+    like exception(sub { $store->publish_event_name($game, $move_b) }),
+        qr/mkcol \Q$game\/events\/$move_b\E failed: HTTP 500 Internal Server Error/,
+        'permanent MKCOL target failure reports the target HTTP status after confirm is exhausted';
+    ok !$http->entry_type($target_path), 'permanent MKCOL failure leaves no visible event';
+
+    my @calls = $http->calls;
+    is scalar(grep { $_->[0] eq 'MKCOL' && $_->[1] eq "$root_url/$game/events/$move_b/" } @calls), 1,
+        'permanent MKCOL failure attempts the target once';
+    is scalar(grep { $_->[0] eq 'PROPFIND' && $_->[1] eq "$root_url/$game/events/" } @calls), 2,
+        'permanent MKCOL failure uses the bounded confirm count';
+    is_deeply [ grep { $_->[0] =~ /\A(?:PUT|MOVE)\z/ } @calls ],
+        [],
+        'permanent MKCOL failure does not PUT or MOVE';
+};
+
+subtest 'mkcol publish mode requires fresh PROPFIND visibility after MKCOL success' => sub {
+    my $http = MockWebDAV->new(
+        root => 'goftp',
+        propfind_content_hook => sub {
+            my ($self, $path) = @_;
+            return undef if $path ne "goftp/$game/events";
+            return '<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:">'
+                . '<D:response><D:href>/goftp/' . $game . '/events</D:href>'
+                . '<D:propstat><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>'
+                . '</D:multistatus>';
+        },
+    );
+    my $store = GobanFTP::Store::WebDAV->new(
+        url => $root_url,
+        client => $http,
+        publish_mode => 'mkcol',
+        publish_confirm_attempts => 1,
+    );
+
+    like exception(sub { $store->publish_event_name($game, $move_b) }),
+        qr/mkcol \Q$game\/events\/$move_b\E failed/,
+        'MKCOL success is not accepted until a fresh PROPFIND sees the event';
+    is $http->entry_type("goftp/$game/events/$move_b"), 'dir',
+        'mock server did create the MKCOL event collection';
+};
+
 subtest 'list_names handles empty collections without treating missing paths as empty' => sub {
     my $http = MockWebDAV->new(root => 'goftp');
     my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
@@ -255,6 +362,28 @@ subtest 'PROPFIND propstat-only responses keep compatibility without accepting f
         'propstat-only 4xx does not confirm an href';
 };
 
+subtest 'PROPFIND status matching rejects embedded direct and propstat-only 2xx' => sub {
+    my $http = MockWebDAV->new(root => 'goftp');
+    my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
+
+    ok $store->mkdir("$game/events"), 'created events collection';
+    $http->add_response("goftp/$game/events", dav_response(
+        href => "/goftp/$game/events/$move_b",
+        direct_status => 'not-a-status HTTP/1.1 200 OK',
+    ));
+    $http->add_response("goftp/$game/events", dav_response(
+        href => "/goftp/$game/events/$move_w",
+        propstat_statuses => ["HTTP/1.1 404 Not Found\nHTTP/1.1 200 OK"],
+    ));
+
+    is_deeply [ $store->list_names("$game/events") ], [],
+        'embedded 2xx text cannot make direct or propstat-only responses successful';
+    ok !$store->exists_name("$game/events", $move_b),
+        'embedded direct 2xx does not confirm an href';
+    ok !$store->exists_name("$game/events", $move_w),
+        'embedded propstat-only 2xx does not confirm an href';
+};
+
 subtest 'PROPFIND scanner accepts only root multistatus direct responses' => sub {
     my $http = MockWebDAV->new(root => 'goftp');
     my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
@@ -321,10 +450,18 @@ subtest 'PROPFIND malformed multistatus XML fails closed' => sub {
             '<D:multistatus xmlns:D="DAV:"></D:multistatus><' ],
         [ 'double root',
             '<D:multistatus xmlns:D="DAV:"></D:multistatus><D:multistatus xmlns:D="DAV:"/>' ],
+        [ 'space before start tag name',
+            '< D:multistatus xmlns:D="DAV:"></D:multistatus>' ],
+        [ 'space before end tag name',
+            '<D:multistatus xmlns:D="DAV:"></ D:multistatus>' ],
         [ 'mismatched close',
             '<D:multistatus xmlns:D="DAV:"><D:response></D:href></D:multistatus>' ],
         [ 'non-multistatus root',
             '<D:notmultistatus xmlns:D="DAV:"></D:notmultistatus>' ],
+        [ 'CDATA before root',
+            '<![CDATA[   ]]><D:multistatus xmlns:D="DAV:"></D:multistatus>' ],
+        [ 'CDATA after root',
+            '<D:multistatus xmlns:D="DAV:"></D:multistatus><![CDATA[   ]]>' ],
         [ 'unclosed comment',
             '<D:multistatus xmlns:D="DAV:"><!-- ' ],
         [ 'unclosed CDATA',
@@ -373,6 +510,10 @@ subtest 'PROPFIND malformed multistatus XML fails closed' => sub {
             '<D:multistatus xmlns:D="DAV:"><!-- bad ---></D:multistatus>' ],
         [ 'XML declaration inside root',
             '<D:multistatus xmlns:D="DAV:"><?xml version="1.0"?>' . $success_response . '</D:multistatus>' ],
+        [ 'XML declaration missing version',
+            '<?xml encoding="utf-8"?><D:multistatus xmlns:D="DAV:"></D:multistatus>' ],
+        [ 'XML declaration with unknown pseudo-attribute',
+            '<?xml version="1.0" bogus="x"?><D:multistatus xmlns:D="DAV:"></D:multistatus>' ],
         [ 'CDATA close marker in ordinary text',
             '<D:multistatus xmlns:D="DAV:"><D:response><D:href>/goftp/'
                 . $game . '/events/' . $move_b . '</D:href>'
@@ -694,6 +835,7 @@ sub new {
         calls   => [],
         put_sizes => [],
         move_hook => $args{move_hook},
+        mkcol_hook => $args{mkcol_hook},
         propfind_content_hook => $args{propfind_content_hook},
         scheduled_creates => [],
         extra_hrefs => {},
@@ -733,6 +875,19 @@ sub schedule_create_file {
         path      => _canon($path),
         parent    => _parent($path),
         remaining => $args{after_propfinds} // 1,
+        type      => 'file',
+    };
+    return 1;
+}
+
+sub schedule_create_dir {
+    my ($self, $path, %args) = @_;
+
+    push @{ $self->{scheduled_creates} }, {
+        path      => _canon($path),
+        parent    => _parent($path),
+        remaining => $args{after_propfinds} // 1,
+        type      => 'dir',
     };
     return 1;
 }
@@ -815,6 +970,11 @@ sub _propfind {
 sub _mkcol {
     my ($self, $path) = @_;
 
+    if (my $hook = $self->{mkcol_hook}) {
+        my $response = $hook->($self, $path);
+        return $response if defined $response;
+    }
+
     return main::response(405, 'Method Not Allowed') if ($self->{entries}{$path} // '') eq 'dir';
     return main::response(409, 'Conflict') if ($self->{entries}{ _parent($path) } // '') ne 'dir';
 
@@ -858,7 +1018,12 @@ sub _apply_scheduled_creates {
         if ($item->{parent} eq $listed_path) {
             $item->{remaining}--;
             if ($item->{remaining} <= 0) {
-                $self->create_file($item->{path});
+                if (($item->{type} // 'file') eq 'dir') {
+                    $self->_mkdir_internal($item->{path});
+                }
+                else {
+                    $self->create_file($item->{path});
+                }
                 next;
             }
         }

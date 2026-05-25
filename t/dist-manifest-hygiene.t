@@ -15,8 +15,11 @@ my @skip_patterns = _manifest_skip_patterns($skip);
 
 my @forbidden_manifest_entries = (
     [qr{\Adocs/SESSION_RESTORE[.]md\z},        'local resume notes'],
+    [qr{\Adocs/V1_1_UPDATE_CHECKLIST[.]md\z},  'retired v1.1 update checklist'],
     [qr{\Adocs/references(?:/|\z)},            'reference-only docs'],
     [qr{\A(?:blib|_Inline)(?:/|\z)},           'local build tree'],
+    [qr{\AMakefile(?:[.]old)?\z},               'generated Makefile residue'],
+    [qr{\AMETA[.](?:json|yml)\z},               'source META residue'],
     [qr{\AMYMETA[.](?:json|yml)\z},            'local MYMETA file'],
     [qr{\Apm_to_blib\z},                       'MakeMaker copy stamp'],
     [qr{\AGobanFTP-[0-9][^/]*[.]tar[.]gz\z},  'nested distribution tarball'],
@@ -46,12 +49,15 @@ for my $entry (@required_manifest_entries) {
 my @required_skip_rules = (
     ['_Inline tree',              '^_Inline/'],
     ['blib tree',                 '^blib/'],
+    ['generated Makefile',        '^Makefile$'],
+    ['generated Makefile.old',    '^Makefile\.old$'],
     ['source META residue',       '^META\.(?:json|yml)$'],
     ['MYMETA files',              '^MYMETA\.(?:json|yml)$'],
     ['pm_to_blib',                '^pm_to_blib$'],
     ['distribution tarballs',     '^GobanFTP-[0-9][^/]*\.tar\.gz$'],
     ['distribution directories',  '^GobanFTP-[0-9][^/]*/'],
     ['reference-only docs',       '^docs/references(?:/|$)'],
+    ['retired v1.1 checklist',    '^docs/V1_1_UPDATE_CHECKLIST\.md$'],
     ['non-fixture .part scratch', '^(?!t/fixtures/).*[.]part$'],
     ['non-fixture .tmp scratch',  '^(?!t/fixtures/).*[.]tmp$'],
     ['non-fixture .bak scratch',  '^(?!t/fixtures/).*[.]bak$'],
@@ -64,16 +70,46 @@ for my $case (@required_skip_rules) {
     ok index($skip, $rule) >= 0, "MANIFEST.SKIP keeps $label out";
 }
 
+for my $path (qw(
+    Makefile
+    Makefile.old
+    META.json
+    META.yml
+    MYMETA.json
+    MYMETA.yml
+    pm_to_blib
+)) {
+    ok _path_is_skipped($path, \@skip_patterns),
+        "MANIFEST.SKIP excludes generated residue $path";
+}
+
+for my $path (qw(
+    Makefile
+    Makefile.old
+    META.json
+    META.yml
+    MYMETA.json
+    MYMETA.yml
+    pm_to_blib
+)) {
+    like $gitignore, qr/^\Q$path\E$/m,
+        ".gitignore excludes generated residue $path";
+}
+
 ok _path_is_skipped('docs/references/README.md', \@skip_patterns),
     'MANIFEST.SKIP excludes docs/references';
 ok _path_is_skipped('docs/references/nested/note.md', \@skip_patterns),
     'MANIFEST.SKIP excludes the full docs/references tree';
+ok _path_is_skipped('docs/V1_1_UPDATE_CHECKLIST.md', \@skip_patterns),
+    'MANIFEST.SKIP excludes the retired v1.1 checklist';
 like $gitignore, qr/^docs\/references\/$/m,
     '.gitignore excludes local docs/references material';
+like $gitignore, qr/^docs\/V1_1_UPDATE_CHECKLIST[.]md$/m,
+    '.gitignore excludes the retired v1.1 checklist';
 ok !-e File::Spec->catfile($repo_root, qw(docs references README.md)),
     'public source tree omits README reference notes';
-ok !-e File::Spec->catfile($repo_root, qw(docs references paul-hibbitts README.md)),
-    'public source tree omits personal README reference notes';
+ok !-d File::Spec->catdir($repo_root, qw(docs references)),
+    'public source tree omits reference-only docs tree';
 ok _path_is_skipped('scratch/output.part', \@skip_patterns),
     'MANIFEST.SKIP excludes non-fixture .part scratch';
 ok _path_is_skipped('scratch/output.tmp', \@skip_patterns),

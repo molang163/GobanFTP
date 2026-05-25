@@ -292,6 +292,92 @@ subtest 'WebDAV publish-move confirms a lost MOVE response through fresh PROPFIN
     _assert_no_forbidden_webdav_reads('delayed publish-move confirm stays listing-first', \@publish_calls);
 };
 
+subtest 'WebDAV publish-move MKCOL mode matches CLI parity without upload' => sub {
+    WebDAVCliParityHTTP->reset;
+
+    local %ENV = %ENV;
+    _webdav_env(publish_mode => 'mkcol');
+
+    my ($create_exit, $create_stdout, $create_stderr) = _run_cli('create-game', $GAME);
+    is $create_exit, 0, 'MKCOL setup create-game succeeds';
+    like $create_stdout, qr/^store=webdav$/m, 'MKCOL setup selects WebDAV store';
+    is $create_stderr, '', 'MKCOL setup has no diagnostics';
+
+    my ($event);
+    my @publish_calls = _assert_command_uses_webdav_listing(
+        'publish-move MKCOL mode',
+        sub {
+            my ($exit, $stdout, $stderr) = _run_cli('publish-move', '--nonce', 'mkcol', $GAME, 'aa');
+            is $exit, 0, 'publish-move MKCOL mode exits success';
+            like $stdout, qr/^gobanftp\.publish-move=ok$/m, 'publish-move MKCOL mode reports ok';
+            like $stdout, qr/^events=1$/m, 'publish-move MKCOL mode reloads the WebDAV listing';
+            like $stdout, qr/^event_set_count=1$/m, 'publish-move MKCOL mode accepts one event';
+            like $stdout, qr/^canonical_moves=1$/m, 'publish-move MKCOL mode renders one canonical move';
+            is $stderr, '', 'publish-move MKCOL mode has no diagnostics';
+            unlike $stdout . $stderr, qr/\Q$TOKEN\E/, 'publish-move MKCOL mode does not print the WebDAV token';
+
+            ($event) = $stdout =~ /^event=(m1\..+)$/m;
+            like $event // '',
+                qr/\Am1\.p000001\.b\.play-aa\.pa-genesis\.by-alice\.n-mkcol\.h-[0-9a-v]{16}\z/,
+                'publish-move MKCOL mode reports the WebDAV event basename';
+        },
+    );
+
+    _assert_mkcol_publish('publish-move MKCOL mode publishes through WebDAV MKCOL mode', \@publish_calls, $event);
+    ok WebDAVCliParityHTTP->has_event($ROOT_PATH, $GAME, $event),
+        'publish-move MKCOL mode published into WebDAV events/';
+    is WebDAVCliParityHTTP->entry_type("$ROOT_PATH/$GAME/events/$event"), 'dir',
+        'publish-move MKCOL mode creates a directory-shaped event';
+    _assert_no_forbidden_webdav_reads('publish-move MKCOL mode stays listing-first', \@publish_calls);
+};
+
+subtest 'WebDAV publish-move MKCOL mode confirms ambiguous target failure' => sub {
+    WebDAVCliParityHTTP->reset;
+
+    local %ENV = %ENV;
+    _webdav_env(publish_mode => 'mkcol');
+
+    my ($create_exit, $create_stdout, $create_stderr) = _run_cli('create-game', $GAME);
+    is $create_exit, 0, 'MKCOL delayed setup create-game succeeds';
+    like $create_stdout, qr/^store=webdav$/m, 'MKCOL delayed setup selects WebDAV store';
+    is $create_stderr, '', 'MKCOL delayed setup has no diagnostics';
+
+    WebDAVCliParityHTTP->delay_next_mkcol_confirm(
+        status => 500,
+        reason => 'MKCOL response lost',
+        after_propfinds => 2,
+    );
+
+    my ($event);
+    my @publish_calls = _assert_command_uses_webdav_listing(
+        'publish-move MKCOL ambiguous delayed confirm',
+        sub {
+            my ($exit, $stdout, $stderr) = _run_cli('publish-move', '--nonce', 'mkcoldelay', $GAME, 'aa');
+            is $exit, 0, 'publish-move MKCOL succeeds after delayed WebDAV visibility';
+            like $stdout, qr/^gobanftp\.publish-move=ok$/m, 'publish-move MKCOL delayed confirm reports ok';
+            like $stdout, qr/^events=1$/m, 'publish-move MKCOL delayed confirm reloads the WebDAV listing';
+            like $stdout, qr/^event_set_count=1$/m, 'publish-move MKCOL delayed confirm accepts one event';
+            like $stdout, qr/^canonical_moves=1$/m, 'publish-move MKCOL delayed confirm renders one canonical move';
+            is $stderr, '', 'publish-move MKCOL delayed confirm has no diagnostics';
+            unlike $stdout . $stderr, qr/\Q$TOKEN\E/, 'publish-move MKCOL delayed confirm does not print the WebDAV token';
+
+            ($event) = $stdout =~ /^event=(m1\..+)$/m;
+            like $event // '',
+                qr/\Am1\.p000001\.b\.play-aa\.pa-genesis\.by-alice\.n-mkcoldelay\.h-[0-9a-v]{16}\z/,
+                'publish-move MKCOL delayed confirm reports the WebDAV event basename';
+        },
+    );
+
+    _assert_mkcol_publish('publish-move MKCOL delayed confirm uses WebDAV MKCOL mode', \@publish_calls, $event);
+    is scalar(grep { $_->[0] eq 'MKCOL' && $_->[1] eq "$ROOT_URL/$GAME/events/$event/" } @publish_calls), 1,
+        'ambiguous MKCOL target failure is not retried after fresh PROPFIND finds the target';
+    ok WebDAVCliParityHTTP->has_event($ROOT_PATH, $GAME, $event),
+        'MKCOL delayed final event is visible through WebDAV listing';
+    is WebDAVCliParityHTTP->entry_type("$ROOT_PATH/$GAME/events/$event"), 'dir',
+        'MKCOL delayed confirm creates a directory-shaped event';
+    _assert_no_forbidden_webdav_reads('publish-move MKCOL delayed confirm stays listing-first', \@publish_calls);
+};
+
 subtest 'WebDAV publish-move reports hard MOVE failures without leaking auth' => sub {
     WebDAVCliParityHTTP->reset;
 
@@ -404,11 +490,15 @@ subtest 'WebDAV denied publish preflight does not PUT or MOVE' => sub {
 done_testing;
 
 sub _webdav_env {
+    my (%args) = @_;
+
     delete @ENV{ grep { /\AGOBANFTP_WEBDAV_/ } keys %ENV };
     $ENV{GOBANFTP_STORE} = 'webdav';
     $ENV{GOBANFTP_WEBDAV_URL} = $ROOT_URL;
     $ENV{GOBANFTP_WEBDAV_CLASS} = 'WebDAVCliParityHTTP';
     $ENV{GOBANFTP_WEBDAV_TOKEN} = $TOKEN;
+    $ENV{GOBANFTP_WEBDAV_PUBLISH_MODE} = $args{publish_mode}
+        if defined $args{publish_mode};
     return;
 }
 
@@ -452,6 +542,18 @@ sub _assert_move_publish {
     is_deeply [ map { length($_->[2]{content} // '') } @puts ], [ (0) x @puts ],
         "$label uploads zero-byte temporary resources";
     ok((grep { $_->[0] eq 'MOVE' } @$calls), "$label moves the temporary event into events/");
+}
+
+sub _assert_mkcol_publish {
+    my ($label, $calls, $event) = @_;
+
+    my $target_url = "$ROOT_URL/$GAME/events/" . ($event // '') . '/';
+    my @mkcols = grep { $_->[0] eq 'MKCOL' } @$calls;
+    ok(@mkcols, "$label creates WebDAV collections");
+    ok((grep { $_->[1] eq $target_url } @mkcols), "$label creates the event collection");
+    is_deeply [ grep { $_->[0] =~ /\A(?:PUT|MOVE)\z/ } @$calls ],
+        [],
+        "$label does not upload or move";
 }
 
 sub _run_cli {
@@ -557,6 +659,13 @@ sub has_path {
     return exists $STATE->{entries}{ _canon($path) } ? 1 : 0;
 }
 
+sub entry_type {
+    my ($class, $path) = @_;
+
+    $STATE //= _fresh_state();
+    return $STATE->{entries}{ _canon($path) };
+}
+
 sub create_file {
     my ($class, $path) = @_;
 
@@ -572,6 +681,21 @@ sub delay_next_move_confirm {
         my ($self, $source, $target) = @_;
         $self->schedule_create_file($target, after_propfinds => $args{after_propfinds} // 1);
         return _response(500, 'MOVE response lost');
+    };
+    return;
+}
+
+sub delay_next_mkcol_confirm {
+    my ($class, %args) = @_;
+
+    $STATE //= _fresh_state();
+    $STATE->{mkcol_hook} = sub {
+        my ($self, $path) = @_;
+        return undef if $path !~ m{\A\Q$ROOT_PATH/$GAME/events\E/[^/]+\z};
+
+        $self->schedule_create_dir($path, after_propfinds => $args{after_propfinds} // 1);
+        $self->{mkcol_hook} = undef;
+        return _response($args{status} // 500, $args{reason} // 'MKCOL response lost');
     };
     return;
 }
@@ -642,6 +766,11 @@ sub _propfind {
 sub _mkcol {
     my ($self, $path) = @_;
 
+    if (my $hook = $self->{mkcol_hook}) {
+        my $response = $hook->($self, $path);
+        return $response if defined $response;
+    }
+
     return _response(405, 'Method Not Allowed') if ($self->{entries}{$path} // '') eq 'dir';
     return _response(409, 'Conflict') if ($self->{entries}{ _parent($path) } // '') ne 'dir';
 
@@ -708,6 +837,19 @@ sub schedule_create_file {
         path      => _canon($path),
         parent    => _parent($path),
         remaining => $args{after_propfinds} // 1,
+        type      => 'file',
+    };
+    return 1;
+}
+
+sub schedule_create_dir {
+    my ($self, $path, %args) = @_;
+
+    push @{ $self->{scheduled_creates} }, {
+        path      => _canon($path),
+        parent    => _parent($path),
+        remaining => $args{after_propfinds} // 1,
+        type      => 'dir',
     };
     return 1;
 }
@@ -720,7 +862,12 @@ sub _apply_scheduled_creates {
         if ($item->{parent} eq $listed_path) {
             $item->{remaining}--;
             if ($item->{remaining} <= 0) {
-                $self->_create_file($item->{path});
+                if (($item->{type} // 'file') eq 'dir') {
+                    $self->_mkdir_internal($item->{path});
+                }
+                else {
+                    $self->_create_file($item->{path});
+                }
                 next;
             }
         }

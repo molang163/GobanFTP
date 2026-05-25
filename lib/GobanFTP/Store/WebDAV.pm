@@ -138,7 +138,15 @@ sub publish_event_name {
     my $events_path = join '/', @game_components, 'events';
 
     if ($self->{publish_mode} eq 'mkcol') {
-        return $self->mkdir(join '/', @game_components, 'events', $event_component);
+        my @target_path = (@game_components, 'events', $event_component);
+        my $target_label = join '/', @target_path;
+
+        $self->mkdir($events_path);
+        my $mkcol = $self->_request('MKCOL', $self->_collection_url(@target_path));
+        my ($confirmed, $confirm_error)
+            = $self->_confirm_event_visible($events_path, $event_component);
+        return 1 if $confirmed;
+        $self->_croak_mkcol_failed($target_label, $mkcol, $confirm_error);
     }
 
     $self->mkdir($events_path);
@@ -288,6 +296,26 @@ sub _croak_confirm_failed {
         . _error_suffix($confirm_error);
 }
 
+sub _croak_mkcol_failed {
+    my ($self, $target_label, $mkcol_response, $confirm_error) = @_;
+
+    my @details;
+    if (ref($mkcol_response) eq 'HASH' && !$self->_response_success($mkcol_response)) {
+        my $status = _status_suffix($mkcol_response->{status} // 0, $mkcol_response->{reason} // '');
+        $status =~ s/\A: //;
+        push @details, $status if $status ne '';
+    }
+
+    my $confirm = _error_suffix($confirm_error);
+    if ($confirm ne '') {
+        $confirm =~ s/\A: //;
+        push @details, "confirm $confirm";
+    }
+
+    my $suffix = @details ? ': ' . join('; ', @details) : '';
+    croak "mkcol $target_label failed$suffix";
+}
+
 sub _croak_move_failed {
     my ($self, $tmp_label, $target_label, $move_response, $confirm_error) = @_;
 
@@ -333,7 +361,8 @@ sub _hrefs_from_multistatus {
 
     while (my $token = _next_xml_token(\$content, \$position)) {
         if ($token->{type} eq 'text') {
-            _croak_malformed_xml() if !@stack && $token->{text} !~ /\A\s*\z/;
+            _croak_malformed_xml()
+                if !@stack && ($token->{cdata} || $token->{text} !~ /\A\s*\z/);
             $capture->{text} .= $token->{text}
                 if $capture && @stack == $capture->{depth};
             next;
@@ -343,6 +372,7 @@ sub _hrefs_from_multistatus {
             if (lc($token->{target}) eq 'xml') {
                 _croak_malformed_xml()
                     if $token->{target} ne 'xml'
+                        || !_xml_decl_valid($token->{body})
                         || $xml_decl_seen
                         || $root_seen
                         || $root_closed
@@ -506,7 +536,7 @@ sub _next_xml_token {
             $$position_ref = $end + 3;
             my $text = substr($xml, $start + 9, $end - ($start + 9));
             _xml_assert_valid_chars($text);
-            return { type => 'text', text => $text };
+            return { type => 'text', text => $text, cdata => 1 };
         }
 
         if (substr($xml, $start, 2) eq '<?') {
@@ -516,7 +546,7 @@ sub _next_xml_token {
             my $target = _xml_pi_target($body);
             _croak_malformed_xml() if !defined $target;
             $$position_ref = $end + 2;
-            return { type => 'pi', target => $target, position => $start };
+            return { type => 'pi', target => $target, body => $body, position => $start };
         }
 
         _croak_malformed_xml() if substr($xml, $start, 2) eq '<!';
@@ -592,7 +622,7 @@ sub _xml_start_token {
     my ($body) = @_;
 
     my $xml_name = _xml_name_re();
-    return undef if $body !~ s/\A\s*($xml_name)//;
+    return undef if $body !~ s/\A($xml_name)//;
     my $qname = $1;
     my ($prefix, $local) = _xml_qname_parts($qname);
     return undef if !defined $local;
@@ -650,10 +680,27 @@ sub _xml_end_name {
     my ($body) = @_;
 
     my $xml_name = _xml_name_re();
-    return undef if $body !~ /\A\s*($xml_name)\s*\z/;
+    return undef if $body !~ /\A($xml_name)\s*\z/;
     my $qname = $1;
     my (undef, $local) = _xml_qname_parts($qname);
     return defined($local) ? $qname : undef;
+}
+
+sub _xml_decl_valid {
+    my ($body) = @_;
+
+    return 0 if $body !~ s/\Axml(?=\s)//;
+    return 0 if $body !~ s/\A\s+version\s*=\s*(["'])1\.[0-9]+\1//;
+
+    if ($body =~ /\A\s+encoding\b/) {
+        return 0 if $body !~ s/\A\s+encoding\s*=\s*(["'])[A-Za-z][A-Za-z0-9._-]*\1//;
+    }
+
+    if ($body =~ /\A\s+standalone\b/) {
+        return 0 if $body !~ s/\A\s+standalone\s*=\s*(["'])(?:yes|no)\1//;
+    }
+
+    return $body =~ /\A\s*\z/ ? 1 : 0;
 }
 
 sub _xml_name_re {
@@ -767,8 +814,10 @@ sub _all_statuses_success {
 sub _status_is_success {
     my ($status) = @_;
 
-    return $status =~ m{\bHTTP/\S+\s+2[0-9][0-9]\b}i
-        || $status =~ m{\A\s*2[0-9][0-9]\b}
+    $status //= '';
+    return 0 if $status =~ /[\r\n]/;
+
+    return $status =~ m{\A[ \t]*(?:HTTP/[0-9]+(?:[.][0-9]+)?[ \t]+)?2[0-9][0-9](?:[ \t]+[^\r\n]*)?[ \t]*\z}i
         ? 1
         : 0;
 }

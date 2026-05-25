@@ -533,16 +533,16 @@ unsigned GOFTP/1 replay remains valid
 sidecar signatures advisory only
 ```
 
-P1 fixture checks:
+Current beta fixture checks:
 
 ```text
 t/store-ftp-mock.t
 t/ftp-cli-parity.t
 ```
 
-Optional maintainer-run live FTP provider smoke is outside the P1 beta
-source gate and fixture-local source evidence, is not a default P1 gate,
-and requires a later separate maintainer-run gate.
+Optional maintainer-run live FTP provider smoke is outside the current beta
+source-gate/review scope and fixture-local source evidence, is not a default
+beta gate, and requires a later separate maintainer-run gate.
 
 ## Additional Profiles
 
@@ -820,7 +820,7 @@ bearer tokens and passwords must never appear in filenames, projections,
 diagnostics, or public fixtures
 ```
 
-P1 fixture checks:
+Current beta fixture checks:
 
 ```text
 t/store-webdav-mock.t
@@ -829,8 +829,9 @@ t/fixtures/v1/cross-substrate/*/webdav-goftp1/listing.names
 t/fixtures/v1/publish-failures/webdav-publish-failure/
 ```
 
-Optional maintainer-run live WebDAV smoke is outside the P1 beta source
-gate and fixture-local source evidence and is not a default P1 gate:
+Optional maintainer-run live WebDAV smoke is outside the current beta
+source-gate/review scope and fixture-local source evidence and is not a
+default beta gate:
 
 ```text
 GOBANFTP_STORE=webdav GOBANFTP_WEBDAV_URL=<url> perl -Ilib script/gobanftp play --once <game>

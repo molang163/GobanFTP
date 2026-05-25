@@ -25,7 +25,6 @@ my %text = map { $_ => _read_text(File::Spec->catfile($repo_root, split '/', $_)
         docs/SHOWCASE.md
         docs/V1_1_RELEASE_GATE.md
         docs/V1_1_RELEASE_NOTES.md
-        docs/V1_1_UPDATE_CHECKLIST.md
         docs/V1_1_AUTH_BOUNDARY.md
         docs/PROFILES.md
         lib/GobanFTP/CLI.pm
@@ -55,17 +54,127 @@ subtest 'beta release state stays guarded' => sub {
         'gate does not run make disttest';
     unlike $text{'docs/V1_1_RELEASE_GATE.md'}, qr/^make distcheck$/m,
         'gate does not run make distcheck';
+    like $text{'docs/V1_1_RELEASE_GATE.md'}, qr/^gate_env git diff --check$/m,
+        'gate includes exact whitespace hygiene evidence under gate_env';
+    like $text{'docs/V1_1_RELEASE_GATE.md'}, qr/ExtUtils::Manifest=fullcheck/,
+        'gate includes ExtUtils::Manifest::fullcheck evidence';
+    like $text{'docs/V1_1_RELEASE_GATE.md'}, qr/git archive --format=tar HEAD/,
+        'gate includes committed HEAD archive hygiene evidence';
+    like $text{'docs/V1_1_RELEASE_GATE.md'}, qr/disposable worktree copy.*MakeMaker\/shadow/ms,
+        'gate records a disposable worktree MakeMaker/shadow evidence path';
+    like $text{'docs/V1_1_RELEASE_GATE.md'}, qr/gate_env env -u GOBANFTP_RULES_DISABLE_C .*GOBANFTP_RULES_ENGINE=shadow make test/s,
+        'gate unsets C-disable flag before shadow MakeMaker evidence';
+    like $text{'docs/V1_1_RELEASE_GATE.md'}, qr/gate_env\(\).*GOBANFTP_FTP_TEST.*GOBANFTP_WEBDAV_URL.*GOBANFTP_DNS_RECORD_FILE.*GOBANFTP_GIT_REPO/ms,
+        'gate_env unsets live-provider environment';
+};
+
+subtest 'release gate separates worktree and committed HEAD evidence' => sub {
+    my $gate = $text{'docs/V1_1_RELEASE_GATE.md'};
+    my ($worktree) = $gate =~ /^### Uncommitted Worktree Candidate\n(.*?)(?=^### Committed HEAD Candidate\n)/ms;
+    my ($head) = $gate =~ /^### Committed HEAD Candidate\n(.*?)(?=^## |\z)/ms;
+
+    ok defined($worktree), 'gate has an uncommitted worktree candidate section';
+    ok defined($head),     'gate has a committed HEAD candidate section';
+    $worktree //= '';
+    $head     //= '';
+
+    like $gate, qr/^gate_env perl -c oracle\/goban[.]pl$/m,
+        'gate includes oracle syntax evidence under gate_env';
+    like $gate, qr/^gate_env perl oracle\/goban[.]pl --smoke$/m,
+        'gate includes oracle smoke evidence under gate_env';
+
+    like $worktree, qr/git archive HEAD.*must not be used as\s+current-candidate evidence/s,
+        'worktree phase says git archive HEAD is not current-candidate evidence before commit';
+    unlike $worktree, qr/^gate_env git archive --format=tar HEAD/m,
+        'worktree phase does not use git archive HEAD as evidence';
+    unlike $worktree, qr/^gate_env git ls-files/m,
+        'worktree phase avoids index-only git ls-files evidence';
+    like $worktree, qr/^gate_env perl -MExtUtils::Manifest=maniread -E 'say for sort keys %\{ maniread\(\) \}' \| gate_env perl -ne/m,
+        'worktree phase scans the current MANIFEST source set';
+    like $worktree, qr/^gate_env perl -MExtUtils::Manifest=maniread -E 'say for sort keys %\{ maniread\(\) \}' \| gate_env tar -T - -cf - \| gate_env tar -x -C "\$tmpdir" -f -$/m,
+        'worktree disposable copy is based on the current MANIFEST source set';
+
+    like $head, qr/git status --short.*clean/s,
+        'HEAD phase requires a clean worktree';
+    like $head, qr/^gate_env sh -c 'test -z "\$\(git status --short\)"'$/m,
+        'HEAD phase has executable clean-tree evidence';
+    like $head, qr/^gate_env git archive --format=tar HEAD \| gate_env tar -tf - \| gate_env perl -ne/m,
+        'HEAD phase uses git archive HEAD only after clean-tree evidence';
+
+    for my $bare (
+        qr/^perl -c oracle\/goban[.]pl$/m,
+        qr/^perl oracle\/goban[.]pl --smoke$/m,
+        qr/^perl Makefile[.]PL$/m,
+        qr/^prove -l/m,
+        qr/^prove -lr t$/m,
+        qr/^git diff --check$/m,
+        qr/^git archive --format=tar HEAD/m,
+        qr/^git ls-files/m,
+        qr/^GOBANFTP_[A-Z0-9_]+=.*\b(?:prove|make)\b/m,
+    ) {
+        unlike $gate, $bare, "gate has no bare source-gate evidence command: $bare";
+    }
+
+    for my $name (qw(
+        GOBANFTP_FTP_TEST
+        GOBANFTP_FTP_HOST
+        GOBANFTP_FTP_USER
+        GOBANFTP_FTP_PASSWORD
+        GOBANFTP_FTP_ROOT
+        GOBANFTP_WEBDAV_URL
+        GOBANFTP_WEBDAV_USER
+        GOBANFTP_WEBDAV_PASSWORD
+        GOBANFTP_WEBDAV_TOKEN
+        GOBANFTP_DNS_RECORD_FILE
+        GOBANFTP_GIT_REPO
+        GOBANFTP_STORE
+    )) {
+        like $gate, qr/^\s+-u \Q$name\E \\/m, "gate_env unsets $name";
+    }
+
+    for my $residue (
+        'Makefile',
+        'Makefile.old',
+        'META.json',
+        'META.yml',
+        'MYMETA.*',
+        'pm_to_blib',
+        'blib/',
+        '_Inline/',
+        'docs/V1_1_UPDATE_CHECKLIST.md',
+        'docs/references/',
+    ) {
+        like $gate, qr/\Q$residue\E/, "gate documents forbidden residue: $residue";
+    }
+
+    like $head, qr/Makefile\(\?:\[.\]old\)\?\$/,
+        'HEAD archive scan rejects Makefile and Makefile.old';
+    like $head, qr/META\[.\]\(\?:json\|yml\)\$/,
+        'HEAD archive scan rejects META.json and META.yml';
+    like $head, qr/MYMETA\[.\]\(\?:json\|yml\)\$/,
+        'HEAD archive scan rejects MYMETA files';
+    like $head, qr/pm_to_blib\$/,
+        'HEAD archive scan rejects pm_to_blib';
+    like $head, qr/\(\?:blib\|_Inline\)\(\?:\/\|\$\)/,
+        'HEAD archive scan rejects blib and _Inline trees';
+    like $head, qr/docs\/V1_1_UPDATE_CHECKLIST\[.\]md\$/,
+        'HEAD archive scan rejects the retired checklist';
+    like $head, qr/docs\/references\(\?:\/\|\$\)/,
+        'HEAD archive scan rejects reference-only docs';
 };
 
 subtest 'public release hygiene wording stays source-gate scoped' => sub {
     unlike $text{'docs/PROFILES.md'}, qr/source-candidate/,
         'profiles avoid source-candidate wording';
     like $text{'docs/PROFILES.md'},
-        qr{Optional maintainer-run live FTP provider smoke is outside the P1 beta\s+source gate and fixture-local source evidence},
-        'FTP live smoke stays outside the beta source gate and fixture-local source evidence';
+        qr{Optional maintainer-run live FTP provider smoke is outside the current beta\s+source-gate/review scope and fixture-local source evidence},
+        'FTP live smoke stays outside the current beta source-gate/review scope and fixture-local source evidence';
     like $text{'docs/PROFILES.md'},
-        qr{Optional maintainer-run live WebDAV smoke is outside the P1 beta source\s+gate and fixture-local source evidence},
-        'WebDAV live smoke stays outside the beta source gate and fixture-local source evidence';
+        qr{Optional maintainer-run live WebDAV smoke is outside the current beta\s+source-gate/review scope and fixture-local source evidence},
+        'WebDAV live smoke stays outside the current beta source-gate/review scope and fixture-local source evidence';
+    like $text{'docs/SHOWCASE.md'},
+        qr{Current beta showcase review coverage is source-only, static, and\s+fixture-local},
+        'showcase review scope names the current beta';
     unlike $text{'lib/GobanFTP/CLI.pm'}, qr/local-fixture-source-candidate/,
         'showcase release evidence does not use source-candidate scope';
     like $text{'lib/GobanFTP/CLI.pm'}, qr/scope=local-fixture-beta-source-gate/,
@@ -183,7 +292,6 @@ subtest 'remaining P2 stretch work stays deferred' => sub {
     for my $rel (qw(
         docs/V1_1_RELEASE_GATE.md
         docs/V1_1_RELEASE_NOTES.md
-        docs/V1_1_UPDATE_CHECKLIST.md
     )) {
         like $text{$rel}, qr/Remaining P2|remaining P2|剩余 P2/,
             "$rel names remaining P2 scope";
@@ -191,20 +299,9 @@ subtest 'remaining P2 stretch work stays deferred' => sub {
             "$rel keeps remaining P2 deferred";
     }
 
-    like $text{'docs/V1_1_UPDATE_CHECKLIST.md'},
-        qr/Local read-only `showcase preview` helper/,
-        'checklist uses preview wording instead of serve helper wording';
-    like $text{'docs/V1_1_UPDATE_CHECKLIST.md'},
-        qr/Static generated showcase navigation polish/,
-        'checklist records the accepted static navigation polish slice';
-    unlike $text{'docs/V1_1_UPDATE_CHECKLIST.md'},
-        qr/Local read-only `serve` helper/,
-        'checklist does not revive serve helper wording';
-
     for my $rel (qw(
         docs/V1_1_RELEASE_GATE.md
         docs/V1_1_RELEASE_NOTES.md
-        docs/V1_1_UPDATE_CHECKLIST.md
     )) {
         unlike $text{$rel}, qr/^\| P2 high-risk stretch work \| PASS \|/m,
             "$rel does not mark high-risk P2 pass";
@@ -226,8 +323,7 @@ subtest 'remaining P2 stretch work stays deferred' => sub {
         for my $rel (qw(
             docs/V1_1_RELEASE_GATE.md
             docs/V1_1_RELEASE_NOTES.md
-        docs/V1_1_UPDATE_CHECKLIST.md
-    )) {
+        )) {
             for my $line (split /\n/, $text{$rel}) {
                 next if $line =~ /\b(?:no|not|does not|without|deferred|avoid|outside|out of scope|remain outside|remains outside)\b/i;
                 unlike $line, $forbidden, "$rel avoids forbidden P2 shipped claim: $forbidden";
@@ -288,6 +384,10 @@ subtest 'roadmap and manifest are beta-safe' => sub {
     }
 
     unlike $text{MANIFEST}, qr/^evidence(?:\/|\z)/m, 'MANIFEST excludes local evidence directories';
+    unlike $text{MANIFEST}, qr/^docs\/V1_1_UPDATE_CHECKLIST[.]md$/m,
+        'MANIFEST excludes the retired v1.1 update checklist';
+    like $text{'MANIFEST.SKIP'}, qr/^\^docs\/V1_1_UPDATE_CHECKLIST\\[.]md\$$/m,
+        'MANIFEST.SKIP keeps the retired v1.1 checklist from returning';
 };
 
 done_testing;

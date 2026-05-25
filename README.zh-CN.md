@@ -516,8 +516,8 @@ tag、push、upload、deploy 和 distribution 命令。
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`；它们不是当前 beta 的
 release/tag identity。
 
-对 P1 fixture-local review scope 而言，live provider smoke、distribution
-packaging、tag、upload 和 deploy 都在 P1 外；它们需要后续单独的 maintainer-run gate。
+对当前 beta source-gate/review scope 而言，live provider smoke、distribution
+packaging、tag、upload 和 deploy 都在 beta gate 外；它们需要后续单独的 maintainer-run gate。
 
 ## License
 
@@ -531,7 +531,7 @@ DNS、Git 或其他系统，也不是生产安全认证。
 
 ## 发布不变量 / Release Invariants
 
-GobanFTP v1.0 不是围棋服务器。它实现的是一个小型 filename protocol，用来从若干可枚举的存储表面重放同一盘棋。
+GobanFTP 不是围棋服务器。它实现的是一个小型 filename protocol，用来从若干可枚举的存储表面重放同一盘棋。
 
 release 检查会比较 event basenames、`event_set_root`、DAG、canonical prefix、
 board projection、SGF，以及同一可观察逻辑故障的 diagnostic class。

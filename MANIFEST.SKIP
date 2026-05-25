@@ -20,3 +20,4 @@
 # Local notes and reference material; not part of release artifacts.
 ^docs/references(?:/|$)
 ^docs/SESSION_RESTORE\.md$
+^docs/V1_1_UPDATE_CHECKLIST\.md$

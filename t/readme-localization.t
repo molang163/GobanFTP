@@ -83,6 +83,18 @@ unlike $text{'README.zh-CN.md'}, qr/v1[.]0 明确不声称/,
     'Chinese README does not keep stale v1.0 non-claim wording';
 like $text{'README.zh-CN.md'}, qr/v1[.]1[.]0-beta[.]1\/package 1[.]100_001 明确不声称/,
     'Chinese README scopes non-claims to the current v1.1 beta line';
+unlike $text{'README.md'}, qr/^GobanFTP v1[.]0 is not a game server[.]/m,
+    'English README release invariants no longer start from v1.0';
+unlike $text{'README.zh-CN.md'}, qr/^GobanFTP v1[.]0 不是围棋服务器。/m,
+    'Chinese README release invariants no longer start from v1.0';
+unlike $text{'README.ja.md'}, qr/^GobanFTP v1[.]0 は game server ではありません。/m,
+    'Japanese README release invariants no longer start from v1.0';
+like $text{'README.md'}, qr/For the current beta source-gate\/review scope/,
+    'English README scopes release checks to the current beta source gate';
+like $text{'README.zh-CN.md'}, qr/对当前 beta source-gate\/review scope 而言/,
+    'Chinese README scopes release checks to the current beta source gate';
+like $text{'README.ja.md'}, qr/current beta source-gate\/review scope では/,
+    'Japanese README scopes release checks to the current beta source gate';
 
 my $manifest = _read_text(File::Spec->catfile($repo_root, 'MANIFEST'));
 for my $rel (@readmes) {

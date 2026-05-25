@@ -397,7 +397,7 @@ FTP listing-shadow public poison-vector coverage is fixture/listing evidence
 only. It does not claim `RETR`, `SIZE`, `MDTM`, live FTP auth, live FTP
 integrity, or production FTP deployment safety. The `ftp-goftp1` tmp+rename
 publish path is declared separately and covered by mock FTP tests. Live
-provider smoke remains outside the P1 fixture-local review scope.
+provider smoke remains outside the current beta source-gate/review scope.
 
 Signed/auth material in this release is verifier-local fixture/preflight
 coverage. It is not production writer authorization or production key lifecycle.
@@ -588,9 +588,9 @@ Public beta release notes are in `docs/V1_1_RELEASE_NOTES.md`. Historical
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`; they are not the current beta
 release/tag identity.
 
-For the P1 fixture-local review scope, live provider smoke, distribution
-packaging, tag, upload, and deploy are outside P1 and require a later separate
-maintainer-run gate.
+For the current beta source-gate/review scope, live provider smoke,
+distribution packaging, tag, upload, and deploy are outside the beta gate and
+require a later separate maintainer-run gate.
 
 ## License
 
@@ -606,7 +606,7 @@ without authorization, and it is not a production security certification.
 
 ## Release Invariants
 
-GobanFTP v1.0 is not a game server. It is a Perl implementation of a small
+GobanFTP is not a game server. It is a Perl implementation of a small
 filename protocol for replaying Go from accepted event basenames across several
 enumerable stores.
 

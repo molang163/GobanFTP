@@ -396,8 +396,8 @@ v1.1.0-beta.1/package 1.100_001 の範囲は次の通りです。
 FTP listing-shadow public poison-vector coverage は fixture/listing 上の検証材料だけです。
 `RETR`、`SIZE`、`MDTM`、live FTP auth、live FTP integrity、production FTP deployment
 safety は扱いません。`ftp-goftp1` tmp+rename publish path は別に declared
-され、mock FTP tests で扱われます。Live provider smoke は P1 fixture-local
-review scope の外に残ります。
+され、mock FTP tests で扱われます。Live provider smoke は current beta
+source-gate/review scope の外に残ります。
 
 この release の signed-HMAC material は verifier-local fixture/preflight の検証材料
 です。production writer authorization でも production key lifecycle でもありません。
@@ -590,8 +590,8 @@ public beta release notes は `docs/V1_1_RELEASE_NOTES.md` にあります。his
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` に残しますが、現在の beta
 release/tag identity ではありません。
 
-P1 fixture-local review scope では、live provider smoke、distribution
-packaging、tag、upload、deploy は P1 の外にあります。これらには後続の
+current beta source-gate/review scope では、live provider smoke、distribution
+packaging、tag、upload、deploy は beta gate の外にあります。これらには後続の
 separate maintainer-run gate が必要です。
 
 ## License
@@ -608,7 +608,7 @@ security certification でもありません。
 
 ## Release Invariants
 
-GobanFTP v1.0 は game server ではありません。複数の「名前を列挙できる保存先」から、
+GobanFTP は game server ではありません。複数の「名前を列挙できる保存先」から、
 同じ event basenames を使って一局を replay する Perl 実装です。
 
 release source の確認では、profile、adapter、attack fixture、witness 出力、

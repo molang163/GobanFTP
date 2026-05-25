@@ -56,6 +56,21 @@ fresh `events/` listing and conservative replay. They do not publish moves,
 choose fork winners, read `tmp/` leases, or turn polling order into protocol
 truth.
 
+The current `v1.1.0-beta.1/package 1.100_001` line is a hardening and showcase
+beta over the unchanged `GOFTP/1` boundary. It repairs confirmed release-surface
+gaps around WebDAV listing confirmation, DNS record-file poisoning rejection,
+local symlink hardening, FTP exact publish confirmation, auth boundary metadata
+and preflight, scoped JSON, bounded diagnostics, and static showcase/loopback
+preview separation.
+
+Beta repair scope: these changes are reviewed as beta source-gate repairs with
+fixture-local and mock-provider evidence. They are not release packaging, tag,
+upload, deploy, live-provider certification, or production authorization claims.
+
+Beta evidence guardrails: keep evidence local, reproducible, and source-gate
+scoped in `docs/V1_1_RELEASE_GATE.md`; defer provider smoke, distribution
+packaging, tag, upload, and deploy to later maintainer-run gates.
+
 ### Deferred
 
 Result/scoring events remain outside `GOFTP/1`.
@@ -64,12 +79,14 @@ Git publish, Git remote fetch, live FTP auth, live FTP integrity, production
 FTP deployment safety, live DNS, AXFR, DNSSEC trust, provider APIs, dynamic
 update, DNS record publishing, hosted Web UI, production key lifecycle
 completion, publish auth completion, complete JSON output for every command,
-and complete future attack coverage remain outside the v1.0.1/package 1.001
+complete future attack coverage, provider smoke, distribution packaging, tag,
+upload, and deploy remain outside the v1.1.0-beta.1/package 1.100_001 beta
 claim.
 
 ### Next
 
-The next live phase should keep the same boundary: optimistic publish, explicit
+After the current beta source gate, the next live phase should keep the same
+boundary: optimistic publish, explicit
 pending/visible/replayed UI states, visible fork handling, and explicit
 ack-assisted recovery. Advisory leases may reduce accidental races, but they
 must remain outside `event_set_root` and replay truth.
@@ -624,7 +641,7 @@ Deferred or contract-clarity issues:
   remaining question is whether `illegal_by_id` should also expose DAG-invalid
   event ids for consumers that inspect that structure directly.
 
-v1.1.0-beta.1 beta evidence direction:
+v1.1.0-beta.1 beta evidence guardrails:
 
 - keep WebDAV XML handling response-aware: only direct response hrefs with
   successful per-response status may contribute names

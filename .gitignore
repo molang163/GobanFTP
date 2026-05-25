@@ -17,3 +17,4 @@ GobanFTP-[0-9]*.tar.gz
 !t/fixtures/**/*.part
 docs/references/
 docs/SESSION_RESTORE.md
+docs/V1_1_UPDATE_CHECKLIST.md

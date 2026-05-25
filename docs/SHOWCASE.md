@@ -185,7 +185,8 @@ Scoring, final result events, signed/auth sidecars, and inline assembly are
 outside this showcase path. They belong in a later phase, protocol version, or
 explicit profile.
 
-P1 showcase review coverage is source-only, static, and fixture-local. Live
-FTP/WebDAV provider checks, distribution packaging, tag, upload, and deploy are
-outside P1 and require a later separate maintainer-run gate. Signed-HMAC
-negative matrices also remain outside this showcase path.
+Current beta showcase review coverage is source-only, static, and
+fixture-local. Live FTP/WebDAV provider checks, distribution packaging, tag,
+upload, and deploy are outside the beta source-gate/review scope and require a
+later separate maintainer-run gate. Signed-HMAC negative matrices also remain
+outside this showcase path.
