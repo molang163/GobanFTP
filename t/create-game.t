@@ -34,6 +34,25 @@ subtest 'create-game creates a local descriptor root' => sub {
     ok -d File::Spec->catdir($root, $game, 'tmp'), 'tmp directory exists';
 };
 
+subtest 'create-game rejects a symlinked local descriptor root' => sub {
+    my $root = tempdir(CLEANUP => 1);
+    my $outside = tempdir(CLEANUP => 1);
+    my $game = 'g1.id-local-symlink.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob';
+    make_symlink_or_skip($outside, File::Spec->catdir($root, $game));
+
+    local %ENV = %ENV;
+    delete $ENV{GOBANFTP_STORE};
+    $ENV{GOBANFTP_ROOT} = $root;
+
+    my ($exit, $stdout, $stderr) = _run_cli('create-game', $game);
+
+    is $exit, 4, 'create-game exits storage failure';
+    unlike $stdout, qr/^gobanftp\.create-game=ok$/m, 'success status is not reported';
+    like $stderr, qr/^storage: .*symlink/m, 'symlink diagnostic is reported';
+    ok !-e File::Spec->catdir($outside, 'events'), 'outside events directory was not created';
+    ok !-e File::Spec->catdir($outside, 'tmp'), 'outside tmp directory was not created';
+};
+
 subtest 'create-game creates through GOBANFTP_STORE=ftp' => sub {
     my $game = 'g1.id-ftp-create.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob';
 
@@ -76,6 +95,24 @@ sub _run_cli {
     }
 
     return ($exit, $stdout, $stderr);
+}
+
+sub make_symlink_or_skip {
+    my ($target, $link) = @_;
+
+    if (!eval { symlink $target, $link }) {
+        my $message = "symlink unavailable on this platform: $!";
+        BAIL_OUT($message) if $ENV{GOBANFTP_REQUIRE_SYMLINK_TESTS};
+        plan skip_all => $message;
+    }
+
+    if (!-l $link) {
+        my $message = "symlink did not create an lstat-visible link: $link";
+        BAIL_OUT($message) if $ENV{GOBANFTP_REQUIRE_SYMLINK_TESTS};
+        plan skip_all => $message;
+    }
+
+    return 1;
 }
 
 package CreateGameFTP;

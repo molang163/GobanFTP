@@ -13,6 +13,9 @@ my $skip     = _read_text(File::Spec->catfile($repo_root, 'MANIFEST.SKIP'));
 
 my @forbidden_manifest_entries = (
     [qr{\Adocs/SESSION_RESTORE[.]md\z},        'local resume notes'],
+    [qr{\Adocs/V1_1_GATE_MEMO[.]md\z},         'local gate memo'],
+    [qr{\Adocs/v1[.]1-unattended-plan[.]md\z}, 'local unattended plan'],
+    [qr{\Aevidence(?:/|\z)},                   'local integration evidence'],
     [qr{\A(?:blib|_Inline)(?:/|\z)},           'local build tree'],
     [qr{\AMYMETA[.](?:json|yml)\z},            'local MYMETA file'],
     [qr{\Apm_to_blib\z},                       'MakeMaker copy stamp'],
@@ -26,6 +29,17 @@ for my $case (@forbidden_manifest_entries) {
     is_deeply \@matches, [], "MANIFEST excludes $label";
 }
 
+my @required_manifest_entries = qw(
+    lib/GobanFTP/Showcase/StaticPreview.pm
+    t/showcase-preview.t
+    t/store-config.t
+);
+
+my %manifest_entry = map { $_ => 1 } @manifest;
+for my $entry (@required_manifest_entries) {
+    ok $manifest_entry{$entry}, "MANIFEST includes $entry";
+}
+
 my @required_skip_rules = (
     ['_Inline tree',              '^_Inline/'],
     ['blib tree',                 '^blib/'],
@@ -35,6 +49,9 @@ my @required_skip_rules = (
     ['distribution tarballs',     '^GobanFTP-[0-9][^/]*\.tar\.gz$'],
     ['distribution directories',  '^GobanFTP-[0-9][^/]*/'],
     ['local resume notes',        '^docs/SESSION_RESTORE\.md$'],
+    ['local gate memo',           '^docs/V1_1_GATE_MEMO\.md$'],
+    ['local unattended plan',      '^docs/v1\.1-unattended-plan\.md$'],
+    ['local evidence directory',   '^evidence/'],
 );
 
 for my $case (@required_skip_rules) {

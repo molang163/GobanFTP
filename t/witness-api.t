@@ -142,8 +142,23 @@ subtest 'bad game descriptor stays in replay diagnostics' => sub {
     is_deeply $witness->{diagnostic_codes}, ['parse_game_descriptor'],
         'parse game descriptor diagnostic is preserved';
     is_deeply $witness->{diagnostic_classes}, ['parse'], 'parse class is preserved';
+    is $witness->{accepted_count}, 0, 'bad game descriptor accepts no event names';
+    ok !exists $witness->{event_set_root}, 'bad game descriptor exposes no usable event_set_root';
     ok !exists $witness->{ruleset_seal}, 'bad game descriptor has no ruleset seal';
     ok !exists $witness->{board_hash}, 'bad game descriptor has no board projection hash';
+
+    my $signed_witness = witness_for_listing(
+        profile_id              => 'signed-hmac-goftp1',
+        game_descriptor         => 'not-a-game',
+        raw_names               => [],
+        diagnostics_schema_path => $schema_path,
+        trusted_hmac_keys       => {},
+    );
+
+    is $signed_witness->{replay_status}, 'validation', 'signed bad game descriptor is validation';
+    is $signed_witness->{accepted_count}, 0, 'signed bad game descriptor accepts no event names';
+    ok !exists $signed_witness->{event_set_root},
+        'signed bad game descriptor exposes no usable event_set_root';
 };
 
 done_testing;

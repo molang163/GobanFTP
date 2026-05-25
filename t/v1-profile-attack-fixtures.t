@@ -37,6 +37,8 @@ for my $attack (@attacks) {
 
         is $expected->{attack}, $attack, 'verdict attack matches directory';
         is $expected->{game}, $game, 'verdict game matches game.name';
+        is $expected->{consensus_inputs}, 'descriptor,events',
+            'verdict declares consensus inputs';
         ok $expected->{ignored_inputs} ne '', 'ignored inputs are declared';
         ok $expected->{note} ne '', 'fixture has a judgment note';
 

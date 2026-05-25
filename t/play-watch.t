@@ -158,6 +158,45 @@ subtest 'watch --max-polls renders a bounded listing-first snapshot' => sub {
     ok !-e File::Spec->catdir($game_root, 'projections'), 'watch does not write projections';
 };
 
+subtest 'watch --compact keeps live observation recordable without rendering a board' => sub {
+    my (undef, $game_root) = _make_game_root();
+    my ($event) = build_move_name(
+        game_descriptor => $GAME,
+        ply             => 1,
+        color           => 'b',
+        action          => 'play-aa',
+        parent_id       => 'genesis',
+        player          => 'alice',
+        nonce           => 'compact1',
+    );
+    _write_text(File::Spec->catfile($game_root, 'events', $event), 'body bytes ignored');
+    _write_text(File::Spec->catfile($game_root, 'tmp', 'poison'), 'tmp ignored');
+    _write_text(File::Spec->catfile($game_root, 'sidecar', 'poison.json'), '{"ignored":true}');
+
+    my ($exit, $stdout, $stderr) = _run_cli(
+        'watch',
+        '--live',
+        '--compact',
+        '--max-polls',
+        '1',
+        '--interval',
+        '0',
+        $game_root,
+    );
+
+    is $exit, 0, 'compact live watch exits success';
+    like $stdout, qr/^gobanftp\.watch=ok$/m, 'compact watch reports status';
+    like $stdout, qr/^live=1$/m, 'compact watch keeps live marker';
+    like $stdout, qr/^compact=1$/m, 'compact watch marks compact output';
+    like $stdout, qr/^observer\.delta_events=1$/m, 'compact watch reports event delta';
+    like $stdout, qr/^observer\.event_set_root_changed=0$/m, 'first compact snapshot has no previous root change';
+    like $stdout, qr/^event_set_count=1$/m, 'compact watch reports event-set count';
+    like $stdout, qr/^worldline\.status=main$/m, 'compact watch still reports worldline';
+    unlike $stdout, qr/^  a b c d e f g h i$/m, 'compact watch omits board rendering';
+    unlike $stdout, qr/body bytes ignored|tmp ignored|poison/, 'compact watch does not read sidecar tmp or body bytes';
+    is $stderr, '', 'compact watch has no diagnostics';
+};
+
 subtest 'watch exits on a fork by default' => sub {
     my (undef, $game_root) = _make_game_root();
     my ($left, $left_id) = build_move_name(

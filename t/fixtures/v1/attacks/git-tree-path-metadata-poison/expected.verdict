@@ -10,5 +10,6 @@ canonical_ids=khjclcui7pejbv3m,bihb3re4k9hlucat,kcvtlonfje163p9q
 legal_ids=khjclcui7pejbv3m,bihb3re4k9hlucat,kcvtlonfje163p9q
 diagnostic_classes=
 rejected_classes=
+consensus_inputs=descriptor,events
 ignored_inputs=git-commit-metadata,git-ref,git-tag,git-remote,git-mode,git-object-id,git-object-type,git-object-size,git-sidecar,git-tmp,git-projections,recursive-path,wrong-game-path,duplicate-entry,checkout-style-path
 note=Git tree metadata and shadow paths cannot change the accepted event set or replay witness

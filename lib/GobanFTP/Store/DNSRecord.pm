@@ -12,6 +12,13 @@ use File::Spec;
 
 use GobanFTP::GameSpec qw(parse_basename);
 
+use constant {
+    DEFAULT_MAX_FILE_BYTES => 1_048_576,
+    DEFAULT_MAX_LINES      => 10_000,
+    DEFAULT_MAX_RECORDS    => 10_000,
+    DEFAULT_MAX_LINE_BYTES => 4_096,
+};
+
 sub new {
     my ($class, %args) = @_;
 
@@ -33,6 +40,14 @@ sub new {
 
     my $owner_suffix = delete($args{owner_suffix}) // '';
     $owner_suffix = _canon_owner($owner_suffix) if defined($owner_suffix) && $owner_suffix ne '';
+    my $max_file_bytes = delete($args{max_file_bytes}) // DEFAULT_MAX_FILE_BYTES;
+    my $max_lines      = delete($args{max_lines})      // DEFAULT_MAX_LINES;
+    my $max_records    = delete($args{max_records})    // DEFAULT_MAX_RECORDS;
+    my $max_line_bytes = delete($args{max_line_bytes}) // DEFAULT_MAX_LINE_BYTES;
+    $max_file_bytes = _positive_int_option('max_file_bytes', $max_file_bytes);
+    $max_lines      = _positive_int_option('max_lines', $max_lines);
+    $max_records    = _positive_int_option('max_records', $max_records);
+    $max_line_bytes = _positive_int_option('max_line_bytes', $max_line_bytes);
 
     croak 'unknown Store::DNSRecord option(s): ' . join(', ', sort keys %args) if %args;
 
@@ -40,6 +55,10 @@ sub new {
         record_file  => $record_file,
         records      => $records,
         owner_suffix => $owner_suffix,
+        max_file_bytes => $max_file_bytes,
+        max_lines      => $max_lines,
+        max_records    => $max_records,
+        max_line_bytes => $max_line_bytes,
     }, $class;
 }
 
@@ -113,20 +132,41 @@ sub _event_names_for_game {
 sub _record_rows {
     my ($self) = @_;
 
-    return @{ $self->{records} } if defined $self->{records};
+    return $self->_bounded_record_rows(@{ $self->{records} }) if defined $self->{records};
+
+    my $size = -s $self->{record_file};
+    croak 'dns record file too large'
+        if defined($size) && $size > $self->{max_file_bytes};
 
     open my $fh, '<:encoding(UTF-8)', $self->{record_file}
         or croak "read $self->{record_file}: $!";
 
     my @rows;
+    my $line_count = 0;
     while (my $line = <$fh>) {
+        $line_count++;
+        croak 'dns record line count exceeded' if $line_count > $self->{max_lines};
         chomp $line;
+        croak 'dns record line too long' if length($line) > $self->{max_line_bytes};
         $line =~ s/\A\s+|\s+\z//g;
         next if $line eq '' || $line =~ /\A#/;
+        croak 'dns record limit exceeded' if @rows >= $self->{max_records};
         push @rows, $line;
     }
 
     close $fh or croak "close $self->{record_file}: $!";
+    return @rows;
+}
+
+sub _bounded_record_rows {
+    my ($self, @rows) = @_;
+
+    croak 'dns record line count exceeded' if @rows > $self->{max_lines};
+    croak 'dns record limit exceeded' if @rows > $self->{max_records};
+    for my $row (@rows) {
+        croak 'dns record line too long' if defined($row) && length($row) > $self->{max_line_bytes};
+    }
+
     return @rows;
 }
 
@@ -143,6 +183,7 @@ sub _event_value {
     my ($row) = @_;
 
     my %record = _record_fields($row);
+    return undef if $record{__gobanftp_error};
     my $event = $record{event};
     return undef if !defined($event) || $event eq '';
 
@@ -153,6 +194,7 @@ sub _txt_owner {
     my ($row) = @_;
 
     my %record = _record_fields($row);
+    return undef if $record{__gobanftp_error};
     return undef if lc($record{type} // '') ne 'txt';
 
     my $owner = _canon_owner($record{owner} // '');
@@ -235,15 +277,56 @@ sub _has_suffix {
 sub _record_fields {
     my ($row) = @_;
 
+    $row = _strip_inline_comment($row);
+
     my %record;
+    my %seen;
     while ($row =~ /(?:\A|\s)([A-Za-z][A-Za-z0-9_-]*)=("[^"]*"|'[^']*'|[^\s]+)/g) {
         my ($key, $value) = (lc $1, $2);
+        if ($key =~ /\A(?:type|owner|event)\z/ && $seen{$key}++) {
+            return (__gobanftp_error => "duplicate.$key");
+        }
         $value =~ s/\A"(.*)"\z/$1/s;
         $value =~ s/\A'(.*)'\z/$1/s;
         $record{$key} = $value;
     }
 
     return %record;
+}
+
+sub _strip_inline_comment {
+    my ($row) = @_;
+
+    $row //= '';
+    my ($out, $quote) = ('', undef);
+    my @chars = split //, $row;
+    while (@chars) {
+        my $char = shift @chars;
+        if (defined $quote) {
+            $out .= $char;
+            $quote = undef if $char eq $quote;
+            next;
+        }
+        if ($char eq '"' || $char eq "'") {
+            $quote = $char;
+            $out .= $char;
+            next;
+        }
+        last if $char eq '#' || $char eq ';';
+        $out .= $char;
+    }
+
+    $out =~ s/\s+\z//;
+    return $out;
+}
+
+sub _positive_int_option {
+    my ($name, $value) = @_;
+
+    croak "$name must be a positive integer"
+        if !defined($value) || ref($value) || $value !~ /\A[1-9][0-9]*\z/;
+
+    return 0 + $value;
 }
 
 sub _path_components {

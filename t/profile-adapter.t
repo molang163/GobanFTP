@@ -93,6 +93,30 @@ subtest 'DNS record adapter case-normalizes owner/type but preserves event value
     ], 'DNS TXT normalizer extracts current-game event= values and ignores non-events';
 };
 
+subtest 'DNS record adapter ignores comments, duplicate critical fields, and owner suffix bypasses' => sub {
+    my @raw = (
+        "ttl=60 type=TXT owner=01.events.$game.example. event=$events[0] # type=TXT owner=02.events.$game.example. event=$events[1]",
+        "ttl=61 type=TXT owner=02.events.$game.example. event=$events[1]",
+        "ttl=62 type=A # type=TXT owner=03.events.$game.example. event=$events[0]",
+        "ttl=63 type=A type=TXT owner=04.events.$game.example. event=$events[0]",
+        "ttl=64 type=TXT owner=05.events.$game.example. event=$events[0] event=$events[1]",
+        "ttl=65 type=TXT owner=06.events.$game.example. owner=07.events.$game.example. event=$events[1]",
+        "ttl=66 type=TXT owner=08.events.$game.example.evil. event=$events[1]",
+    );
+
+    is_deeply [
+        profile_listing_names(
+            profile_id      => 'dns-record-goftp1',
+            game_descriptor => $game,
+            raw_names       => \@raw,
+            owner_suffix    => 'example.',
+        )
+    ], [
+        $events[0],
+        $events[1],
+    ], 'DNS adapter suffix mode rejects poison rows and suffix bypasses';
+};
+
 subtest 'WebDAV adapter extracts direct events hrefs and decodes once' => sub {
     my $encoded_event = $events[0];
     $encoded_event =~ s/^m/%6D/;

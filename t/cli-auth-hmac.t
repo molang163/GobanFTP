@@ -232,6 +232,128 @@ subtest 'bad HMAC key files fail closed without leaking key material' => sub {
         'witness missing key is storage-scoped';
 };
 
+subtest 'malformed witness attestations are validation diagnostics' => sub {
+    my $dir = tempdir(CLEANUP => 1);
+    my $bad_json = File::Spec->catfile($dir, 'bad-attestations.jsonl');
+    _write_text($bad_json, "{not-json\n");
+
+    my ($bad_exit, $bad_stdout, $bad_stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'signed-hmac-goftp1',
+        '--fixture', $signed_fixture,
+        '--attestations', $bad_json,
+        '--trusted-hmac-key', 'fixture-key-1=test-key',
+    );
+    is $bad_exit, 2, 'bad attestation JSON exits validation';
+    is $bad_stdout, "gobanftp.v1.witness=failed\n", 'bad attestation JSON has failed status only';
+    like $bad_stderr, qr/^diagnostic code=parse_attestations error=/m,
+        'bad attestation JSON emits validation diagnostic';
+    unlike $bad_stderr, qr/^internal:/m, 'bad attestation JSON is not internal failure';
+
+    my $non_object = File::Spec->catfile($dir, 'non-object-attestations.jsonl');
+    _write_text($non_object, "[]\n");
+    my ($row_exit, $row_stdout, $row_stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'signed-hmac-goftp1',
+        '--fixture', $signed_fixture,
+        '--attestations', $non_object,
+        '--trusted-hmac-key', 'fixture-key-1=test-key',
+    );
+    is $row_exit, 2, 'non-object attestation row exits validation';
+    is $row_stdout, "gobanftp.v1.witness=failed\n", 'non-object attestation row has failed status only';
+    like $row_stderr, qr/^diagnostic code=parse_attestations error=record[.]0$/m,
+        'non-object attestation row emits validation diagnostic';
+
+    my $long_line = File::Spec->catfile($dir, 'long-line-attestations.jsonl');
+    _write_text($long_line, '{"x":"' . ('a' x 8_200) . "\"}\n");
+    my ($long_exit, $long_stdout, $long_stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'signed-hmac-goftp1',
+        '--fixture', $signed_fixture,
+        '--attestations', $long_line,
+        '--trusted-hmac-key', 'fixture-key-1=test-key',
+    );
+    is $long_exit, 2, 'oversized attestation JSONL line exits validation';
+    is $long_stdout, "gobanftp.v1.witness=failed\n", 'oversized attestation line has failed status only';
+    like $long_stderr, qr/^diagnostic code=parse_attestations error=line[.]too_long$/m,
+        'oversized attestation line emits stable validation diagnostic';
+
+    my $too_large = File::Spec->catfile($dir, 'too-large-attestations.jsonl');
+    _write_text($too_large, 'x' x (1_048_576 + 1));
+    my ($large_exit, $large_stdout, $large_stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'signed-hmac-goftp1',
+        '--fixture', $signed_fixture,
+        '--attestations', $too_large,
+        '--trusted-hmac-key', 'fixture-key-1=test-key',
+    );
+    is $large_exit, 2, 'oversized attestation JSONL file exits validation';
+    is $large_stdout, "gobanftp.v1.witness=failed\n", 'oversized attestation file has failed status only';
+    like $large_stderr, qr/^diagnostic code=parse_attestations error=file[.]too_large$/m,
+        'oversized attestation file emits stable validation diagnostic';
+
+    my $too_many = File::Spec->catfile($dir, 'too-many-attestations.jsonl');
+    _write_text($too_many, "{}\n" x 10_001);
+    my ($many_exit, $many_stdout, $many_stderr) = _run_cli(
+        'v1', 'witness',
+        '--profile', 'signed-hmac-goftp1',
+        '--fixture', $signed_fixture,
+        '--attestations', $too_many,
+        '--trusted-hmac-key', 'fixture-key-1=test-key',
+    );
+    is $many_exit, 2, 'too many attestation JSONL rows exit validation';
+    is $many_stdout, "gobanftp.v1.witness=failed\n", 'too many attestation rows have failed status only';
+    like $many_stderr, qr/^diagnostic code=parse_attestations error=record_count$/m,
+        'too many attestation rows emit stable validation diagnostic';
+};
+
+subtest 'path-like output options reject control characters' => sub {
+    my $dir = tempdir(CLEANUP => 1);
+    my $newline_path = File::Spec->catfile($dir, "key\ninjected=1");
+
+    my ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'keygen',
+        '--profile', 'signed-hmac-goftp1',
+        '--out', $newline_path,
+    );
+    is $exit, 1, 'keygen newline path exits usage';
+    is $stdout, '', 'keygen newline path has no injectable stdout';
+    unlike $stderr, qr/^injected=1$/m, 'keygen newline path cannot inject a machine line';
+
+    my $tab_path = File::Spec->catfile($dir, "key\tinjected=1");
+    ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'keygen',
+        '--profile', 'signed-hmac-goftp1',
+        '--out', $tab_path,
+    );
+    is $exit, 1, 'keygen tab path exits usage';
+    is $stdout, '', 'keygen tab path has no injectable stdout';
+
+    my $esc_path = File::Spec->catfile($dir, "key\einjected=1");
+    ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'keygen',
+        '--profile', 'signed-hmac-goftp1',
+        '--out', $esc_path,
+    );
+    is $exit, 1, 'keygen escape path exits usage';
+    is $stdout, '', 'keygen escape path has no injectable stdout';
+
+    ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'keyid',
+        '--fixture', "missing\ninjected=1",
+    );
+    is $exit, 1, 'keyid newline fixture exits usage';
+    unlike $stdout . $stderr, qr/^injected=1$/m, 'keyid fixture cannot inject a machine line';
+
+    my $missing_with_newline = File::Spec->catfile($dir, "missing\ninjected=1");
+    ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'keyid',
+        '--fixture', $missing_with_newline,
+    );
+    is $exit, 1, 'keyid newline storage path is rejected before open';
+    unlike $stdout . $stderr, qr/^injected=1/m, 'keyid storage path cannot split stderr';
+};
+
 done_testing;
 
 sub _make_game_root {

@@ -39,20 +39,29 @@ sub witness_for_listing {
         profile_id           => $profile_id,
         substrate_profile_id => $args{substrate_profile_id},
     );
+    my (undef, $game_error) = parse_basename($game);
     my $ruleset    = _ruleset_record_for_game($game);
 
     my @profile_names = profile_listing_names(
         profile_id      => $adapter_profile_id,
         game_descriptor => $game,
         raw_names       => $raw_names,
+        exists($args{dns_owner_suffix}) ? (dns_owner_suffix => $args{dns_owner_suffix}) : (),
     );
     my @events        = normalize_listing(@profile_names);
     my @replay_events = @events;
 
-    my $event_set = event_set_root_result(
-        game_descriptor => $game,
-        names           => \@profile_names,
-    );
+    my $event_set = defined $game_error
+        ? {
+            version         => 'GOFTP-EVENT-SET/1',
+            event_count     => 0,
+            accepted_events => [],
+            diagnostics     => [],
+        }
+        : event_set_root_result(
+            game_descriptor => $game,
+            names           => \@profile_names,
+        );
 
     if (is_signed_hmac_profile($profile_id)) {
         $event_set = signed_hmac_event_set_result(
@@ -111,7 +120,6 @@ sub witness_for_listing {
         rejected_diagnostics      => \@rejected_diagnostics,
         rejected_codes            => [diagnostic_codes($event_set->{diagnostics})],
         rejected_classes          => [diagnostic_classes($event_set->{diagnostics}, $schema)],
-        event_set_root            => $event_set->{event_set_root},
         replay_status             => replay_status(\@diagnostics),
         canonical_tip             => @canonical_ids ? $canonical_ids[-1] : 'genesis',
         canonical_ids             => \@canonical_ids,
@@ -122,6 +130,8 @@ sub witness_for_listing {
         diagnostic_count          => scalar(@diagnostics),
         replay_diagnostics        => [map { _clone_diagnostic($_) } @diagnostics],
     };
+    $witness->{event_set_root} = $event_set->{event_set_root}
+        if exists $event_set->{event_set_root};
     $witness->{projection_text} = _projection_text($rendered)
         if $args{include_projection_text};
 

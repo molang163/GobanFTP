@@ -10,5 +10,6 @@ canonical_ids=khjclcui7pejbv3m,bihb3re4k9hlucat,kcvtlonfje163p9q
 legal_ids=khjclcui7pejbv3m,bihb3re4k9hlucat,kcvtlonfje163p9q
 diagnostic_classes=
 rejected_classes=
+consensus_inputs=descriptor,events
 ignored_inputs=webdav-etag,webdav-last-modified,webdav-content-length,webdav-displayname,webdav-locks,webdav-propfind-row-fields,resource-body-not-read,webdav-tmp,webdav-sidecar,webdav-projections,recursive-href,wrong-game-href,bad-percent,percent-encoded-slash,double-encoded-slash,duplicate-href,href-order
 note=WebDAV metadata and shadow resources cannot change the accepted event set or replay witness

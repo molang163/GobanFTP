@@ -1,5 +1,27 @@
 Revision history for GobanFTP
 
+v1.1-candidate  2026-05-25 (not released)
+  - Prepare an integration candidate for v1.1 hardening without tagging,
+    publishing, uploading, deploying, or producing a distribution artifact.
+  - Harden WebDAV, DNS record-file, local symlink, FTP exact-basename,
+    malformed signed-HMAC JSONL, CLI single-line diagnostic, temporary publish
+    name, and invalid-descriptor root boundaries.
+  - Add bounded WebDAV XML, DNS record-file, FTP listing, and signed-HMAC JSONL
+    input handling with fixture-local timeout coverage.
+  - Add conformance evidence for body bytes, file size, mtime, listing order,
+    sidecars, projections, tmp residue, recursive descendants, wrong-game
+    shadows, and cross-substrate roots/replay across Local, FTP, Git, DNS, and
+    WebDAV fixtures.
+  - Add scoped v1.1 JSON inspection surfaces for config, doctor, publish
+    results, v1 compare, and static showcase generation while preserving
+    key/value stdout defaults.
+  - Add store capability reporting, dry-run doctor checks, compact live watch
+    output, explicit fixture-preflight auth boundary fields, and local-only
+    showcase artifact generation from checked-in fixtures.
+  - Document the v1.1 JSON contract, claim audit, compatibility notes,
+    diagnostic changes, upgrade notes, and explicit non-goals while keeping the
+    current public release line at v1.0.1/package 1.001.
+
 1.001  2026-05-20
   - Release v1.0.1 / package 1.001 as a point release over the v1.0 proof
     boundary.

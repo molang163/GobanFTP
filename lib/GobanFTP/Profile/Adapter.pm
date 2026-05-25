@@ -21,7 +21,8 @@ sub profile_listing_names {
     profile($profile_id);
 
     return _git_tree_listing_names($game, $raw_names) if $profile_id eq 'git-tree-goftp1';
-    return _dns_record_listing_names($game, $raw_names) if $profile_id eq 'dns-record-goftp1';
+    return _dns_record_listing_names($game, $raw_names, $args{owner_suffix} // $args{dns_owner_suffix})
+        if $profile_id eq 'dns-record-goftp1';
     return _webdav_listing_names($game, $raw_names)   if $profile_id eq 'webdav-goftp1';
 
     return @$raw_names;
@@ -67,11 +68,11 @@ sub _git_tree_visible_name {
 }
 
 sub _dns_record_listing_names {
-    my ($game, $raw_names) = @_;
+    my ($game, $raw_names, $owner_suffix) = @_;
 
     my @names;
     for my $line (@$raw_names) {
-        my $event = _dns_record_event_value($line, $game);
+        my $event = _dns_record_event_value($line, $game, $owner_suffix);
         push @names, $event if defined $event;
     }
 
@@ -79,15 +80,19 @@ sub _dns_record_listing_names {
 }
 
 sub _dns_record_event_value {
-    my ($line, $game) = @_;
+    my ($line, $game, $owner_suffix) = @_;
 
     return undef if !defined $line || $line eq '';
 
     my %record = _dns_record_fields($line);
+    return undef if $record{__gobanftp_error};
     return undef if lc($record{type} // '') ne 'txt';
 
     my $owner = _dns_canon_owner($record{owner} // '');
-    return undef if $owner eq '' || !_dns_owner_matches_game($owner, $game);
+    my $suffix = defined($owner_suffix) && $owner_suffix ne ''
+        ? _dns_canon_owner($owner_suffix)
+        : '';
+    return undef if $owner eq '' || !_dns_owner_matches_game($owner, $game, $suffix);
 
     my $event = $record{event};
     return undef if !defined $event || !_dns_exact_event_basename($event);
@@ -98,15 +103,47 @@ sub _dns_record_event_value {
 sub _dns_record_fields {
     my ($line) = @_;
 
+    $line = _dns_strip_inline_comment($line);
+
     my %record;
+    my %seen;
     while ($line =~ /(?:\A|\s)([A-Za-z][A-Za-z0-9_-]*)=("[^"]*"|'[^']*'|[^\s]+)/g) {
         my ($key, $value) = (lc $1, $2);
+        if ($key =~ /\A(?:type|owner|event)\z/ && $seen{$key}++) {
+            return (__gobanftp_error => "duplicate.$key");
+        }
         $value =~ s/\A"(.*)"\z/$1/s;
         $value =~ s/\A'(.*)'\z/$1/s;
         $record{$key} = $value;
     }
 
     return %record;
+}
+
+sub _dns_strip_inline_comment {
+    my ($line) = @_;
+
+    $line //= '';
+    my ($out, $quote) = ('', undef);
+    my @chars = split //, $line;
+    while (@chars) {
+        my $char = shift @chars;
+        if (defined $quote) {
+            $out .= $char;
+            $quote = undef if $char eq $quote;
+            next;
+        }
+        if ($char eq '"' || $char eq "'") {
+            $quote = $char;
+            $out .= $char;
+            next;
+        }
+        last if $char eq '#' || $char eq ';';
+        $out .= $char;
+    }
+
+    $out =~ s/\s+\z//;
+    return $out;
 }
 
 sub _dns_canon_owner {
@@ -120,15 +157,20 @@ sub _dns_canon_owner {
 }
 
 sub _dns_owner_matches_game {
-    my ($owner, $game) = @_;
+    my ($owner, $game, $owner_suffix) = @_;
 
     my $game_label = lc $game;
     my @labels = split /\./, $owner;
     my @game_labels = split /\./, $game_label;
+    my @suffix = defined($owner_suffix) && $owner_suffix ne '' ? split(/\./, $owner_suffix) : ();
 
-    for my $i (0 .. $#labels) {
+    return 0 if @suffix && !_dns_has_suffix(\@labels, \@suffix);
+    my $end = @labels - @suffix;
+
+    for my $i (0 .. $end - 1) {
         next if $labels[$i] ne 'events';
-        next if $i + @game_labels >= @labels;
+        next if $i + @game_labels >= $end;
+        next if @suffix && $i + 1 + @game_labels != $end;
 
         my $matched = 1;
         for my $j (0 .. $#game_labels) {
@@ -141,6 +183,20 @@ sub _dns_owner_matches_game {
     }
 
     return 0;
+}
+
+sub _dns_has_suffix {
+    my ($labels, $suffix) = @_;
+
+    return 1 if !@$suffix;
+    return 0 if @$labels < @$suffix;
+
+    my $offset = @$labels - @$suffix;
+    for my $i (0 .. $#$suffix) {
+        return 0 if $labels->[$offset + $i] ne $suffix->[$i];
+    }
+
+    return 1;
 }
 
 sub _dns_exact_event_basename {

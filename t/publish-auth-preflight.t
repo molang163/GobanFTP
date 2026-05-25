@@ -59,6 +59,10 @@ subtest 'publish-move authorized preflight writes the exact candidate event' => 
     like $stdout, qr/^gobanftp[.]publish-move=ok$/m, 'publish-move reports ok';
     like $stdout, qr/^event=\Q$event\E$/m, 'reports the pre-authorized event';
     like $stdout, qr/^event_id=\Q$event_id\E$/m, 'reports the pre-authorized id';
+    like $stdout, qr/^publish_auth[.]scope=fixture-preflight$/m,
+        'prints fixture preflight scope';
+    like $stdout, qr/^publish_auth[.]production_authorization=0$/m,
+        'prints non-production auth boundary';
     like $stdout, qr/^publish_auth[.]status=authorized$/m, 'prints authorized status';
     like $stdout, qr/^publish_auth[.]key_id=\Q$key->{key_id}\E$/m, 'prints public key selector';
     like $stdout, qr/^publish_auth[.]diagnostic_count=0$/m, 'authorized path has no diagnostics';
@@ -88,6 +92,10 @@ subtest 'publish-move denied preflight does not write' => sub {
     is $exit, 2, 'rotated publish key exits validation';
     like $stdout, qr/^gobanftp[.]publish-move=failed$/m, 'publish-move reports failed';
     like $stdout, qr/^event=\Q$event\E$/m, 'denied path still reports the candidate event';
+    like $stdout, qr/^publish_auth[.]scope=fixture-preflight$/m,
+        'denied path prints fixture preflight scope';
+    like $stdout, qr/^publish_auth[.]production_authorization=0$/m,
+        'denied path prints non-production auth boundary';
     like $stdout, qr/^publish_auth[.]status=denied$/m, 'prints denied status';
     like $stdout, qr/^publish_auth[.]diagnostic_codes=untrusted_signature$/m,
         'stdout exposes stable auth diagnostic code';

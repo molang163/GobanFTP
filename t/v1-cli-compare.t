@@ -6,6 +6,7 @@ use FindBin;
 use File::Path qw(make_path);
 use File::Spec;
 use File::Temp qw(tempdir);
+use JSON::PP qw(decode_json);
 use Test::More;
 
 use lib "$FindBin::Bin/../lib";
@@ -13,6 +14,7 @@ use lib "$FindBin::Bin/../lib";
 use GobanFTP::CLI;
 
 my $fixture_dir = "$FindBin::Bin/fixtures/v1/cross-substrate";
+my $v1_minimal_root = '599c00f0614e400274a92ab1c96d09087a53d0d88bd8b0ecba481ac60a1f1461';
 my $ruleset_fixture_digest = '7fff59777950a614b901c305dba319cbb1090ef5a17515d949e249611bcec432';
 my $ruleset_seal = '085b851293e7cac4000baea532c4b975d1d830d6bea539ae51f50eea29c1034f';
 
@@ -82,6 +84,50 @@ subtest 'v1 compare-replay treats equal validation as a successful comparison' =
     like $stdout, qr/^replay_status=validation$/m, 'common replay status is validation';
     like $stdout, qr/^diagnostic_classes=event-id$/m, 'common diagnostic class is event-id';
     like $stdout, qr/^rejected_classes=event-id$/m, 'common rejection class is event-id';
+};
+
+subtest 'v1 compare reports invalid descriptor roots as validation failure' => sub {
+    my $root = tempdir(CLEANUP => 1);
+    my $fixture = File::Spec->catdir($root, 'invalid-descriptor');
+    make_path(
+        File::Spec->catdir($fixture, 'local-goftp1'),
+        File::Spec->catdir($fixture, 'ftp-goftp1'),
+    );
+
+    my $minimal = File::Spec->catdir($fixture_dir, 'minimal');
+    _write_text(File::Spec->catfile($fixture, 'game.name'), "not-a-game\n");
+    _write_text(
+        File::Spec->catfile($fixture, 'local-goftp1', 'listing.names'),
+        _read_text(File::Spec->catfile($minimal, 'local-goftp1', 'listing.names')),
+    );
+    _write_text(
+        File::Spec->catfile($fixture, 'ftp-goftp1', 'listing.names'),
+        _read_text(File::Spec->catfile($minimal, 'ftp-goftp1', 'listing.names')),
+    );
+
+    for my $subcommand (qw(compare-roots compare-replay)) {
+        my ($exit, $stdout, $stderr) = _run_cli(
+            'v1', $subcommand,
+            '--fixture', $fixture,
+        );
+
+        is $exit, 2, "$subcommand invalid descriptor exits validation failure";
+        is $stderr, '', "$subcommand invalid descriptor is reported on stdout";
+        like $stdout, qr/^gobanftp[.]v1[.]\Q$subcommand\E=failed$/m,
+            "$subcommand invalid descriptor status is failed";
+        like $stdout, qr/^mismatch_count=0$/m,
+            "$subcommand invalid descriptor has no cross-profile mismatch";
+        like $stdout, qr/^invalid_profile_count=2$/m,
+            "$subcommand invalid descriptor reports invalid profiles";
+        like $stdout, qr/^invalid_profiles=local-goftp1,ftp-goftp1$/m,
+            "$subcommand invalid descriptor names invalid profiles";
+        like $stdout, qr/^replay_status=validation$/m,
+            "$subcommand invalid descriptor reports validation replay status";
+        like $stdout, qr/^diagnostic_codes=parse_game_descriptor$/m,
+            "$subcommand invalid descriptor reports descriptor diagnostic";
+        unlike $stdout, qr/^event_set_root=[0-9a-f]{64}$/m,
+            "$subcommand invalid descriptor does not print a usable root";
+    }
 };
 
 subtest 'v1 compare-replay reports ruleset seal mismatch' => sub {
@@ -223,6 +269,29 @@ subtest 'v1 compare does not print secret-shaped fixture paths' => sub {
     is $exit, 0, 'secret-shaped fixture id still compares successfully';
     like $stdout, qr/^fixture_id=REDACTED$/m, 'secret-shaped fixture id is redacted';
     unlike $stdout . $stderr, qr/\Q$secret_fixture_id\E/, 'secret-shaped fixture path is not printed';
+};
+
+subtest 'v1 compare-roots --json keeps the structured scope explicit' => sub {
+    my ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'compare-roots',
+        '--fixture', File::Spec->catdir($fixture_dir, 'minimal'),
+        '--profiles', 'local-goftp1,ftp-goftp1',
+        '--json',
+    );
+
+    is $exit, 0, 'compare-roots --json exits success';
+    is $stderr, '', 'compare-roots --json has no diagnostics';
+    my $doc = decode_json($stdout);
+
+    is $doc->{schema}, 'gobanftp.compare-roots.v1', 'compare JSON has scoped schema';
+    is $doc->{version}, '1.1', 'compare JSON has version 1.1';
+    is $doc->{comparison_scope}, 'fixture-read-normalizer', 'compare JSON states fixture scope';
+    is_deeply $doc->{profiles}, ['local-goftp1', 'ftp-goftp1'], 'compare JSON preserves profile order';
+    is_deeply $doc->{mismatch_fields}, [], 'compare JSON reports no mismatches';
+    is $doc->{witnesses}{'local-goftp1'}{event_set_root}, $v1_minimal_root,
+        'compare JSON includes the local root';
+    is $doc->{witnesses}{'ftp-goftp1'}{replay_status}, 'ok',
+        'compare JSON includes per-profile replay status';
 };
 
 done_testing;

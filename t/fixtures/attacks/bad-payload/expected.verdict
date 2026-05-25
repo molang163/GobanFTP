@@ -14,5 +14,5 @@ legal_ids=khjclcui7pejbv3m,bihb3re4k9hlucat,kcvtlonfje163p9q
 diagnostic.code=
 diagnostic.class=
 consensus_inputs=descriptor,events
-ignored_inputs=file-bytes
+ignored_inputs=file-bytes,file-size
 note=event file bytes are ignored; the basename remains authoritative

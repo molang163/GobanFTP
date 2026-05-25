@@ -66,6 +66,7 @@ sub write_projection {
     my $rendered  = render_projection(%args);
     my $paths     = _projection_paths($game_root);
 
+    _assert_no_projection_symlinks($game_root, $paths);
     _make_path(
         $paths->{board_dir},
         $paths->{board_points_dir},
@@ -73,6 +74,7 @@ sub write_projection {
         $paths->{sgf_dir},
         $paths->{oracle_dir},
     );
+    _assert_no_projection_symlinks($game_root, $paths);
 
     _write_text($paths->{main_sgf},           $rendered->{sgf_main});
     _write_text($paths->{variations_sgf},     $rendered->{sgf_variations});
@@ -99,7 +101,9 @@ sub write_sgf_projection {
     my $rendered  = render_projection(%args);
     my $paths     = _projection_paths($game_root);
 
+    _assert_no_projection_symlinks($game_root, $paths);
     _make_path($paths->{sgf_dir});
+    _assert_no_projection_symlinks($game_root, $paths);
     _write_text($paths->{sgf}, $rendered->{sgf});
 
     return {
@@ -481,7 +485,9 @@ sub _write_text {
     my ($path, $text) = @_;
 
     my $dir = _parent_dir($path);
+    _assert_no_symlink_path($dir);
     _make_path($dir);
+    _assert_no_symlink_path($dir);
 
     my ($fh, $tmp) = tempfile('.gobanftp-tmp-XXXXXX', DIR => $dir, UNLINK => 0);
     binmode $fh, ':encoding(UTF-8)';
@@ -518,6 +524,40 @@ sub _parent_dir {
 
     my ($volume, $directories) = File::Spec->splitpath($path);
     return File::Spec->catpath($volume, $directories, '');
+}
+
+sub _assert_no_projection_symlinks {
+    my ($game_root, $paths) = @_;
+
+    for my $dir (
+        File::Spec->catdir($game_root, 'projections'),
+        $paths->{board_dir},
+        $paths->{board_points_dir},
+        $paths->{graveyard_dir},
+        $paths->{sgf_dir},
+        $paths->{oracle_dir},
+    ) {
+        _assert_no_symlink_path($dir);
+    }
+
+    return 1;
+}
+
+sub _assert_no_symlink_path {
+    my ($path) = @_;
+
+    my @parts = File::Spec->splitdir($path);
+    my $current = File::Spec->file_name_is_absolute($path) ? File::Spec->rootdir : '';
+    for my $part (@parts) {
+        next if !defined($part) || $part eq '' || $part eq File::Spec->rootdir;
+        $current = $current eq '' || $current eq File::Spec->rootdir
+            ? File::Spec->catdir($current, $part)
+            : File::Spec->catdir($current, $part);
+        next if !-e $current && !-l $current;
+        croak "storage: path component is a symlink: $current" if -l $current;
+    }
+
+    return 1;
 }
 
 sub _events_by_id {

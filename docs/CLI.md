@@ -22,10 +22,25 @@ single-line records on stderr beginning with `diagnostic`, followed by stable
 
 ## Commands
 
+### Global Flags
+
+`gobanftp --version` prints the package command version, for example
+`gobanftp 1.001`. It does not declare a v1.1 public release.
+
+Default command output remains key/value stdout. The v1.1 candidate adds a
+small set of explicit `--json` modes for automation-facing inspection:
+`config show --json`, `doctor --json`, `publish-move --json`,
+`publish-ack --json`, `v1 compare-roots --json`, `v1 compare-replay --json`,
+and `showcase --json`. Each JSON document has a scoped `schema` and
+`version=1.1`; no command should infer JSON from a global flag.
+
 ### Store Selection
 
-By default, commands use the local filesystem. Local descriptor arguments are
-resolved under `GOBANFTP_ROOT`, or the current directory when unset.
+By default, commands use the local filesystem. When a local argument is a path,
+the final path component is the game descriptor basename and must itself be a
+valid GOFTP game descriptor. Parent directories are storage location only; they
+are not part of game identity. A bare descriptor is resolved under
+`GOBANFTP_ROOT`, or the current directory when unset.
 
 Set `GOBANFTP_STORE=ftp` to use FTP. FTP event commands read and write game
 descriptor and `events/` names under `GOBANFTP_FTP_ROOT` and use:
@@ -92,8 +107,62 @@ GOBANFTP_WEBDAV_PUBLISH_MODE
 
 `GOBANFTP_WEBDAV_URL` is required in WebDAV mode. `GOBANFTP_WEBDAV_TOKEN` is a
 bearer token and cannot be combined with WebDAV user/password fields.
+Authenticated WebDAV URLs must use `https://`; Basic and Bearer credentials are
+rejected on `http://`. Unauthenticated `http://` remains available for
+mock/local cleartext fixtures and is not a production transport-safety mode.
 Credentials and tokens protect transport access only; they must never be printed
 in status lines or diagnostics.
+
+### `gobanftp config show [--json]`
+
+Prints the selected store mode, static store capabilities, selected environment
+keys, and missing required environment keys. This command is a dry
+configuration inspection path: it does not instantiate FTP, WebDAV, DNS, or Git
+stores and does not connect to a remote service.
+
+With `--json`, stdout is a `gobanftp.config.show.v1` document with
+`version=1.1`. Secret-like environment values such as passwords, bearer tokens,
+private secrets, and publish-auth keys are reported as `REDACTED`.
+
+### `gobanftp doctor [--json] [--connect]`
+
+Runs a bounded local diagnostic report for the selected store configuration.
+By default it is a dry run: it validates store mode, required environment keys,
+static capabilities, and local root existence without connecting to network
+stores. Missing required environment exits `2`.
+
+`--connect` is explicit and may instantiate the configured store after required
+environment keys are present. It is not a live service certification and must
+not be used as release evidence for real FTP/WebDAV/DNS/Git writes.
+
+With `--json`, stdout is a `gobanftp.doctor.v1` document with `version=1.1`.
+
+### `gobanftp showcase --out <dir> [--json]`
+
+Writes a direct-open static showcase directory from checked-in fixtures only:
+`index.html`, `witness-clean.html`, `witness-fork.html`,
+`demo-transcript.txt`, `release-evidence.txt`, and `roots.json`. Generated
+bundle is static; optional P2 loopback preview helper is local-only/read-only
+and not hosted UI/deploy. The generated files are display outputs, not replay
+inputs, and this path does not fetch remote resources, execute JavaScript, read
+credentials, or publish to any provider.
+
+With `--json`, stdout and `roots.json` use schema `gobanftp.showcase.v1` and
+`version=1.1`.
+
+### `gobanftp showcase preview --dir <dir> [--port <n>|0] [--once]`
+
+Optional P2 local preview helper for an already generated showcase directory.
+It binds only `127.0.0.1`, defaults to `--port 0`, preloads the six expected
+files into memory, and serves only `/` plus the exact generated filenames.
+`--once` exits after one successful `GET` or `HEAD`. Ready output remains
+key/value stdout; there is no preview `--json` mode and no `--host` option.
+
+The helper is read-only over the static bundle: it must not write events,
+rewrite generated artifacts, fetch remote resources, read credentials, publish
+to any provider, enable CORS, or act as release/deploy evidence. It is not a
+hosted Web UI, browser application, server deployment, or production network
+service.
 
 ### Signed/Auth Operation And Key Lifecycle Boundary
 
@@ -222,6 +291,8 @@ game=<game-descriptor>
 event=<event-basename>
 event_id=<event-id>
 key_id=<public-hmac-selector>
+publish_auth.scope=fixture-preflight
+publish_auth.production_authorization=0
 publish_auth.status=authorized
 diagnostic_count=0
 ```
@@ -243,7 +314,9 @@ candidate event is still built and replay-validated first. Only then is the
 publish token checked; denial exits `2`, prints signature-class diagnostics,
 and does not call the configured store's publish primitive. This is a
 verifier-local fixture gate for one candidate basename, not production writer
-authorization.
+authorization. The `publish_auth.scope=fixture-preflight` and
+`publish_auth.production_authorization=0` fields are part of that public
+boundary.
 
 `v1 keyid --fixture` is implemented as a read-only fixture command. Production
 `keyid` remains reserved until a real public-key suite is selected:
@@ -401,9 +474,10 @@ or replay results inside CLI code. It does not write events or projections.
 `--surface text|html|terminal` replaces the default key/value stdout summary with a
 read-only inspection surface. `text` writes a `GOFTP-WITNESS-SURFACE/1` plain
 text view. `html` writes self-contained static HTML suitable for redirecting to
-a file, renders `projection.board` as a visual board when the supplied
-projection text is well-formed, and keeps the raw projection text beside it.
-`terminal` writes a `GOFTP-TERMINAL-OBSERVATORY/1` static terminal status panel
+a file, adds same-document fragment navigation among supplied sections, renders
+`projection.board` as a visual board when the supplied projection text is
+well-formed, and keeps the raw projection text beside it. `terminal` writes a
+`GOFTP-TERMINAL-OBSERVATORY/1` static terminal status panel
 with the witness root, replay status, signature status, board hashes, and
 board/verdict projection excerpts. All formats are derived from the same
 witness result and projection text already rendered by `GobanFTP::Witness`; the
@@ -597,7 +671,7 @@ and reads that substrate's `events/` listing. `sgf --write` writes local
 projection files and is rejected in nonlocal store mode before constructing a
 nonlocal connection or replaying the nonlocal event listing.
 
-### `gobanftp publish-move [--nonce <n>] [--publish-auth-token <publish-token.jsonl>] [--publish-auth-trusted-hmac-key-file <hmac-key-file>] <game-root|game-descriptor> <aa|play-aa|pass|resign>`
+### `gobanftp publish-move [--json] [--nonce <n>] [--publish-auth-token <publish-token.jsonl>] [--publish-auth-trusted-hmac-key-file <hmac-key-file>] <game-root|game-descriptor> <aa|play-aa|pass|resign>`
 
 Creates and publishes one move event name through the configured store. A bare
 point such as `aa` is normalized to `play-aa`. The optional nonce must match
@@ -629,7 +703,13 @@ not publish. The auth gate is reached only after candidate replay validation.
 An auth denial exits `2`, reports `publish_auth.status=denied`, and does not
 publish. The command never reads event file bytes or sidecar files.
 
-### `gobanftp publish-ack [--nonce <n>] [--publish-auth-token <publish-token.jsonl>] [--publish-auth-trusted-hmac-key-file <hmac-key-file>] <game-root|game-descriptor> <event-id>`
+With `--json`, stdout is a `gobanftp.publish.result.v1` document with
+`version=1.1`. It includes the store capability model and explicit publish
+state fields for preexisting replay, candidate replay, auth preflight, store
+write attempt, post-publish visibility, and post-publish replay. JSON mode keeps
+diagnostics in the JSON document so stdout remains parseable.
+
+### `gobanftp publish-ack [--json] [--nonce <n>] [--publish-auth-token <publish-token.jsonl>] [--publish-auth-trusted-hmac-key-file <hmac-key-file>] <game-root|game-descriptor> <event-id>`
 
 Creates and publishes one ack event for a known legal move event id. The acking
 player is derived from the target move's opponent using the game descriptor
@@ -648,6 +728,9 @@ When publish preflight auth is enabled, the ack candidate must pass this
 verifier-local token preflight with a token bound to the exact `a1.*` basename
 and visible event id before the store write runs. A denied ack leaves no `a1.*`
 event behind.
+
+With `--json`, stdout uses the same `gobanftp.publish.result.v1` contract as
+`publish-move --json`.
 
 ### `gobanftp play [--once|--live|--tui] [--count <n>|--max-polls <n>] [--interval <seconds>] [--move <move>|--ack <event-id>] [--nonce <n>] [--publish-auth-token <publish-token.jsonl>] [--publish-auth-trusted-hmac-key-file <hmac-key-file>] <game-root|game-descriptor>`
 
@@ -736,7 +819,7 @@ ack-assisted replay. If the ack resolves the visible fork, the snapshot exits
 `watch`, `replay`, `sgf`, and `project` remain conservative by default on the
 same listing.
 
-### `gobanftp watch [--live] [--once] [--count <n>|--max-polls <n>] [--interval <seconds>] <game-root|game-descriptor>`
+### `gobanftp watch [--live] [--compact] [--once] [--count <n>|--max-polls <n>] [--interval <seconds>] <game-root|game-descriptor>`
 
 Repeatedly reloads the store listing and prints terminal snapshots. `--once` is
 equivalent to `--count 1`. `--max-polls` is an alias for `--count`. The default
@@ -758,3 +841,9 @@ diagnostics, and renders the replay-derived board surface; the process returns
 success only when the bounded poll count ends or it is interrupted. `--live`
 does not choose a fork winner, enable ack-assisted replay, read `tmp/` leases,
 or make polling order authoritative.
+
+With `--compact`, each snapshot keeps the status, event-set root/count, turn,
+worldline, and observer delta fields, but omits the board drawing. It is meant
+for bounded logs and scripts that want fresh listing observations without
+terminal board noise. Compact output is still replay-derived and does not read
+event bodies, sidecars, `tmp/`, projection bytes, or metadata.

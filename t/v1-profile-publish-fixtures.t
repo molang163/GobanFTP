@@ -17,6 +17,7 @@ my $root_path = 'goftp';
 
 my $game = _read_single(File::Spec->catfile($fixture_dir, 'game.name'));
 my $event = _read_single(File::Spec->catfile($fixture_dir, 'event.name'));
+my ($event_id) = $event =~ /\.h-([0-9a-v]{16})(?:\z|\.)/;
 my $expected = _read_verdict(File::Spec->catfile($fixture_dir, 'expected.verdict'));
 
 is $expected->{case}, 'webdav-publish-failure', 'fixture declares publish failure case';
@@ -29,7 +30,7 @@ ok $expected->{note} ne '', 'fixture has a judgment note';
 subtest 'existing final name is idempotent and does not upload again' => sub {
     my $http = PublishFixtureWebDAV->new(root => $root_path);
     $http->create_file("$root_path/$game/events/$event");
-    $http->create_file("$root_path/$game/tmp/alice-pub1.part");
+    $http->create_file("$root_path/$game/tmp/alice-pub1-$event_id.part");
     my $store = _store($http);
 
     ok $store->publish_event_name($game, $event), 'existing final event is publish success';
@@ -85,7 +86,7 @@ subtest 'hard MOVE failure leaves only temporary debris outside witness truth' =
     is_deeply [ $http->put_sizes ], [0], 'failed publish uploaded one zero-byte temporary resource';
     is scalar(grep { $_->[0] eq 'MOVE' } $http->calls), 2, 'hard failure uses bounded MOVE retries';
     ok !$http->exists_path("$root_path/$game/events/$event"), 'final event is not visible';
-    ok $http->exists_path("$root_path/$game/tmp/alice-pub1.part"), 'temporary debris remains visible outside events';
+    ok $http->exists_path("$root_path/$game/tmp/alice-pub1-$event_id.part"), 'temporary debris remains visible outside events';
     _assert_webdav_witness($http, 0 + $expected->{failure_accepted_count}, $expected->{empty_event_set_root});
     _assert_no_forbidden_reads($http, 'hard failure still avoids resource-content reads');
 };
@@ -285,7 +286,7 @@ sub _propfind {
             '<D:response><D:href>' . _xml_escape($_) . '</D:href>'
                 . '<D:propstat><D:prop><D:getetag>"ignored"</D:getetag>'
                 . '<D:getcontentlength>999</D:getcontentlength>'
-                . '</D:prop></D:propstat></D:response>'
+                . '</D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>'
         } @hrefs)
         . '</D:multistatus>';
 

@@ -11,26 +11,31 @@ use File::Basename qw(basename dirname);
 use File::Spec;
 
 use GobanFTP::GameSpec qw(parse_basename);
+use GobanFTP::Redact qw(redact_text);
 use GobanFTP::Store::DNSRecord;
 use GobanFTP::Store::FTP;
 use GobanFTP::Store::GitTree;
 use GobanFTP::Store::Local;
 use GobanFTP::Store::WebDAV;
 
-our @EXPORT_OK = qw(context_for_descriptor context_for_game_arg store_from_env store_mode);
+our @EXPORT_OK = qw(
+    context_for_descriptor
+    context_for_game_arg
+    doctor_report
+    store_capabilities
+    store_config_summary
+    store_from_env
+    store_mode
+);
+
+my @VALID_STORE_MODES = qw(local ftp git-tree dns-record webdav);
+my %VALID_STORE_MODE = map { $_ => 1 } @VALID_STORE_MODES;
 
 sub store_mode {
     my $mode = lc($ENV{GOBANFTP_STORE} // 'local');
     $mode = 'local' if $mode eq '';
 
-    croak 'GOBANFTP_STORE must be local, ftp, git-tree, dns-record, or webdav'
-        if $mode ne 'local'
-        && $mode ne 'ftp'
-        && $mode ne 'git-tree'
-        && $mode ne 'dns-record'
-        && $mode ne 'webdav';
-
-    return $mode;
+    return _normalize_store_mode($mode);
 }
 
 sub store_from_env {
@@ -44,6 +49,100 @@ sub store_from_env {
     return _webdav_store_from_env() if $mode eq 'webdav';
 
     croak 'GOBANFTP_STORE must be local, ftp, git-tree, dns-record, or webdav';
+}
+
+sub store_capabilities {
+    my ($mode) = @_;
+
+    $mode = _normalize_store_mode($mode // store_mode());
+    return _capabilities_for_mode($mode);
+}
+
+sub store_config_summary {
+    my (%args) = @_;
+
+    my ($mode, $diagnostic) = _report_store_mode($args{mode}, exists $args{mode});
+    my @diagnostics = defined($diagnostic) ? ($diagnostic) : ();
+    my @missing = defined($diagnostic) ? () : _missing_required_env($mode);
+    my %requested = defined($diagnostic) && defined($diagnostic->{requested_store_mode})
+        ? (requested_store_mode => $diagnostic->{requested_store_mode})
+        : ();
+
+    return {
+        schema               => 'gobanftp.config.show.v1',
+        version              => '1.1',
+        status               => @diagnostics ? 'failed' : 'ok',
+        store_mode           => $mode,
+        %requested,
+        capabilities         => _capabilities_for_report($mode),
+        env                  => _env_summary($mode),
+        missing_required_env => \@missing,
+        diagnostics          => \@diagnostics,
+    };
+}
+
+sub doctor_report {
+    my (%args) = @_;
+
+    my ($mode, $diagnostic) = _report_store_mode($args{mode}, exists $args{mode});
+    my $connect = $args{connect} ? 1 : 0;
+    my @diagnostics = defined($diagnostic) ? ($diagnostic) : ();
+    my @missing = defined($diagnostic) ? () : _missing_required_env($mode);
+    my %requested = defined($diagnostic) && defined($diagnostic->{requested_store_mode})
+        ? (requested_store_mode => $diagnostic->{requested_store_mode})
+        : ();
+    my @checks = (
+        {
+            name   => 'store.mode',
+            status => defined($diagnostic) ? 'failed' : 'ok',
+            detail => $mode,
+            defined($diagnostic) ? (code => $diagnostic->{code}) : (),
+        },
+        {
+            name   => 'store.required_env',
+            status => defined($diagnostic) ? 'skipped' : @missing ? 'failed' : 'ok',
+            detail => defined($diagnostic) ? $diagnostic->{code} : join(',', @missing),
+        },
+        {
+            name   => 'doctor.connect',
+            status => $connect && !defined($diagnostic) ? 'requested' : 'skipped',
+            detail => defined($diagnostic) ? $diagnostic->{code} : $connect ? 'explicit' : 'dry-run',
+        },
+    );
+
+    if (!defined($diagnostic) && $mode eq 'local') {
+        my $root = _local_root();
+        push @checks, {
+            name   => 'local.root',
+            status => -d $root ? 'ok' : 'failed',
+            detail => $root,
+        };
+    }
+
+    if ($connect && !@missing && !defined($diagnostic)) {
+        my $connected = eval { store_from_env(mode => $mode); 1 };
+        push @checks, {
+            name   => 'store.connect',
+            status => $connected ? 'ok' : 'failed',
+            detail => $connected ? '' : _clean_error($@),
+        };
+    }
+
+    my $status = grep({ $_->{status} eq 'failed' } @checks) ? 'failed' : 'ok';
+
+    return {
+        schema               => 'gobanftp.doctor.v1',
+        version              => '1.1',
+        status               => $status,
+        dry_run              => $connect ? 0 : 1,
+        connect_requested    => $connect,
+        store_mode           => $mode,
+        %requested,
+        capabilities         => _capabilities_for_report($mode),
+        missing_required_env => \@missing,
+        diagnostics          => \@diagnostics,
+        checks               => \@checks,
+    };
 }
 
 sub context_for_descriptor {
@@ -164,6 +263,7 @@ sub _local_context_for_arg {
         my $game_root = File::Spec->rel2abs($game_arg);
         my $parent = dirname($game_root);
         my $descriptor = basename($game_root);
+        _assert_descriptor($descriptor);
         my $store = GobanFTP::Store::Local->new(root => $parent);
 
         return {
@@ -309,6 +409,205 @@ sub _dns_record_store_from_env {
 sub _env_bool {
     my ($value) = @_;
     return defined($value) && $value ne '' && $value ne '0' ? 1 : 0;
+}
+
+sub _normalize_store_mode {
+    my ($mode) = @_;
+
+    $mode = _store_mode_value($mode);
+
+    croak 'GOBANFTP_STORE must be local, ftp, git-tree, dns-record, or webdav'
+        if !$VALID_STORE_MODE{$mode};
+
+    return $mode;
+}
+
+sub _report_store_mode {
+    my ($mode, $has_mode_arg) = @_;
+
+    my $requested = $has_mode_arg && defined($mode) ? $mode : $ENV{GOBANFTP_STORE};
+    $mode = _store_mode_value($requested);
+    return ($mode, undef) if $VALID_STORE_MODE{$mode};
+
+    return ('invalid', _invalid_store_mode_diagnostic($requested));
+}
+
+sub _store_mode_value {
+    my ($mode) = @_;
+
+    $mode = lc($mode // 'local');
+    $mode = 'local' if $mode eq '';
+    return $mode;
+}
+
+sub _invalid_store_mode_diagnostic {
+    my ($requested) = @_;
+
+    return {
+        code                 => 'invalid_store_mode',
+        class                => 'config',
+        field                => 'GOBANFTP_STORE',
+        value                => 'invalid',
+        requested_store_mode => _redacted_store_mode($requested),
+        message              => 'unsupported store mode',
+    };
+}
+
+sub _redacted_store_mode {
+    my ($mode) = @_;
+
+    return _public_redacted_text($mode);
+}
+
+sub _capabilities_for_mode {
+    my ($mode) = @_;
+
+    my %capability = (
+        local => {
+            can_read_events  => 1,
+            can_publish      => 1,
+            can_mkdir        => 1,
+            read_only        => 0,
+            network_required => 0,
+            projection_write => 1,
+        },
+        ftp => {
+            can_read_events  => 1,
+            can_publish      => 1,
+            can_mkdir        => 1,
+            read_only        => 0,
+            network_required => 1,
+            projection_write => 0,
+        },
+        webdav => {
+            can_read_events  => 1,
+            can_publish      => 1,
+            can_mkdir        => 1,
+            read_only        => 0,
+            network_required => 1,
+            projection_write => 0,
+        },
+        'git-tree' => {
+            can_read_events  => 1,
+            can_publish      => 0,
+            can_mkdir        => 0,
+            read_only        => 1,
+            network_required => 0,
+            projection_write => 0,
+        },
+        'dns-record' => {
+            can_read_events  => 1,
+            can_publish      => 0,
+            can_mkdir        => 0,
+            read_only        => 1,
+            network_required => 0,
+            projection_write => 0,
+        },
+    );
+
+    return undef if !$VALID_STORE_MODE{$mode};
+    return {
+        store_mode => $mode,
+        %{ $capability{$mode} },
+    };
+}
+
+sub _capabilities_for_report {
+    my ($mode) = @_;
+
+    return _capabilities_for_mode($mode) if $VALID_STORE_MODE{$mode};
+    return {
+        store_mode       => $mode,
+        can_read_events  => 0,
+        can_publish      => 0,
+        can_mkdir        => 0,
+        read_only        => 0,
+        network_required => 0,
+        projection_write => 0,
+    };
+}
+
+sub _missing_required_env {
+    my ($mode) = @_;
+
+    my %required = (
+        local        => [],
+        ftp          => [qw(GOBANFTP_FTP_HOST)],
+        webdav       => [qw(GOBANFTP_WEBDAV_URL)],
+        'git-tree'   => [qw(GOBANFTP_GIT_REPO)],
+        'dns-record' => [qw(GOBANFTP_DNS_RECORD_FILE)],
+    );
+
+    return grep { !defined($ENV{$_}) || $ENV{$_} eq '' } @{ $required{$mode} // [] };
+}
+
+sub _env_summary {
+    my ($mode) = @_;
+
+    my @keys = (
+        qw(GOBANFTP_STORE GOBANFTP_ROOT),
+        qw(GOBANFTP_FTP_HOST GOBANFTP_FTP_ROOT GOBANFTP_FTP_USER GOBANFTP_FTP_PASSWORD GOBANFTP_FTP_PORT GOBANFTP_FTP_TIMEOUT GOBANFTP_FTP_PASSIVE GOBANFTP_FTP_DEBUG GOBANFTP_FTP_CLASS GOBANFTP_FTP_PUBLISH_MODE),
+        qw(GOBANFTP_WEBDAV_URL GOBANFTP_WEBDAV_USER GOBANFTP_WEBDAV_PASSWORD GOBANFTP_WEBDAV_TOKEN GOBANFTP_WEBDAV_TIMEOUT GOBANFTP_WEBDAV_DEBUG GOBANFTP_WEBDAV_CLASS GOBANFTP_WEBDAV_PUBLISH_MODE),
+        qw(GOBANFTP_GIT_REPO GOBANFTP_GIT_TREEISH GOBANFTP_GIT_BINARY),
+        qw(GOBANFTP_DNS_RECORD_FILE GOBANFTP_DNS_OWNER_SUFFIX),
+        qw(GOBANFTP_PUBLISH_AUTH_TOKEN GOBANFTP_PUBLISH_AUTH_PROFILE GOBANFTP_PUBLISH_AUTH_KEY),
+    );
+
+    my %selected = map { $_ => 1 } _env_keys_for_mode($mode);
+    my @rows;
+    for my $key (@keys) {
+        next if !$selected{$key} && !defined $ENV{$key};
+        push @rows, {
+            name     => $key,
+            selected => $selected{$key} ? 1 : 0,
+            set      => defined($ENV{$key}) && $ENV{$key} ne '' ? 1 : 0,
+            value    => _redacted_env_value($key, $ENV{$key}),
+        };
+    }
+
+    return \@rows;
+}
+
+sub _env_keys_for_mode {
+    my ($mode) = @_;
+
+    return qw(GOBANFTP_STORE GOBANFTP_ROOT) if $mode eq 'local';
+    return qw(GOBANFTP_STORE GOBANFTP_FTP_HOST GOBANFTP_FTP_ROOT GOBANFTP_FTP_USER GOBANFTP_FTP_PASSWORD GOBANFTP_FTP_PORT GOBANFTP_FTP_TIMEOUT GOBANFTP_FTP_PASSIVE GOBANFTP_FTP_DEBUG GOBANFTP_FTP_CLASS GOBANFTP_FTP_PUBLISH_MODE)
+        if $mode eq 'ftp';
+    return qw(GOBANFTP_STORE GOBANFTP_WEBDAV_URL GOBANFTP_WEBDAV_USER GOBANFTP_WEBDAV_PASSWORD GOBANFTP_WEBDAV_TOKEN GOBANFTP_WEBDAV_TIMEOUT GOBANFTP_WEBDAV_DEBUG GOBANFTP_WEBDAV_CLASS GOBANFTP_WEBDAV_PUBLISH_MODE)
+        if $mode eq 'webdav';
+    return qw(GOBANFTP_STORE GOBANFTP_GIT_REPO GOBANFTP_GIT_TREEISH GOBANFTP_GIT_BINARY)
+        if $mode eq 'git-tree';
+    return qw(GOBANFTP_STORE GOBANFTP_DNS_RECORD_FILE GOBANFTP_DNS_OWNER_SUFFIX)
+        if $mode eq 'dns-record';
+    return qw(GOBANFTP_STORE);
+}
+
+sub _redacted_env_value {
+    my ($key, $value) = @_;
+
+    return undef if !defined($value) || $value eq '';
+    return 'REDACTED'
+        if $key =~ /(?:PASSWORD|TOKEN|SECRET|PRIVATE|PUBLISH_AUTH_KEY)\z/;
+    return _public_redacted_text($value);
+}
+
+sub _clean_error {
+    my ($error) = @_;
+
+    return '' if !defined $error;
+    chomp $error;
+    $error =~ s/\s+/ /g;
+    $error =~ s/\A\s+|\s+\z//g;
+    return _public_redacted_text($error);
+}
+
+sub _public_redacted_text {
+    my ($value) = @_;
+
+    my $redacted = redact_text($value // '');
+    $redacted =~ s{://\[REDACTED\]\@}{://REDACTED@}g;
+    return $redacted;
 }
 
 1;

@@ -26,6 +26,10 @@ docs/ROADMAP.md
 docs/RULES.md
 docs/SHOWCASE.md
 docs/SOURCE_ART.md
+docs/V1_1_AUTH_BOUNDARY.md
+docs/V1_1_UPDATE_CHECKLIST.md
+docs/V1_1_RELEASE_GATE.md
+docs/V1_1_RELEASE_NOTES.md
 docs/V1_DOD.md
 examples/fixtures/ftp-race-shrine/g1.id-ftp-race-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim/events/a1.t-ps9v3kftvp5v1gl5.by-daemon.n-ackleft.h-7d3cjn514h885jq1
 examples/fixtures/ftp-race-shrine/g1.id-ftp-race-shrine.s9.r-chinese-area-v1.k7500.pb-daemon.pw-pilgrim/events/m1.p000001.b.play-dd.pa-genesis.by-daemon.n-root1.h-hihat4p8r6gaeuts
@@ -243,6 +247,7 @@ examples/fixtures/README.md
 examples/static/witness-specimen.html
 lib/GobanFTP.pm
 lib/GobanFTP/AckPublisher.pm
+lib/GobanFTP/Auth/Boundary.pm
 lib/GobanFTP/Auth/HMAC.pm
 lib/GobanFTP/Auth/HMACKey.pm
 lib/GobanFTP/Auth/KeyID.pm
@@ -258,6 +263,7 @@ lib/GobanFTP/EventID.pm
 lib/GobanFTP/EventSetRoot.pm
 lib/GobanFTP/Filename/Grammar.pm
 lib/GobanFTP/GameSpec.pm
+lib/GobanFTP/JSON.pm
 lib/GobanFTP/Listing.pm
 lib/GobanFTP/MovePublisher.pm
 lib/GobanFTP/Oracle/Smoke.pm
@@ -271,6 +277,7 @@ lib/GobanFTP/Rules.pm
 lib/GobanFTP/Rules/C.pm
 lib/GobanFTP/RulesetSeal.pm
 lib/GobanFTP/SGF.pm
+lib/GobanFTP/Showcase/StaticPreview.pm
 lib/GobanFTP/Store.pm
 lib/GobanFTP/Store/Config.pm
 lib/GobanFTP/Store/DNSRecord.pm
@@ -293,6 +300,7 @@ script/gobanftp
 script/live-ftp-smoke
 t/00-load.t
 t/ack-publisher.t
+t/auth-boundary.t
 t/attack-fixtures.t
 t/auth-hmac-key.t
 t/auth-keyid.t
@@ -303,7 +311,9 @@ t/cli-auth-hmac.t
 t/cli-auth-keyid.t
 t/cli-auth-publish-token.t
 t/cli-auth-trust-report.t
+t/cli-config-doctor.t
 t/cli.t
+t/ci-source-release-gate.t
 t/coord.t
 t/create-game.t
 t/dag.t
@@ -320,6 +330,7 @@ t/example-ftp-race-shrine.t
 t/example-ftp-shrine.t
 t/example-minimal-game.t
 t/filename-grammar.t
+t/json-helper.t
 t/fixtures/attacks/bad-event-id/expected.verdict
 t/fixtures/attacks/bad-event-id/game.name
 t/fixtures/attacks/bad-event-id/listing.names
@@ -572,6 +583,7 @@ t/profile-adapter.t
 t/profile-registry.t
 t/profile-signed-hmac.t
 t/projection-rebuild.t
+t/publish-result-json.t
 t/publish-ack.t
 t/publish-auth-preflight.t
 t/publish-move.t
@@ -590,8 +602,11 @@ t/rules-superko.t
 t/ruleset-seal.t
 t/sgf.t
 t/showcase-demo.t
+t/showcase-preview.t
+t/showcase-v1_1.t
 t/source-art.t
 t/static-witness-specimen.t
+t/store-config.t
 t/store-contract.t
 t/store-dns-record.t
 t/store-ftp-mock.t
@@ -602,10 +617,12 @@ t/store-webdav-mock.t
 t/surface-witness-view.t
 t/tui-play.t
 t/v1-attack-fixtures.t
+t/v1-claim-audit.t
 t/v1-cli-compare.t
 t/v1-cli-witness-surface-golden.t
 t/v1-cli-witness-surface.t
 t/v1-cli-witness.t
+t/v1-conformance-boundary.t
 t/v1-cross-substrate.t
 t/v1-golden-vectors.t
 t/v1-profile-attack-fixtures.t

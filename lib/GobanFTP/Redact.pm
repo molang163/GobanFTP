@@ -19,7 +19,7 @@ sub redact_text {
     }
 
     $text =~ s{-----BEGIN [^-]*PRIVATE KEY-----.*?-----END [^-]*PRIVATE KEY-----}{[REDACTED]}gis;
-    $text =~ s{(ftp://[^:\s/@]+:)[^@\s/]+(@)}{${1}[REDACTED]${2}}gi;
+    $text =~ s{(\b[A-Za-z][A-Za-z0-9+.-]*://)([^/?#\s]*@)}{${1}[REDACTED]@}g;
     $text =~ s{(\bAuthorization\s*:\s*(?:Bearer|Basic)\s+)[^\r\n\s]+}{${1}[REDACTED]}gi;
     $text =~ s{(\bCookie\s*:\s*)[^\r\n]+}{${1}[REDACTED]}gi;
     $text =~ s{(\bSet-Cookie\s*:\s*)[^\r\n]+}{${1}[REDACTED]}gi;

@@ -312,7 +312,8 @@ subtest 'WebDAV publish-move reports hard MOVE failures without leaking auth' =>
         player          => 'alice',
         nonce           => 'hardlock',
     );
-    my $tmp_path = "$GAME/tmp/alice-hardlock.part";
+    my ($event_id) = $event =~ /\.h-([0-9a-v]{16})(?:\z|\.)/;
+    my $tmp_path = "$GAME/tmp/alice-hardlock-$event_id.part";
     my $target_path = "$GAME/events/$event";
 
     WebDAVCliParityHTTP->fail_moves(423, 'Locked');
@@ -628,7 +629,11 @@ sub _propfind {
         keys %{ $self->{entries} };
     my @hrefs = (_href_for_path($path), map { _href_for_path($_) } @children);
     my $xml = '<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:">'
-        . join('', map { '<D:response><D:href>' . _xml_escape($_) . '</D:href></D:response>' } @hrefs)
+        . join('', map {
+            '<D:response><D:href>' . _xml_escape($_) . '</D:href>'
+                . '<D:propstat><D:status>HTTP/1.1 200 OK</D:status></D:propstat>'
+                . '</D:response>'
+        } @hrefs)
         . '</D:multistatus>';
 
     return _response(207, 'Multi-Status', content => $xml);

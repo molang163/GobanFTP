@@ -258,6 +258,36 @@ subtest 'verdict treats fork plus validation failures as validation' => sub {
     like $rendered->{verdict}, qr/^status=validation$/m, 'validation errors take precedence over fork status';
 };
 
+subtest 'projection writers reject symlinked projection directories' => sub {
+    my ($game_root, $game, $events) = _make_game($fixture_dir, 'events.names', stale_projection => 0);
+    my $outside = tempdir(CLEANUP => 1);
+    my $projection_root = File::Spec->catdir($game_root, 'projections');
+    if (!eval { symlink $outside, $projection_root }) {
+        plan skip_all => 'symlink unavailable on this platform';
+    }
+
+    my $result = replay(game_descriptor => $game, events => $events);
+    like _dies(sub {
+        write_projection(
+            game_root       => $game_root,
+            game_descriptor => $game,
+            events          => $events,
+            replay_result   => $result,
+        );
+    }), qr/symlink/, 'write_projection rejects symlinked projections directory';
+    ok !-e File::Spec->catfile($outside, qw(oracle board.txt)), 'projection did not escape to outside target';
+
+    like _dies(sub {
+        write_sgf_projection(
+            game_root       => $game_root,
+            game_descriptor => $game,
+            events          => $events,
+            replay_result   => $result,
+        );
+    }), qr/symlink/, 'write_sgf_projection rejects symlinked projections directory';
+    ok !-e File::Spec->catfile($outside, qw(sgf main.sgf)), 'SGF projection did not escape to outside target';
+};
+
 done_testing;
 
 sub _make_game {
@@ -331,6 +361,14 @@ sub _slurp {
     my $text = do { local $/; <$fh> };
     close $fh or die "close $path: $!";
     return $text;
+}
+
+sub _dies {
+    my ($code) = @_;
+
+    my $error = '';
+    eval { $code->(); 1 } or $error = $@;
+    return $error;
 }
 
 sub _listing_transcript_events {

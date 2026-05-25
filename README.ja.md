@@ -128,11 +128,16 @@ repository 内の fixture を使います。
 perl Makefile.PL
 make
 make test
-prove -lr t/showcase-demo.t
+prove -lr t/showcase-demo.t t/showcase-v1_1.t
+perl -Ilib script/gobanftp showcase --out showcase-v1.1
 ```
 
 showcase test は、通常の一局を replay できること、race が見える fork として残ること、
 表示層、file body、metadata が一局を勝手に決めないことを確認します。
+
+`gobanftp showcase --out showcase-v1.1` は repository 内の fixture だけから、
+local で直接開ける static directory を生成します。これは local inspection 用の
+表示出力であり、hosted Web UI でも replay input でもありません。
 
 clean fixture を直接実行します。
 
@@ -255,11 +260,13 @@ read-only な live-over-listing 観察には、bounded な `watch --live` また
 
 ```sh
 perl -Ilib script/gobanftp watch --live --max-polls 3 --interval 1 "$game"
+perl -Ilib script/gobanftp watch --live --compact --max-polls 3 --interval 1 "$game"
 ```
 
 live mode は、見える fork や validation diagnostics があっても polling を続けます。
 勝者を選ばず、move も publish しません。`events/` を繰り返し列挙し、名前から replay し、
-現在の witness surface を表示するだけです。
+現在の witness surface を表示するだけです。`--compact` は event-set と worldline fields を
+残しつつ、board drawing を省略します。
 
 <a id="static-witness-specimen"></a>
 
@@ -389,7 +396,8 @@ v1.0.1/package 1.001 の範囲は次の通りです。
 FTP listing-shadow public poison-vector coverage は fixture/listing 上の検証材料だけです。
 `RETR`、`SIZE`、`MDTM`、live FTP auth、live FTP integrity、production FTP deployment
 safety は扱いません。`ftp-goftp1` tmp+rename publish path は別に declared
-され、mock FTP tests と optional disposable live smoke coverage で扱われます。
+され、mock FTP tests で扱われます。Live provider smoke は P1 fixture-local
+review scope の外に残ります。
 
 この release の signed-HMAC material は verifier-local fixture/preflight の検証材料
 です。production writer authorization でも production key lifecycle でもありません。
@@ -491,6 +499,7 @@ record-file admission、WebDAV は、event file contents、blob bytes、resource
 DNS transport metadata を読まずに、同じ「名前一覧を先に読む」境界へ正規化されます。
 共通する規則は単純です。replay は列挙できる名前だけを読み、file contents や remote
 metadata は読みません。
+local argument が path の場合、最後の path component だけが game descriptor basename として使われます。その basename は有効な GOFTP game descriptor でなければなりません。
 
 FTP mode:
 
@@ -518,6 +527,8 @@ GOBANFTP_WEBDAV_TIMEOUT
 GOBANFTP_WEBDAV_CLASS
 GOBANFTP_WEBDAV_PUBLISH_MODE
 ```
+
+認証付き WebDAV URL は `https://` が必須です。Basic と Bearer の認証情報は `http://` では拒否されます。認証なしの `http://` は mock/local の平文 fixture 用に残しているもので、production transport-safety mode ではありません。
 
 Git tree mode:
 
@@ -571,17 +582,15 @@ prove -lr t
 ```
 
 現在の P14 release 記録は `docs/P14_RELEASE_GATE.md` にあります。final release-source
-の確認内容を記録し、external artifact/tag record plan を指します。final tarball
+の確認内容を記録し、external release/tag record plan を指します。final tarball
 hash は source tree の外に置かれます。
 
-final artifact identity、version decision、tag preconditions は
+final distribution identity、version decision、tag preconditions は
 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md` で追跡されます。
 
-optional disposable live FTP smoke:
-
-```sh
-script/live-ftp-smoke
-```
+P1 fixture-local review scope では、live provider smoke、distribution
+packaging、tag、upload、deploy は P1 の外にあります。これらには後続の
+separate maintainer-run gate が必要です。
 
 ## License
 

@@ -123,10 +123,14 @@ GobanFTP 不是：
 perl Makefile.PL
 make
 make test
-prove -lr t/showcase-demo.t
+prove -lr t/showcase-demo.t t/showcase-v1_1.t
+perl -Ilib script/gobanftp showcase --out showcase-v1.1
 ```
 
 这条检查会验证几件事：正常棋局能回放；并发冲突会显示成 fork；展示层、文件内容和元数据不会偷偷改变棋局。
+
+`gobanftp showcase --out showcase-v1.1` 会从仓库里的 fixture 生成一个本地可直接打开的静态目录。
+它只是本地检查用的展示输出，不是托管 Web UI，也不是 replay 输入。
 
 直接跑示例棋局：
 
@@ -229,9 +233,10 @@ select -> confirm -> publishing_locked -> published
 
 ```sh
 perl -Ilib script/gobanftp watch --live --max-polls 3 --interval 1 "$game"
+perl -Ilib script/gobanftp watch --live --compact --max-polls 3 --interval 1 "$game"
 ```
 
-live 模式遇到可见 fork 或 validation diagnostics 后会继续轮询。它不会选择胜者，也不会发布落子；它只会反复列出 `events/`，从文件名 replay，并展示当前 witness surface。
+live 模式遇到可见 fork 或 validation diagnostics 后会继续轮询。它不会选择胜者，也不会发布落子；它只会反复列出 `events/`，从文件名 replay，并展示当前 witness surface。`--compact` 会保留 event-set 和 worldline 字段，但省略棋盘绘制。
 
 <a id="static-witness-specimen"></a>
 
@@ -429,6 +434,7 @@ find "$GOBANFTP_ROOT" -path '*/events/*' -exec basename {} \; | sort
 
 默认 store 是本地目录。FTP、WebDAV、read-only Git tree 和 read-only DNS record-file 都被规整到同一条 listing-first 边界。
 这些后端的共同点是：replay 只读取可枚举的名字，不读取文件内容或远端元数据。
+本地参数如果是路径，只使用最后一段作为 game descriptor basename；这个 basename 必须是合法的 GOFTP game descriptor。
 
 FTP mode:
 
@@ -456,6 +462,8 @@ GOBANFTP_WEBDAV_TIMEOUT
 GOBANFTP_WEBDAV_CLASS
 GOBANFTP_WEBDAV_PUBLISH_MODE
 ```
+
+带认证的 WebDAV URL 必须使用 `https://`；Basic 和 Bearer 凭据会在 `http://` 上被拒绝。不带认证的 `http://` 保留给 mock/本地明文 fixture 使用，不是生产传输安全模式。
 
 Git tree mode:
 
@@ -499,11 +507,15 @@ prove -lr t/showcase-demo.t
 prove -lr t
 ```
 
-可选 disposable live FTP smoke：
+当前 P14 release 记录在 `docs/P14_RELEASE_GATE.md`。它记录 final
+release-source 检查，并指向外部 release/tag record plan；final tarball
+hash 位于 source tree 外。
 
-```sh
-script/live-ftp-smoke
-```
+最终 distribution identity、version decision 和 tag preconditions 记录在
+`docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`。
+
+对 P1 fixture-local review scope 而言，live provider smoke、distribution
+packaging、tag、upload 和 deploy 都在 P1 外；它们需要后续单独的 maintainer-run gate。
 
 ## License
 
@@ -514,10 +526,6 @@ Copyright 2026 GobanFTP contributors.
 
 这项许可只覆盖仓库内容。它不授权你访问、测试或发布到第三方 FTP、WebDAV、
 DNS、Git 或其他系统，也不是生产安全认证。
-
-P14 release 记录在 `docs/P14_RELEASE_GATE.md`。
-
-最终 artifact identity、version decision 和 tag preconditions 记录在 `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`。
 
 ## 发布不变量 / Release Invariants
 

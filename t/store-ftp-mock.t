@@ -9,6 +9,7 @@ use lib "$FindBin::Bin/../lib";
 use lib "$FindBin::Bin/lib";
 
 use GobanFTP::Store::FTP;
+use GobanFTP::MovePublisher qw(build_move_name);
 use GobanFTP::Test::StoreContract qw(run_store_contract);
 
 my $game = 'g1.id-ftp-mock.s9.r-chinese-area-v1.k7500.pb-alice.pw-bob';
@@ -51,8 +52,8 @@ subtest 'rename publish mode uses binary zero-byte temp upload and RNTO target' 
     my ($put_call) = grep { $_->[0] eq 'put' } @calls;
     my ($rename_call) = grep { $_->[0] eq 'rename' } @calls;
 
-    is $put_call->[2], "$game/tmp/alice-k31v.part", 'temp upload path uses player and nonce';
-    is $rename_call->[1], "$game/tmp/alice-k31v.part", 'rename source is the temp path';
+    is $put_call->[2], "$game/tmp/alice-k31v-f98qai37nace5spg.part", 'temp upload path uses player, nonce, and event id';
+    is $rename_call->[1], "$game/tmp/alice-k31v-f98qai37nace5spg.part", 'rename source is the temp path';
     is $rename_call->[2], "$game/events/$move_b", 'rename target is events/event_name';
     is_deeply [ $ftp->put_sizes ], [0], 'temp upload is zero bytes';
     is $ftp->entry_type("$game/events/$move_b"), 'file', 'rename mode publishes a file entry';
@@ -126,7 +127,7 @@ subtest 'rename failure is bounded and retries the same temp and target paths' =
         publish_rename_attempts  => 2,
     );
 
-    my $tmp_path = "$game/tmp/alice-k31v.part";
+    my $tmp_path = "$game/tmp/alice-k31v-f98qai37nace5spg.part";
     my $target_path = "$game/events/$move_b";
 
     like exception(sub { $store->publish_event_name($game, $move_b) }),
@@ -203,7 +204,8 @@ subtest 'long listing output is parsed without using long-listing FTP commands' 
     my $ftp = MockFTP->new(list_style => 'long', include_total => 1);
     my $store = GobanFTP::Store::FTP->new(ftp => $ftp, root => 'mock-root');
 
-    ok $store->publish_event_name($game, $move_b), 'published event for long listing parse';
+    $ftp->create_file("mock-root/$game/events/$move_b");
+    $ftp->mkdir("mock-root/$game/tmp", 1);
     is_deeply [ $store->list_names($game) ], [qw(events tmp)], 'long game-root listing returns basenames';
     is_deeply [ $store->list_names("$game/events") ], [$move_b], 'long event listing returns event basename';
 
@@ -215,16 +217,76 @@ subtest 'long listing parser accepts common Unix and DOS variants' => sub {
     my $unix_ftp = MockFTP->new(list_style => 'long_acl');
     my $unix_store = GobanFTP::Store::FTP->new(ftp => $unix_ftp);
 
-    ok $unix_store->publish_event_name($game, $move_b), 'published event for Unix ACL listing parse';
+    $unix_ftp->create_file("$game/events/$move_b");
     is_deeply [ $unix_store->list_names("$game/events") ], [$move_b],
         'Unix permission suffix is stripped before basename extraction';
 
     my $dos_ftp = MockFTP->new(list_style => 'dos');
     my $dos_store = GobanFTP::Store::FTP->new(ftp => $dos_ftp);
 
-    ok $dos_store->publish_event_name($game, $move_w), 'published event for DOS listing parse';
+    $dos_ftp->create_file("$game/events/$move_w");
     is_deeply [ $dos_store->list_names("$game/events") ], [$move_w],
         'DOS listing with spaced AM/PM is parsed to the basename';
+};
+
+subtest 'exact confirmation does not trust long-listing compatibility parsing' => sub {
+    my $ftp = MockFTP->new(list_style => 'long');
+    my $store = GobanFTP::Store::FTP->new(ftp => $ftp);
+
+    $ftp->create_file("$game/events/$move_b");
+    is_deeply [ $store->list_names("$game/events") ], [$move_b],
+        'compatibility listing still parses long listing rows';
+    ok !$store->exists_name("$game/events", $move_b),
+        'exact confirmation does not treat a long listing row as proof';
+};
+
+subtest 'temporary names include event id to avoid same player nonce collisions' => sub {
+    my $ftp = MockFTP->new;
+    my $store = GobanFTP::Store::FTP->new(ftp => $ftp);
+    my $same_nonce_other_event = build_move_name(
+        game_descriptor => $game,
+        ply             => 1,
+        color           => 'b',
+        action          => 'play-ee',
+        parent_id       => 'genesis',
+        player          => 'alice',
+        nonce           => 'k31v',
+    );
+
+    ok $store->publish_event_name($game, $move_b), 'published first same nonce event';
+    ok $store->publish_event_name($game, $same_nonce_other_event), 'published second same nonce event';
+
+    my @tmp_paths = map { $_->[2] } grep { $_->[0] eq 'put' } $ftp->calls;
+    is scalar(@tmp_paths), 2, 'both publishes uploaded a temporary resource';
+    isnt $tmp_paths[0], $tmp_paths[1], 'temporary resources differ by event id';
+};
+
+subtest 'listing entry and line size limits fail closed' => sub {
+    my $entry_ftp = MockFTP->new;
+    my $entry_store = GobanFTP::Store::FTP->new(ftp => $entry_ftp, max_listing_entries => 1);
+    $entry_ftp->create_file("$game/events/$move_b");
+    $entry_ftp->create_file("$game/events/$move_w");
+
+    like exception(sub { $entry_store->list_names("$game/events") }),
+        qr/list \Q$game\E\/events failed: listing entry limit exceeded/,
+        'FTP listing entry count is bounded';
+
+    my $line_ftp = MockFTP->new;
+    my $line_store = GobanFTP::Store::FTP->new(ftp => $line_ftp, max_listing_line_bytes => 20);
+    $line_ftp->create_file("$game/events/$move_b");
+
+    like exception(sub { $line_store->list_names("$game/events") }),
+        qr/list \Q$game\E\/events failed: listing line too long/,
+        'FTP listing line length is bounded';
+};
+
+subtest 'mock timeout surfaces as stable listing failure' => sub {
+    my $ftp = MockFTP->new(list_die => 'timeout waiting for directory data');
+    my $store = GobanFTP::Store::FTP->new(ftp => $ftp);
+
+    like exception(sub { $store->list_names('') }),
+        qr/list  failed: timeout waiting for directory data/,
+        'FTP timeout-like listing failure is surfaced without a real network call';
 };
 
 done_testing;
@@ -272,6 +334,7 @@ sub new {
         list_fail   => $args{list_fail},
         list_error_with_rows => $args{list_error_with_rows},
         list_error_message   => $args{list_error_message},
+        list_die     => $args{list_die},
         list_style   => $args{list_style} // 'names',
         list_prefix  => $args{list_prefix} // 'relative',
         include_total => $args{include_total} // 0,
@@ -336,6 +399,7 @@ sub ls {
         $self->{message} = $self->{list_error_message} // '426 Transfer aborted';
         return @{ $self->{list_error_with_rows} };
     }
+    die $self->{list_die} if defined $self->{list_die};
 
     if ($self->{list_fail}) {
         $self->{message} = $self->{missing_message};

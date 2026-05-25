@@ -57,6 +57,12 @@ for my $rel (@readmes) {
     like $text{$rel}, qr/live DNS/s, "$rel keeps live DNS out of DNS record admission";
     like $text{$rel}, qr/production (?:auth|writer authorization|key lifecycle)/s,
         "$rel keeps production auth/key lifecycle outside signed material";
+    like $text{$rel}, _webdav_https_pattern($rel),
+        "$rel says authenticated WebDAV requires HTTPS";
+    like $text{$rel}, _webdav_http_fixture_pattern($rel),
+        "$rel keeps unauthenticated HTTP WebDAV out of production transport safety";
+    like $text{$rel}, _local_path_descriptor_pattern($rel),
+        "$rel says local path basenames must be game descriptors";
     like $text{$rel}, _truth_surface_pattern($rel),
         "$rel keeps display and accelerator surfaces outside truth";
     unlike $text{$rel}, qr/\b(?:AI|ChatGPT|LLM|生成AI|人工智能|大模型|機械翻訳)\b/i,
@@ -116,5 +122,38 @@ sub _truth_surface_pattern {
     return qr/source art \/ C \/ asm \/ Web UI \/ TUI -> cannot change truth/ if $rel eq 'README.md';
     return qr/代码画 \/ C \/ asm \/ Web UI \/ TUI -> 不能改变协议真相/ if $rel eq 'README.zh-CN.md';
     return qr/source art \/ C \/ asm \/ Web UI \/ TUI -> replay の真実を変えられません/ if $rel eq 'README.ja.md';
+    die "unknown README $rel";
+}
+
+sub _webdav_https_pattern {
+    my ($rel) = @_;
+    return qr/Authenticated WebDAV URLs must use `https:\/\/`; Basic and Bearer credentials are\s+rejected on `http:\/\/`/
+        if $rel eq 'README.md';
+    return qr/带认证的 WebDAV URL 必须使用 `https:\/\/`；Basic 和 Bearer 凭据会在 `http:\/\/` 上被拒绝/
+        if $rel eq 'README.zh-CN.md';
+    return qr/認証付き WebDAV URL は `https:\/\/` が必須です。Basic と Bearer の認証情報は `http:\/\/` では拒否されます/
+        if $rel eq 'README.ja.md';
+    die "unknown README $rel";
+}
+
+sub _webdav_http_fixture_pattern {
+    my ($rel) = @_;
+    return qr/Unauthenticated `http:\/\/` remains available for\s+mock\/local cleartext fixtures and is not a production transport-safety mode/
+        if $rel eq 'README.md';
+    return qr/不带认证的 `http:\/\/` 保留给 mock\/本地明文 fixture 使用，不是生产传输安全模式/
+        if $rel eq 'README.zh-CN.md';
+    return qr/認証なしの `http:\/\/` は mock\/local の平文 fixture 用に残しているもので、production transport-safety mode ではありません/
+        if $rel eq 'README.ja.md';
+    die "unknown README $rel";
+}
+
+sub _local_path_descriptor_pattern {
+    my ($rel) = @_;
+    return qr/local argument is a path, only the final path component is used as the\s+game descriptor basename, and that basename must be a valid GOFTP game\s+descriptor/
+        if $rel eq 'README.md';
+    return qr/本地参数如果是路径，只使用最后一段作为 game descriptor basename；这个 basename 必须是合法的 GOFTP game descriptor/
+        if $rel eq 'README.zh-CN.md';
+    return qr/local argument が path の場合、最後の path component だけが game descriptor basename として使われます。その basename は有効な GOFTP game descriptor でなければなりません/
+        if $rel eq 'README.ja.md';
     die "unknown README $rel";
 }

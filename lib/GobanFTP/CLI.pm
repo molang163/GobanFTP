@@ -7,12 +7,18 @@ use warnings;
 use Carp qw(croak);
 use Cwd qw(abs_path);
 use File::Basename qw(basename dirname);
+use File::Path qw(make_path);
 use File::Spec;
-use Fcntl qw(O_CREAT O_EXCL O_WRONLY);
+use Fcntl qw(O_CREAT O_EXCL O_TRUNC O_WRONLY);
 use JSON::PP qw(decode_json);
 use Scalar::Util qw(reftype);
 
+use GobanFTP ();
 use GobanFTP::AckPublisher qw(build_ack_for_target);
+use GobanFTP::Auth::Boundary qw(
+    auth_boundary_record
+    publish_preflight_scope
+);
 use GobanFTP::Auth::HMAC qw(sign_event);
 use GobanFTP::Auth::HMACKey qw(
     generate_hmac_key_record
@@ -35,7 +41,16 @@ use GobanFTP::Profile qw(known_profile);
 use GobanFTP::Projection qw(render_projection write_projection write_sgf_projection);
 use GobanFTP::Redact qw(contains_redactable_secret redact_text);
 use GobanFTP::Replay qw(replay);
-use GobanFTP::Store::Config qw(context_for_descriptor context_for_game_arg store_mode);
+use GobanFTP::JSON qw(encode_json_doc json_doc);
+use GobanFTP::Showcase::StaticPreview qw(expected_files);
+use GobanFTP::Store::Config qw(
+    context_for_descriptor
+    context_for_game_arg
+    doctor_report
+    store_capabilities
+    store_config_summary
+    store_mode
+);
 use GobanFTP::Surface::WitnessView qw(
     render_witness_html
     render_witness_terminal
@@ -61,13 +76,35 @@ my @V1_COMPARE_DEFAULT_PROFILES = qw(
     webdav-goftp1
 );
 
+use constant {
+    JSONL_MAX_FILE_BYTES => 1_048_576,
+    JSONL_MAX_LINE_BYTES => 8_192,
+    JSONL_MAX_RECORDS    => 10_000,
+};
+
 sub run {
     my ($class, @argv) = @_;
 
     return _usage(*STDERR, EXIT_USAGE) if @argv == 0;
     return _usage(*STDOUT, EXIT_SUCCESS) if @argv == 1 && ($argv[0] eq '--help' || $argv[0] eq 'help');
+    if (@argv == 1 && $argv[0] eq '--version') {
+        print STDOUT "gobanftp $GobanFTP::VERSION\n";
+        return EXIT_SUCCESS;
+    }
 
     my $command = shift @argv;
+
+    if ($command eq 'config') {
+        return _run_checked_command($command, \@argv, \&_command_config);
+    }
+
+    if ($command eq 'doctor') {
+        return _run_checked_command($command, \@argv, \&_command_doctor);
+    }
+
+    if ($command eq 'showcase') {
+        return _run_checked_command($command, \@argv, \&_command_showcase);
+    }
 
     if ($command eq 'create-game') {
         return _run_checked_command($command, \@argv, \&_command_create_game);
@@ -109,7 +146,7 @@ sub run {
         return _run_checked_command($command, \@argv, \&_command_v1);
     }
 
-    print STDERR "unknown command: $command\n";
+    print STDERR 'unknown command: ' . _escape_control_chars($command) . "\n";
     return _usage(*STDERR, EXIT_USAGE);
 }
 
@@ -140,6 +177,197 @@ sub _run_checked_command {
 
     print STDERR "internal: $error\n";
     return EXIT_INTERNAL;
+}
+
+sub _command_config {
+    my (@argv) = @_;
+
+    my $usage = 'usage: config show [--json]';
+    die $usage if !@argv || shift(@argv) ne 'show';
+
+    my $json = 0;
+    while (@argv) {
+        my $option = shift @argv;
+        if ($option eq '--json') {
+            die $usage if $json;
+            $json = 1;
+            next;
+        }
+        die $usage;
+    }
+
+    my $summary = store_config_summary();
+    if ($json) {
+        print STDOUT encode_json_doc(%$summary);
+    }
+    else {
+        _print_config_summary($summary);
+    }
+
+    return ($summary->{status} // 'ok') eq 'ok' ? EXIT_SUCCESS : EXIT_VALIDATION;
+}
+
+sub _command_doctor {
+    my (@argv) = @_;
+
+    my $usage = 'usage: doctor [--json] [--connect]';
+    my %opts;
+    while (@argv) {
+        my $option = shift @argv;
+        if ($option eq '--json') {
+            die $usage if $opts{json};
+            $opts{json} = 1;
+            next;
+        }
+        if ($option eq '--connect') {
+            die $usage if $opts{connect};
+            $opts{connect} = 1;
+            next;
+        }
+        die $usage;
+    }
+
+    my $report = doctor_report(connect => $opts{connect} ? 1 : 0);
+    if ($opts{json}) {
+        print STDOUT encode_json_doc(%$report);
+    }
+    else {
+        _print_doctor_report($report);
+    }
+
+    return $report->{status} eq 'ok' ? EXIT_SUCCESS : EXIT_VALIDATION;
+}
+
+sub _command_showcase {
+    my (@argv) = @_;
+
+    if (@argv && $argv[0] eq 'preview') {
+        shift @argv;
+        return _command_showcase_preview(@argv);
+    }
+
+    my $usage = _showcase_usage_line();
+    my %opts;
+    while (@argv) {
+        my $option = shift @argv;
+        if ($option eq '--json') {
+            die $usage if $opts{json};
+            $opts{json} = 1;
+            next;
+        }
+        my ($name, $value);
+        if ($option =~ /\A--([^=]+)=(.*)\z/) {
+            ($name, $value) = ($1, $2);
+        }
+        elsif ($option =~ /\A--(.+)\z/) {
+            $name = $1;
+            die $usage if !@argv;
+            $value = shift @argv;
+        }
+        else {
+            die $usage;
+        }
+
+        if ($name eq 'out') {
+            die $usage if defined $opts{out};
+            $opts{out} = $value;
+            next;
+        }
+        die $usage;
+    }
+
+    die $usage if !defined($opts{out}) || $opts{out} eq '' || $opts{out} eq '-';
+    _reject_control_path($opts{out}, $usage);
+
+    my @files = _showcase_expected_files();
+    my $out_abs = File::Spec->rel2abs($opts{out});
+    if (my $diagnostic = _prepare_showcase_out_dir($out_abs, \@files)) {
+        my $showcase = _showcase_failure_doc($out_abs, \@files, $diagnostic);
+        if ($opts{json}) {
+            print STDOUT encode_json_doc(%$showcase);
+        }
+        else {
+            _print_showcase_failure($showcase);
+        }
+        return EXIT_VALIDATION;
+    }
+
+    my $showcase = _write_showcase_artifacts($out_abs, \@files);
+    if ($opts{json}) {
+        print STDOUT encode_json_doc(%$showcase);
+    }
+    else {
+        _print_showcase_summary($showcase);
+    }
+
+    return EXIT_SUCCESS;
+}
+
+sub _command_showcase_preview {
+    my (@argv) = @_;
+
+    my $usage = _showcase_usage_line();
+    my %opts = (port => 0);
+    while (@argv) {
+        my $option = shift @argv;
+        if ($option eq '--once') {
+            die $usage if $opts{once};
+            $opts{once} = 1;
+            next;
+        }
+        my ($name, $value);
+        if ($option =~ /\A--([^=]+)=(.*)\z/) {
+            ($name, $value) = ($1, $2);
+        }
+        elsif ($option =~ /\A--(.+)\z/) {
+            $name = $1;
+            die $usage if !@argv;
+            $value = shift @argv;
+        }
+        else {
+            die $usage;
+        }
+
+        if ($name eq 'dir') {
+            die $usage if defined $opts{dir};
+            $opts{dir} = $value;
+            next;
+        }
+        if ($name eq 'port') {
+            die $usage if defined $opts{seen_port};
+            $opts{seen_port} = 1;
+            $opts{port} = $value;
+            next;
+        }
+        die $usage;
+    }
+
+    die $usage if !defined($opts{dir}) || $opts{dir} eq '' || $opts{dir} eq '-';
+    die $usage if !defined($opts{port}) || $opts{port} !~ /\A(?:0|[1-9][0-9]{0,4})\z/ || $opts{port} > 65535;
+    _reject_control_path($opts{dir}, $usage);
+
+    my $preview = GobanFTP::Showcase::StaticPreview->new(
+        dir  => File::Spec->rel2abs($opts{dir}),
+        port => $opts{port},
+        once => $opts{once} ? 1 : 0,
+    );
+
+    my $old = select STDOUT;
+    $| = 1;
+    select $old;
+
+    print STDOUT "gobanftp.showcase.preview=ok\n";
+    print STDOUT "boundary=localhost-static-preview-only\n";
+    print STDOUT "dir=" . _stdout_value($preview->dir) . "\n";
+    print STDOUT "host=" . _stdout_value($preview->host) . "\n";
+    print STDOUT "port=" . _stdout_value($preview->port) . "\n";
+    print STDOUT "url=" . _stdout_value($preview->url) . "\n";
+    print STDOUT "remote_access=0\n";
+    print STDOUT "hosted_web_ui=0\n";
+    print STDOUT "files=" . _stdout_value([$preview->files]) . "\n";
+
+    $preview->serve;
+    return EXIT_SUCCESS;
 }
 
 sub _command_create_game {
@@ -320,6 +548,11 @@ sub _command_publish_move {
             $opts{nonce} = $1;
             next;
         }
+        if ($option eq '--json') {
+            die $usage if $opts{json};
+            $opts{json} = 1;
+            next;
+        }
         next if _consume_publish_auth_option($option, \@argv, \%opts, $usage);
         die $usage;
     }
@@ -340,6 +573,7 @@ sub _command_publish_move {
         action  => $action,
         defined($opts{nonce}) ? (nonce => $opts{nonce}) : (),
         defined($publish_auth) ? (publish_auth => $publish_auth) : (),
+        $opts{json} ? (json => 1) : (),
     );
 }
 
@@ -357,6 +591,11 @@ sub _command_publish_ack {
         }
         if ($option =~ /\A--nonce=(.+)\z/) {
             $opts{nonce} = $1;
+            next;
+        }
+        if ($option eq '--json') {
+            die $usage if $opts{json};
+            $opts{json} = 1;
             next;
         }
         next if _consume_publish_auth_option($option, \@argv, \%opts, $usage);
@@ -378,6 +617,7 @@ sub _command_publish_ack {
         target_id => $target_id,
         defined($opts{nonce}) ? (nonce => $opts{nonce}) : (),
         defined($publish_auth) ? (publish_auth => $publish_auth) : (),
+        $opts{json} ? (json => 1) : (),
     );
 }
 
@@ -670,6 +910,10 @@ sub _command_watch {
             $opts{live} = 1;
             next;
         }
+        if ($option eq '--compact') {
+            $opts{compact} = 1;
+            next;
+        }
         if ($option eq '--once') {
             $opts{count} = 1;
             next;
@@ -717,6 +961,7 @@ sub _command_watch {
         count    => $opts{count},
         interval => $opts{interval},
         live     => $opts{live} ? 1 : 0,
+        compact  => $opts{compact} ? 1 : 0,
     );
 }
 
@@ -724,19 +969,43 @@ sub _run_watch_loop {
     my (%opts) = @_;
 
     my $snapshot = 0;
+    my ($previous_event_set_root, $previous_event_set_count);
 
     while (!defined($opts{count}) || $snapshot < $opts{count}) {
         $snapshot++;
 
         my $context = _load_context($opts{game_arg});
+        my $event_set = $context->{event_set};
+        my $current_event_set_root = ref($event_set) eq 'HASH'
+            ? ($event_set->{event_set_root} // '')
+            : '';
+        my $current_event_set_count = ref($event_set) eq 'HASH'
+            ? (0 + ($event_set->{event_count} // scalar(@{ $context->{events} // [] })))
+            : 0 + scalar(@{ $context->{events} // [] });
+        my $delta_events = defined($previous_event_set_count)
+            ? $current_event_set_count - $previous_event_set_count
+            : $current_event_set_count;
+        $delta_events = 0 if $delta_events < 0;
+        my $root_changed = defined($previous_event_set_root)
+            && $current_event_set_root ne $previous_event_set_root
+            ? 1
+            : 0;
         my $exit = _print_terminal_snapshot(
             $opts{command},
             $context,
             snapshot => $snapshot,
             $opts{live} ? (live => 1) : (),
+            $opts{compact} ? (
+                compact                    => 1,
+                observer_delta_events      => $delta_events,
+                observer_delta_root_changed => $root_changed,
+            ) : (),
         );
         _print_diagnostics($context->{replay_result});
         return $exit if $exit != EXIT_SUCCESS && !$opts{live};
+
+        $previous_event_set_root = $current_event_set_root;
+        $previous_event_set_count = $current_event_set_count;
 
         last if defined($opts{count}) && $snapshot >= $opts{count};
         select undef, undef, undef, 0 + $opts{interval};
@@ -790,6 +1059,7 @@ sub _command_v1_keygen {
 
     die $usage if ($opts{profile_id} // '') ne 'signed-hmac-goftp1';
     die $usage if !defined($opts{out}) || $opts{out} eq '' || $opts{out} eq '-';
+    _reject_control_path($opts{out}, $usage);
 
     my $record = eval { generate_hmac_key_record(profile => $opts{profile_id}) };
     die 'storage: ' . $@ if !$record;
@@ -835,6 +1105,7 @@ sub _command_v1_keyid {
     }
 
     die $usage if !defined($opts{fixture}) || $opts{fixture} eq '';
+    _reject_control_path($opts{fixture}, $usage);
 
     my $text = _read_text_file($opts{fixture});
     my $record = eval { parse_public_key_record($text) };
@@ -883,6 +1154,7 @@ sub _command_v1_trust_report {
     }
 
     die $usage if !defined($opts{fixture}) || $opts{fixture} eq '';
+    _reject_control_path($opts{fixture}, $usage);
 
     my ($fixture_id, $witness, $trust) = eval {
         _v1_trust_report_from_fixture($opts{fixture});
@@ -940,6 +1212,8 @@ sub _command_v1_attest {
     die $usage if ($opts{profile_id} // '') ne 'signed-hmac-goftp1';
     die $usage if !defined($opts{key}) || $opts{key} eq '';
     die $usage if !defined($opts{out}) || $opts{out} eq '' || $opts{out} eq '-';
+    _reject_control_path($opts{key}, $usage);
+    _reject_control_path($opts{out}, $usage);
 
     my $key = eval { _read_hmac_key_file_or_die($opts{key}) };
     if (!$key) {
@@ -1032,6 +1306,8 @@ sub _command_v1_publish_token {
     die $usage if ($opts{profile_id} // '') ne 'signed-hmac-goftp1';
     die $usage if !defined($opts{key}) || $opts{key} eq '';
     die $usage if !defined($opts{out}) || $opts{out} eq '' || $opts{out} eq '-';
+    _reject_control_path($opts{key}, $usage);
+    _reject_control_path($opts{out}, $usage);
 
     my $key = eval { _read_hmac_key_file_or_die($opts{key}) };
     if (!$key) {
@@ -1058,10 +1334,10 @@ sub _command_v1_publish_token {
     );
     if (defined $parse_error) {
         print STDOUT "gobanftp.v1.publish-token=failed\n";
-        print STDOUT "profile_id=$opts{profile_id}\n";
-        print STDOUT "game=$context->{game_descriptor}\n";
-        print STDOUT "event=$event\n";
-        print STDOUT "publish_auth.status=denied\n";
+        print STDOUT 'profile_id=' . _stdout_value($opts{profile_id}) . "\n";
+        print STDOUT 'game=' . _stdout_value($context->{game_descriptor}) . "\n";
+        print STDOUT 'event=' . _stdout_value($event) . "\n";
+        print STDOUT 'publish_auth.status=' . _stdout_value('denied') . "\n";
         print STDERR _diagnostic_line({
             code  => 'parse_event',
             name  => $event,
@@ -1165,6 +1441,8 @@ sub _command_v1_publish_auth {
     die $usage if @argv != 2;
     die $usage if ($opts{profile_id} // '') ne 'signed-hmac-goftp1';
     die $usage if !defined($opts{token}) || $opts{token} eq '';
+    _reject_control_path($opts{token}, $usage);
+    _reject_control_paths($opts{trusted_hmac_key_files}, $usage);
 
     my $token = eval { _read_publish_token_file($opts{token}) };
     if (!$token) {
@@ -1292,6 +1570,9 @@ sub _command_v1_witness {
 
     die $usage if !defined($opts{profile_id}) || $opts{profile_id} eq '';
     die $usage if !defined($opts{fixture}) || $opts{fixture} eq '';
+    _reject_control_path($opts{fixture}, $usage);
+    _reject_control_path($opts{attestations}, $usage);
+    _reject_control_paths($opts{trusted_hmac_key_files}, $usage);
     die $usage
         if defined($opts{substrate_profile_id})
             && (
@@ -1305,6 +1586,14 @@ sub _command_v1_witness {
         my $error = _clean_error($@ || 'v1_witness');
         die $error if $error =~ /\Ausage:/;
         if ($error =~ s/\A(parse_hmac_key)://) {
+            print STDOUT "gobanftp.v1.witness=failed\n";
+            print STDERR _diagnostic_line({
+                code  => $1,
+                error => $error,
+            }), "\n";
+            return EXIT_VALIDATION;
+        }
+        if ($error =~ s/\A(parse_attestations)://) {
             print STDOUT "gobanftp.v1.witness=failed\n";
             print STDERR _diagnostic_line({
                 code  => $1,
@@ -1331,13 +1620,18 @@ sub _command_v1_witness {
 sub _command_v1_compare {
     my ($subcommand, @argv) = @_;
 
-    my $usage = "usage: v1 $subcommand --fixture fixture-dir [--profiles profile-id,...]";
+    my $usage = "usage: v1 $subcommand --fixture fixture-dir [--profiles profile-id,...] [--json]";
     my %opts;
 
     while (@argv) {
         my $option = shift @argv;
         my ($name, $value);
 
+        if ($option eq '--json') {
+            die $usage if $opts{json};
+            $opts{json} = 1;
+            next;
+        }
         if ($option =~ /\A--([^=]+)=(.*)\z/) {
             ($name, $value) = ($1, $2);
         }
@@ -1363,6 +1657,7 @@ sub _command_v1_compare {
     }
 
     die $usage if !defined($opts{fixture}) || $opts{fixture} eq '';
+    _reject_control_path($opts{fixture}, $usage);
 
     my $comparison = _v1_compare_from_fixture(
         fixture => $opts{fixture},
@@ -1370,9 +1665,16 @@ sub _command_v1_compare {
         usage  => $usage,
         fields => _v1_compare_fields($subcommand),
     );
-    my $status = @{ $comparison->{mismatch_fields} } ? 'failed' : 'ok';
+    my $status = @{ $comparison->{mismatch_fields} } || @{ $comparison->{invalid_profiles} }
+        ? 'failed'
+        : 'ok';
 
-    _print_v1_compare($subcommand, $status, $comparison);
+    if ($opts{json}) {
+        _print_v1_compare_json($subcommand, $status, $comparison);
+    }
+    else {
+        _print_v1_compare($subcommand, $status, $comparison);
+    }
 
     return $status eq 'ok' ? EXIT_SUCCESS : EXIT_VALIDATION;
 }
@@ -1381,7 +1683,12 @@ sub _publish_action {
     my (%args) = @_;
 
     my $result = _publish_action_result(%args);
-    _print_publish_result($args{command} // 'publish-move', $result);
+    if ($args{json}) {
+        _print_publish_result_json($args{command} // 'publish-move', $result);
+    }
+    else {
+        _print_publish_result($args{command} // 'publish-move', $result);
+    }
 
     return $result->{exit};
 }
@@ -1390,7 +1697,12 @@ sub _publish_ack {
     my (%args) = @_;
 
     my $result = _publish_ack_result(%args);
-    _print_publish_result($args{command} // 'publish-ack', $result);
+    if ($args{json}) {
+        _print_publish_result_json($args{command} // 'publish-ack', $result);
+    }
+    else {
+        _print_publish_result($args{command} // 'publish-ack', $result);
+    }
 
     return $result->{exit};
 }
@@ -1592,6 +1904,11 @@ sub _print_publish_auth_result {
     return if ref($auth) ne 'HASH';
 
     my $diagnostics = $auth->{diagnostics} // [];
+    print STDOUT "publish_auth.scope=$auth->{scope}\n"
+        if defined($auth->{scope});
+    print STDOUT 'publish_auth.production_authorization='
+        . ($auth->{production_authorization} ? 1 : 0) . "\n"
+        if exists($auth->{production_authorization});
     print STDOUT "publish_auth.status=$auth->{status}\n";
     print STDOUT "publish_auth.profile_id=$auth->{profile_id}\n"
         if defined($auth->{profile_id});
@@ -1625,7 +1942,7 @@ sub _v1_witness_from_fixture {
     my $game = _read_single_nonblank($game_path);
     my @raw_names = _read_nonblank_lines($listing_path);
     my @attestations = defined($opts{attestations})
-        ? _read_jsonl_file($opts{attestations})
+        ? _read_attestations_file($opts{attestations})
         : ();
     my %trusted_hmac_keys = _trusted_hmac_key_map(@{ $opts{trusted_hmac_keys} // [] });
     my %trusted_hmac_file_keys = _trusted_hmac_key_file_map(@{ $opts{trusted_hmac_key_files} // [] });
@@ -1680,13 +1997,28 @@ sub _option_value {
     return ($name, $value);
 }
 
+sub _reject_control_path {
+    my ($path, $usage) = @_;
+
+    die $usage if defined($path) && $path =~ /[\x00-\x1f\x7f]/;
+    return 1;
+}
+
+sub _reject_control_paths {
+    my ($paths, $usage) = @_;
+
+    return 1 if !defined $paths;
+    _reject_control_path($_, $usage) for @$paths;
+    return 1;
+}
+
 sub _publish_move_usage_line {
-    return 'usage: publish-move [--nonce n] ' . _publish_auth_usage_suffix()
+    return 'usage: publish-move [--json] [--nonce n] ' . _publish_auth_usage_suffix()
         . ' <game-root|game-descriptor> <aa|play-aa|pass|resign>';
 }
 
 sub _publish_ack_usage_line {
-    return 'usage: publish-ack [--nonce n] ' . _publish_auth_usage_suffix()
+    return 'usage: publish-ack [--json] [--nonce n] ' . _publish_auth_usage_suffix()
         . ' <game-root|game-descriptor> <event-id>';
 }
 
@@ -1697,7 +2029,11 @@ sub _play_usage_line {
 }
 
 sub _watch_usage_line {
-    return 'usage: watch [--live] [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>';
+    return 'usage: watch [--live] [--compact] [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>';
+}
+
+sub _showcase_usage_line {
+    return 'usage: showcase --out dir [--json] | showcase preview --dir dir [--port n|0] [--once]';
 }
 
 sub _publish_auth_usage_suffix {
@@ -1744,6 +2080,7 @@ sub _consume_publish_auth_option {
     }
     if ($name eq 'publish-auth-token') {
         die $usage if defined $opts->{publish_auth_token};
+        _reject_control_path($value, $usage);
         $opts->{publish_auth_token} = $value;
         return 1;
     }
@@ -1752,6 +2089,7 @@ sub _consume_publish_auth_option {
         return 1;
     }
     if ($name eq 'publish-auth-trusted-hmac-key-file') {
+        _reject_control_path($value, $usage);
         push @{ $opts->{publish_auth_trusted_hmac_key_files} }, $value;
         return 1;
     }
@@ -1901,6 +2239,9 @@ sub _publish_auth_failure {
 sub _decorate_publish_auth_result {
     my ($auth, %args) = @_;
 
+    my $scope = publish_preflight_scope();
+    $auth->{scope} = $scope->{scope};
+    $auth->{production_authorization} = $scope->{production_authorization};
     $auth->{profile_id} = $args{profile_id};
     $auth->{event_name} = $args{event_name};
     $auth->{event_id} //= $args{event_id};
@@ -2013,6 +2354,7 @@ sub _v1_compare_from_fixture {
         : $profiles[0];
     my %mismatch_field;
     my %mismatch_profile;
+    my %invalid_profile;
     for my $field (@fields) {
         my $baseline = _stdout_value($witnesses{$baseline_profile}{$field});
         for my $profile (@profiles) {
@@ -2021,6 +2363,14 @@ sub _v1_compare_from_fixture {
             $mismatch_field{$field} = 1;
             $mismatch_profile{$profile} = 1;
         }
+    }
+    for my $profile (@profiles) {
+        my $witness = $witnesses{$profile};
+        my %diagnostic_code = map { $_ => 1 } @{ $witness->{diagnostic_codes} // [] };
+        $invalid_profile{$profile} = 1
+            if !defined($witness->{event_set_root})
+                || $witness->{event_set_root} eq ''
+                || $diagnostic_code{parse_game_descriptor};
     }
 
     return {
@@ -2032,6 +2382,7 @@ sub _v1_compare_from_fixture {
         fields           => \@fields,
         mismatch_fields  => [sort keys %mismatch_field],
         mismatch_profiles => [sort keys %mismatch_profile],
+        invalid_profiles => [grep { $invalid_profile{$_} } @profiles],
         witnesses        => \%witnesses,
     };
 }
@@ -2132,16 +2483,42 @@ sub _read_nonblank_lines {
 }
 
 sub _read_jsonl_file {
-    my ($path) = @_;
+    my ($path, %opts) = @_;
+
+    my $max_file_bytes = $opts{max_file_bytes} // JSONL_MAX_FILE_BYTES;
+    my $max_line_bytes = $opts{max_line_bytes} // JSONL_MAX_LINE_BYTES;
+    my $max_records    = $opts{max_records}    // JSONL_MAX_RECORDS;
+
+    my $size = -s $path;
+    die 'file.too_large' if defined($size) && $size > $max_file_bytes;
 
     open my $fh, '<:encoding(UTF-8)', $path or die "storage: open $path: $!";
     my @rows;
     while (my $line = <$fh>) {
         chomp $line;
+        die 'line.too_long' if length($line) > $max_line_bytes;
         next if $line =~ /\A\s*\z/;
+        die 'record_count' if @rows >= $max_records;
         push @rows, decode_json($line);
     }
     close $fh or die "storage: close $path: $!";
+
+    return @rows;
+}
+
+sub _read_attestations_file {
+    my ($path) = @_;
+
+    my @rows = eval { _read_jsonl_file($path) };
+    if ($@) {
+        my $error = _clean_error($@);
+        die $error if $error =~ /\Astorage:/;
+        die "parse_attestations:$error";
+    }
+
+    for my $index (0 .. $#rows) {
+        die "parse_attestations:record.$index" if ref($rows[$index]) ne 'HASH';
+    }
 
     return @rows;
 }
@@ -2416,6 +2793,575 @@ sub _require_local_store_for_write {
     return 1;
 }
 
+sub _print_config_summary {
+    my ($summary) = @_;
+
+    my $status = $summary->{status} // 'ok';
+    print STDOUT 'gobanftp.config.show=' . _stdout_value($status) . "\n";
+    print STDOUT 'schema=' . _stdout_value($summary->{schema}) . "\n";
+    print STDOUT 'version=' . _stdout_value($summary->{version}) . "\n";
+    print STDOUT 'store_mode=' . _stdout_value($summary->{store_mode}) . "\n";
+    print STDOUT 'requested_store_mode=' . _stdout_value($summary->{requested_store_mode}) . "\n"
+        if defined $summary->{requested_store_mode};
+    print STDOUT 'missing_required_env=' . _stdout_value($summary->{missing_required_env} // []) . "\n";
+    _print_capability_lines('capability', $summary->{capabilities});
+    _print_env_summary($summary->{env});
+    _print_config_diagnostics($summary->{diagnostics});
+}
+
+sub _print_doctor_report {
+    my ($report) = @_;
+
+    print STDOUT 'gobanftp.doctor=' . _stdout_value($report->{status}) . "\n";
+    print STDOUT 'schema=' . _stdout_value($report->{schema}) . "\n";
+    print STDOUT 'version=' . _stdout_value($report->{version}) . "\n";
+    print STDOUT 'dry_run=' . _stdout_value($report->{dry_run}) . "\n";
+    print STDOUT 'connect_requested=' . _stdout_value($report->{connect_requested}) . "\n";
+    print STDOUT 'store_mode=' . _stdout_value($report->{store_mode}) . "\n";
+    print STDOUT 'requested_store_mode=' . _stdout_value($report->{requested_store_mode}) . "\n"
+        if defined $report->{requested_store_mode};
+    print STDOUT 'missing_required_env=' . _stdout_value($report->{missing_required_env} // []) . "\n";
+    _print_capability_lines('capability', $report->{capabilities});
+    for my $check (@{ $report->{checks} // [] }) {
+        my $name = $check->{name} // '';
+        next if $name !~ /\A[A-Za-z0-9_.-]+\z/;
+        print STDOUT "check.$name=" . _stdout_value($check->{status}) . "\n";
+        print STDOUT "check.$name.code=" . _stdout_value($check->{code}) . "\n"
+            if defined($check->{code}) && $check->{code} ne '';
+        print STDOUT "check.$name.detail=" . _stdout_value($check->{detail}) . "\n"
+            if defined($check->{detail}) && $check->{detail} ne '';
+    }
+    _print_config_diagnostics($report->{diagnostics});
+}
+
+sub _print_capability_lines {
+    my ($prefix, $capabilities) = @_;
+
+    return if ref($capabilities) ne 'HASH';
+    for my $key (qw(store_mode can_read_events can_publish can_mkdir read_only network_required projection_write)) {
+        next if !exists $capabilities->{$key};
+        print STDOUT "$prefix.$key=" . _stdout_value($capabilities->{$key}) . "\n";
+    }
+}
+
+sub _print_env_summary {
+    my ($env) = @_;
+
+    for my $row (@{ $env // [] }) {
+        next if ref($row) ne 'HASH';
+        my $name = $row->{name};
+        next if !defined $name;
+        next if $name !~ /\A[A-Z0-9_]+\z/;
+        print STDOUT "env.$name.selected=" . _stdout_value($row->{selected}) . "\n";
+        print STDOUT "env.$name.set=" . _stdout_value($row->{set}) . "\n";
+        print STDOUT "env.$name.value=" . _stdout_value($row->{value}) . "\n"
+            if defined $row->{value};
+    }
+}
+
+sub _print_config_diagnostics {
+    my ($diagnostics) = @_;
+
+    for my $diagnostic (@{ $diagnostics // [] }) {
+        next if ref($diagnostic) ne 'HASH';
+        my $code = $diagnostic->{code} // '';
+        next if $code !~ /\A[A-Za-z0-9_.-]+\z/;
+        print STDOUT "diagnostic.$code=failed\n";
+        print STDOUT "diagnostic.$code.detail=" . _stdout_value($diagnostic->{message}) . "\n"
+            if defined($diagnostic->{message}) && $diagnostic->{message} ne '';
+    }
+}
+
+sub _print_publish_result_json {
+    my ($command, $result) = @_;
+
+    my $context = $result->{context} // {};
+    my $exit = 0 + ($result->{exit} // EXIT_INTERNAL);
+    print STDOUT encode_json_doc(
+        schema        => 'gobanftp.publish.result.v1',
+        command       => $command,
+        status        => _status_for_exit($exit),
+        exit          => $exit,
+        stage         => $result->{stage} // 'unknown',
+        game          => $context->{game_descriptor},
+        store_mode    => $context->{store_kind},
+        capabilities  => store_capabilities($context->{store_kind} // store_mode()),
+        event         => $result->{event_name},
+        event_id      => $result->{event_id},
+        event_set     => _publish_result_event_set_json($result),
+        replay        => _replay_summary_json($context->{replay_result}),
+        publish_state => _publish_state_json($result),
+        publish_auth  => _publish_auth_json($result->{publish_auth}),
+        diagnostics   => _diagnostics_json(
+            [ _diagnostics($context->{replay_result}) ],
+            ref($result->{publish_auth}) eq 'HASH' ? $result->{publish_auth}{secrets} : [],
+        ),
+    );
+}
+
+sub _publish_result_event_set_json {
+    my ($result) = @_;
+
+    my $stage = $result->{stage} // '';
+    return {
+        available => 0,
+        reason    => 'unpublished-candidate',
+    } if $stage eq 'candidate' || $stage eq 'auth';
+
+    my $event_set = $result->{context}{event_set};
+    return { available => 0, reason => 'not-computed' } if ref($event_set) ne 'HASH';
+
+    return {
+        available => 1,
+        count     => 0 + ($event_set->{event_count} // 0),
+        exists($event_set->{event_set_root}) ? (root => $event_set->{event_set_root}) : (),
+    };
+}
+
+sub _publish_state_json {
+    my ($result) = @_;
+
+    my $stage = $result->{stage} // '';
+    my $auth = ref($result->{publish_auth}) eq 'HASH' ? $result->{publish_auth} : undef;
+    my $event_name = $result->{event_name};
+    my %visible = map { $_ => 1 } @{ $result->{context}{events} // [] };
+
+    return {
+        preexisting_replay => $stage eq 'preexisting'
+            ? _status_for_exit($result->{exit} // EXIT_INTERNAL)
+            : 'ok',
+        candidate_built => defined($event_name) ? 1 : 0,
+        candidate_replay => $stage eq 'candidate'
+            ? 'failed'
+            : defined($event_name) ? 'ok' : 'not_built',
+        auth_preflight => !defined($auth)
+            ? 'not_requested'
+            : $auth->{authorized} ? 'authorized' : 'denied',
+        store_write => $stage eq 'published' ? 'attempted' : 'not_attempted',
+        visibility => $stage eq 'published'
+            ? (defined($event_name) && $visible{$event_name} ? 'confirmed' : 'unconfirmed')
+            : 'not_checked',
+        post_publish_replay => $stage eq 'published'
+            ? _status_for_exit($result->{exit} // EXIT_INTERNAL)
+            : 'not_available',
+    };
+}
+
+sub _publish_auth_json {
+    my ($auth) = @_;
+
+    my $scope = publish_preflight_scope();
+    return {
+        enabled                  => 0,
+        scope                    => $scope->{scope},
+        production_authorization => 0,
+    } if ref($auth) ne 'HASH';
+
+    return {
+        enabled                  => 1,
+        scope                    => $auth->{scope} // $scope->{scope},
+        production_authorization => $auth->{production_authorization} ? 1 : 0,
+        authorized               => $auth->{authorized} ? 1 : 0,
+        status                   => $auth->{status},
+        profile_id               => $auth->{profile_id},
+        key_id                   => $auth->{key_id},
+        event_id                 => $auth->{event_id},
+        diagnostic_codes         => [diagnostic_codes($auth->{diagnostics} // [])],
+        diagnostic_classes       => [diagnostic_classes($auth->{diagnostics} // [])],
+        diagnostic_count         => 0 + scalar(@{ $auth->{diagnostics} // [] }),
+    };
+}
+
+sub _replay_summary_json {
+    my ($result) = @_;
+
+    my $exit = _result_exit($result);
+    my @diagnostics = _diagnostics($result);
+    return {
+        status             => _status_for_exit($exit),
+        canonical_ids      => [_canonical_ids($result)],
+        legal_ids          => [_legal_ids($result)],
+        diagnostic_codes   => [diagnostic_codes(\@diagnostics)],
+        diagnostic_classes => [diagnostic_classes(\@diagnostics)],
+        diagnostic_count   => 0 + scalar(@diagnostics),
+    };
+}
+
+sub _diagnostics_json {
+    my ($diagnostics, $secrets) = @_;
+
+    my @rows;
+    for my $diagnostic (@{ $diagnostics // [] }) {
+        next if ref($diagnostic) ne 'HASH';
+        my %row;
+        for my $key (sort keys %$diagnostic) {
+            my $value = $diagnostic->{$key};
+            if (ref($value) eq 'ARRAY') {
+                $row{$key} = [map { _diagnostic_token($_, $secrets) } @$value];
+            }
+            elsif (!ref($value)) {
+                $row{$key} = _diagnostic_token($value, $secrets);
+            }
+        }
+        push @rows, \%row;
+    }
+
+    return \@rows;
+}
+
+sub _print_v1_compare_json {
+    my ($subcommand, $status, $comparison) = @_;
+
+    my %witnesses = map {
+        $_ => _witness_compare_json($comparison->{witnesses}{$_})
+    } @{ $comparison->{profiles} // [] };
+
+    print STDOUT encode_json_doc(
+        schema             => "gobanftp.$subcommand.v1",
+        command            => "v1 $subcommand",
+        status             => $status,
+        comparison_scope   => 'fixture-read-normalizer',
+        fixture_id         => $comparison->{fixture_id},
+        game_descriptor    => $comparison->{game_descriptor},
+        profiles           => $comparison->{profiles},
+        baseline_profile   => $comparison->{baseline_profile},
+        compared_fields    => $comparison->{fields},
+        mismatch_fields    => $comparison->{mismatch_fields},
+        mismatch_profiles  => $comparison->{mismatch_profiles},
+        invalid_profiles   => $comparison->{invalid_profiles},
+        witnesses          => \%witnesses,
+    );
+}
+
+sub _witness_compare_json {
+    my ($witness) = @_;
+
+    my %row;
+    for my $field (qw(
+        profile_id
+        adapter_id
+        substrate_profile_id
+        substrate_adapter_id
+        game_descriptor
+        raw_count
+        normalized_count
+        accepted_count
+        rejected_count
+        event_set_root
+        replay_status
+        canonical_tip
+        diagnostic_count
+        board_hash
+        sgf_hash
+        variations_sgf_hash
+    )) {
+        $row{$field} = $witness->{$field} if exists $witness->{$field};
+    }
+    for my $field (qw(
+        normalized_events
+        accepted_events
+        rejected_codes
+        rejected_classes
+        canonical_ids
+        legal_ids
+        diagnostic_codes
+        diagnostic_classes
+    )) {
+        $row{$field} = $witness->{$field} if exists $witness->{$field};
+    }
+
+    return \%row;
+}
+
+sub _showcase_expected_files {
+    return expected_files();
+}
+
+sub _prepare_showcase_out_dir {
+    my ($out_abs, $files) = @_;
+
+    if (!-e $out_abs) {
+        make_path($out_abs);
+        die "storage: $out_abs is not a directory" if !-d $out_abs;
+        return undef;
+    }
+
+    die "storage: $out_abs is not a directory" if !-d $out_abs;
+
+    opendir my $dh, $out_abs or die "storage: opendir $out_abs: $!";
+    my @entries = sort grep { $_ ne '.' && $_ ne '..' } readdir $dh;
+    closedir $dh or die "storage: closedir $out_abs: $!";
+
+    my %expected = map { $_ => 1 } @{ $files // [] };
+    my @extra = grep { !$expected{$_} } @entries;
+    return _showcase_out_dir_not_clean('output directory contains unexpected files') if @extra;
+
+    for my $entry (@entries) {
+        my $path = File::Spec->catfile($out_abs, $entry);
+        return _showcase_out_dir_not_clean('output directory contains non-regular expected files')
+            if !_is_regular_showcase_output($path);
+    }
+
+    return undef;
+}
+
+sub _showcase_out_dir_not_clean {
+    my ($message) = @_;
+
+    return {
+        code    => 'showcase_out_dir_not_clean',
+        class   => 'storage',
+        field   => 'out',
+        value   => 'not_clean',
+        message => $message // 'output directory is not clean',
+    };
+}
+
+sub _is_regular_showcase_output {
+    my ($path) = @_;
+
+    return 0 if !lstat($path);
+    return 0 if -l _;
+    return -f _;
+}
+
+sub _showcase_failure_doc {
+    my ($out_abs, $files, $diagnostic) = @_;
+
+    return json_doc(
+        schema        => 'gobanftp.showcase.v1',
+        status        => 'failed',
+        boundary      => 'static-fixture-only',
+        out           => $out_abs,
+        files         => [@{ $files // [] }],
+        diagnostics   => [$diagnostic],
+        auth_boundary => auth_boundary_record(),
+    );
+}
+
+sub _write_showcase_artifacts {
+    my ($out_abs, $files) = @_;
+
+    $out_abs = File::Spec->rel2abs($out_abs);
+    die "storage: $out_abs is not a directory" if !-d $out_abs;
+
+    my @cases = (
+        _showcase_case(clean => 'minimal'),
+        _showcase_case(fork  => 'fork'),
+    );
+    my @summaries = map { $_->{summary} } @cases;
+    my @files = @{ $files // [_showcase_expected_files()] };
+
+    my $doc = json_doc(
+        schema         => 'gobanftp.showcase.v1',
+        status         => 'ok',
+        boundary       => 'static-fixture-only',
+        out            => $out_abs,
+        files          => \@files,
+        cases          => \@summaries,
+        auth_boundary  => auth_boundary_record(),
+    );
+
+    _write_text_file(
+        File::Spec->catfile($out_abs, 'witness-clean.html'),
+        render_witness_html(
+            witness     => $cases[0]{witness},
+            projections => $cases[0]{witness}{projection_text} // {},
+        ),
+    );
+    _write_text_file(
+        File::Spec->catfile($out_abs, 'witness-fork.html'),
+        render_witness_html(
+            witness     => $cases[1]{witness},
+            projections => $cases[1]{witness}{projection_text} // {},
+        ),
+    );
+    _write_text_file(File::Spec->catfile($out_abs, 'index.html'), _showcase_index_html($doc));
+    _write_text_file(File::Spec->catfile($out_abs, 'demo-transcript.txt'), _showcase_transcript($doc));
+    _write_text_file(File::Spec->catfile($out_abs, 'release-evidence.txt'), _showcase_release_evidence());
+    _write_text_file(File::Spec->catfile($out_abs, 'roots.json'), encode_json_doc(%$doc));
+
+    return $doc;
+}
+
+sub _showcase_case {
+    my ($id, $fixture_id) = @_;
+
+    my $fixture = File::Spec->catdir(
+        _repo_root(),
+        qw(t fixtures v1 cross-substrate),
+        $fixture_id,
+    );
+    die "storage: missing showcase fixture: $fixture" if !-d $fixture;
+
+    my $profile_id = 'local-goftp1';
+    my $game = _read_single_nonblank(File::Spec->catfile($fixture, 'game.name'));
+    my @raw_names = _read_nonblank_lines(File::Spec->catfile($fixture, $profile_id, 'listing.names'));
+    my $witness = witness_for_listing(
+        profile_id              => $profile_id,
+        game_descriptor         => $game,
+        raw_names               => \@raw_names,
+        include_projection_text => 1,
+    );
+
+    return {
+        id      => $id,
+        witness => $witness,
+        summary => {
+            id               => $id,
+            fixture_id       => $fixture_id,
+            profile_id       => $profile_id,
+            game_descriptor  => $game,
+            replay_status    => $witness->{replay_status},
+            event_set_root   => $witness->{event_set_root},
+            accepted_count   => 0 + ($witness->{accepted_count} // 0),
+            rejected_count   => 0 + ($witness->{rejected_count} // 0),
+            diagnostic_count => 0 + ($witness->{diagnostic_count} // 0),
+            signature_status => _signature_status($witness),
+        },
+    };
+}
+
+sub _showcase_index_html {
+    my ($doc) = @_;
+
+    my @case_items = map {
+        my $href = $_->{id} eq 'clean' ? 'witness-clean.html'
+            : $_->{id} eq 'fork' ? 'witness-fork.html'
+            : undef;
+        my $label = defined($href)
+            ? '<a href="' . _html_escape($href) . '"><code>' . _html_escape($_->{id}) . '</code></a>'
+            : '<code>' . _html_escape($_->{id}) . '</code>';
+        $label . ': '
+            . _html_escape($_->{replay_status})
+            . ' root <code>' . _html_escape($_->{event_set_root} // '') . '</code></li>'
+    } @{ $doc->{cases} // [] };
+    my @artifact_items = (
+        ['witness-clean.html',   'Clean witness'],
+        ['witness-fork.html',    'Fork witness'],
+        ['demo-transcript.txt',  'Demo transcript'],
+        ['release-evidence.txt', 'Release evidence'],
+        ['roots.json',           'Roots JSON'],
+    );
+
+    return '<!doctype html>' . "\n"
+        . '<html lang="en" data-boundary="static-fixture-only">' . "\n"
+        . '<head><meta charset="utf-8"><title>GobanFTP v1.1 Static Showcase</title></head>' . "\n"
+        . '<body>' . "\n"
+        . '<h1>GobanFTP v1.1 Static Showcase</h1>' . "\n"
+        . '<p>Boundary: static fixture output only. These files are display artifacts, not replay input.</p>' . "\n"
+        . '<nav aria-label="Static showcase files"><a href="#cases">Cases</a> '
+        . '<a href="#artifacts">Artifacts</a> '
+        . '<a href="witness-clean.html">Clean witness</a> '
+        . '<a href="witness-fork.html">Fork witness</a> '
+        . '<a href="roots.json">Roots JSON</a></nav>' . "\n"
+        . '<h2 id="cases">Cases</h2>' . "\n"
+        . '<ul>' . join('', @case_items) . '</ul>' . "\n"
+        . '<h2 id="artifacts">Artifacts</h2>' . "\n"
+        . '<ul>' . join('', map {
+            '<li><a href="' . _html_escape($_->[0]) . '">' . _html_escape($_->[1]) . '</a></li>'
+        } @artifact_items) . '</ul>' . "\n"
+        . '</body></html>' . "\n";
+}
+
+sub _showcase_transcript {
+    my ($doc) = @_;
+
+    my @lines = (
+        'GOFTP-SHOWCASE/1',
+        'boundary=static-fixture-only',
+        'output=display-artifact-not-replay-input',
+        'auth.scope=' . publish_preflight_scope()->{scope},
+        'auth.production_authorization=0',
+    );
+    for my $case (@{ $doc->{cases} // [] }) {
+        push @lines,
+            "case.$case->{id}.fixture=$case->{fixture_id}",
+            "case.$case->{id}.profile=$case->{profile_id}",
+            "case.$case->{id}.replay_status=$case->{replay_status}",
+            "case.$case->{id}.event_set_root=" . ($case->{event_set_root} // '');
+    }
+    return join("\n", @lines, '');
+}
+
+sub _showcase_release_evidence {
+    return join "\n",
+        'GOFTP-SHOWCASE-EVIDENCE/1',
+        'scope=local-fixture-source-candidate',
+        'no_tag_push_upload_deploy=1',
+        'no_make_dist_family=1',
+        'recommended_checks=prove -l t/showcase-v1_1.t t/static-witness-specimen.t t/v1-cli-compare.t',
+        '';
+}
+
+sub _print_showcase_summary {
+    my ($showcase) = @_;
+
+    print STDOUT 'gobanftp.showcase=' . _stdout_value($showcase->{status} // 'ok') . "\n";
+    print STDOUT 'schema=' . _stdout_value($showcase->{schema}) . "\n";
+    print STDOUT 'version=' . _stdout_value($showcase->{version}) . "\n";
+    print STDOUT 'boundary=' . _stdout_value($showcase->{boundary}) . "\n";
+    print STDOUT 'out=' . _stdout_value($showcase->{out}) . "\n";
+    print STDOUT 'files=' . _stdout_value($showcase->{files} // []) . "\n";
+    for my $case (@{ $showcase->{cases} // [] }) {
+        print STDOUT "case.$case->{id}.replay_status=" . _stdout_value($case->{replay_status}) . "\n";
+        print STDOUT "case.$case->{id}.event_set_root=" . _stdout_value($case->{event_set_root}) . "\n"
+            if defined $case->{event_set_root};
+    }
+}
+
+sub _print_showcase_failure {
+    my ($showcase) = @_;
+
+    my $diagnostics = $showcase->{diagnostics} // [];
+    _print_showcase_summary($showcase);
+    print STDOUT 'diagnostic_codes=' . _stdout_value([diagnostic_codes($diagnostics)]) . "\n";
+    print STDOUT 'diagnostic_count=' . _stdout_value(scalar(@$diagnostics)) . "\n";
+    for my $diagnostic (@$diagnostics) {
+        next if ref($diagnostic) ne 'HASH';
+        my $code = $diagnostic->{code} // '';
+        next if $code !~ /\A[A-Za-z0-9_.-]+\z/;
+        print STDOUT "diagnostic.$code=failed\n";
+        print STDOUT "diagnostic.$code.detail=" . _stdout_value($diagnostic->{message}) . "\n"
+            if defined($diagnostic->{message}) && $diagnostic->{message} ne '';
+    }
+}
+
+sub _write_text_file {
+    my ($path, $text) = @_;
+
+    if (lstat($path)) {
+        die "storage: open $path: non-regular output file" if -l _ || !-f _;
+    }
+    my $flags = O_WRONLY | O_CREAT | O_TRUNC | _o_nofollow();
+    sysopen my $fh, $path, $flags, 0644 or die "storage: open $path: $!";
+    binmode $fh, ':encoding(UTF-8)' or die "storage: binmode $path: $!";
+    print {$fh} $text;
+    close $fh or die "storage: close $path: $!";
+    return 1;
+}
+
+sub _o_nofollow {
+    state $flag = eval { Fcntl::O_NOFOLLOW() } // 0;
+    return $flag;
+}
+
+sub _html_escape {
+    my ($text) = @_;
+
+    $text = '' if !defined $text;
+    $text =~ s/&/&amp;/g;
+    $text =~ s/</&lt;/g;
+    $text =~ s/>/&gt;/g;
+    $text =~ s/"/&quot;/g;
+    $text =~ s/'/&#39;/g;
+    return $text;
+}
+
+sub _repo_root {
+    return File::Spec->rel2abs(File::Spec->catdir(dirname(__FILE__), '..', '..'));
+}
+
 sub _descriptor_from_create_args {
     my (@argv) = @_;
 
@@ -2493,7 +3439,8 @@ sub _print_event_set_summary {
     return if ref($event_set) ne 'HASH';
 
     print STDOUT "event_set_count=$event_set->{event_count}\n";
-    print STDOUT "event_set_root=$event_set->{event_set_root}\n";
+    print STDOUT "event_set_root=$event_set->{event_set_root}\n"
+        if exists $event_set->{event_set_root};
 }
 
 sub _print_v1_witness {
@@ -2622,17 +3569,23 @@ sub _print_v1_trust_report {
 sub _print_v1_publish_auth_fields {
     my (%args) = @_;
 
-    print STDOUT "profile_id=$args{profile_id}\n";
-    print STDOUT "game=$args{game}\n";
-    print STDOUT "event=$args{event}\n";
-    print STDOUT "event_id=$args{event_id}\n" if defined $args{event_id};
-    print STDOUT "key_id=$args{key_id}\n" if defined $args{key_id};
-    print STDOUT "publish_auth.status=$args{status}\n";
+    my $scope = publish_preflight_scope();
+    print STDOUT 'profile_id=' . _stdout_value($args{profile_id}) . "\n";
+    print STDOUT 'game=' . _stdout_value($args{game}) . "\n";
+    print STDOUT 'event=' . _stdout_value($args{event}) . "\n";
+    print STDOUT 'event_id=' . _stdout_value($args{event_id}) . "\n"
+        if defined $args{event_id};
+    print STDOUT 'key_id=' . _stdout_value($args{key_id}) . "\n"
+        if defined $args{key_id};
+    print STDOUT 'publish_auth.scope=' . _stdout_value($scope->{scope}) . "\n";
+    print STDOUT 'publish_auth.production_authorization='
+        . _stdout_value($scope->{production_authorization}) . "\n";
+    print STDOUT 'publish_auth.status=' . _stdout_value($args{status}) . "\n";
     print STDOUT 'diagnostic_codes='
         . _stdout_value([diagnostic_codes($args{diagnostics} // [])]) . "\n";
     print STDOUT 'diagnostic_classes='
         . _stdout_value([diagnostic_classes($args{diagnostics} // [])]) . "\n";
-    print STDOUT 'diagnostic_count=' . scalar(@{ $args{diagnostics} // [] }) . "\n";
+    print STDOUT 'diagnostic_count=' . _stdout_value(scalar(@{ $args{diagnostics} // [] })) . "\n";
 }
 
 sub _print_publish_auth_diagnostics {
@@ -2649,9 +3602,10 @@ sub _print_publish_auth_diagnostics {
 
 sub _stdout_value {
     my ($value) = @_;
-    return join(',', @$value) if ref($value) eq 'ARRAY';
+    return _escape_control_chars(join(',', map { !defined($_) || ref($_) ? '' : $_ } @$value))
+        if ref($value) eq 'ARRAY';
     return '' if !defined $value || ref($value);
-    return $value;
+    return _escape_control_chars($value);
 }
 
 sub _signature_status {
@@ -2706,6 +3660,8 @@ sub _print_v1_compare {
     print STDOUT 'mismatch_count=' . scalar(@{ $comparison->{mismatch_fields} }) . "\n";
     print STDOUT 'mismatch_fields=' . join(',', @{ $comparison->{mismatch_fields} }) . "\n";
     print STDOUT 'mismatch_profiles=' . join(',', @{ $comparison->{mismatch_profiles} }) . "\n";
+    print STDOUT 'invalid_profile_count=' . scalar(@{ $comparison->{invalid_profiles} }) . "\n";
+    print STDOUT 'invalid_profiles=' . join(',', @{ $comparison->{invalid_profiles} }) . "\n";
     print STDOUT 'profile_roots=' . _profile_field_pairs($witnesses, \@profiles, 'event_set_root') . "\n";
     print STDOUT 'profile_replay_statuses='
         . _profile_field_pairs($witnesses, \@profiles, 'replay_status') . "\n";
@@ -2775,8 +3731,16 @@ sub _print_terminal_snapshot {
     _print_summary($command, $status, $context, event_set => 1);
     print STDOUT "snapshot=$opts{snapshot}\n" if defined $opts{snapshot};
     print STDOUT "live=1\n" if $opts{live};
+    if ($opts{compact}) {
+        print STDOUT "compact=1\n";
+        print STDOUT "observer.delta_events=$opts{observer_delta_events}\n"
+            if defined $opts{observer_delta_events};
+        print STDOUT "observer.event_set_root_changed=$opts{observer_delta_root_changed}\n"
+            if defined $opts{observer_delta_root_changed};
+    }
     _print_turn($result);
     _print_worldline($result);
+    return $exit if $opts{compact};
 
     my $rendered = render_projection(
         game_descriptor => $context->{game_descriptor},
@@ -2865,8 +3829,8 @@ sub _v1_usage {
         'usage: v1 publish-auth --profile signed-hmac-goftp1 --token publish-token.jsonl [--trusted-hmac-key id=key] [--trusted-hmac-key-file hmac-key-file] [--trusted-hmac-status id=status] <game-root|game-descriptor> <event-basename>',
         'usage: v1 trust-report --fixture fixture-dir',
         _v1_witness_usage_line(),
-        'usage: v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]',
-        'usage: v1 compare-replay --fixture fixture-dir [--profiles profile-id,...]';
+        'usage: v1 compare-roots --fixture fixture-dir [--profiles profile-id,...] [--json]',
+        'usage: v1 compare-replay --fixture fixture-dir [--profiles profile-id,...] [--json]';
 }
 
 sub _v1_witness_usage_line {
@@ -2954,6 +3918,10 @@ sub _usage {
 usage: gobanftp <command> <game-root>
 
 commands:
+  --version
+  config show [--json]
+  doctor [--json] [--connect]
+  showcase --out dir [--json]
   create-game <game-descriptor>
   create-game --id id --black player --white player [--size n] [--rules id] [--komi milli]
   verify <game-root|game-descriptor>
@@ -2961,10 +3929,10 @@ commands:
   sgf [--write] <game-root|game-descriptor>
   sgf --variations <game-root|game-descriptor>
   project <game-root|game-descriptor>
-  publish-move [--nonce n] [--publish-auth-token publish-token.jsonl] [--publish-auth-trusted-hmac-key-file hmac-key-file] <game-root|game-descriptor> <aa|play-aa|pass|resign>
-  publish-ack [--nonce n] [--publish-auth-token publish-token.jsonl] [--publish-auth-trusted-hmac-key-file hmac-key-file] <game-root|game-descriptor> <event-id>
+  publish-move [--json] [--nonce n] [--publish-auth-token publish-token.jsonl] [--publish-auth-trusted-hmac-key-file hmac-key-file] <game-root|game-descriptor> <aa|play-aa|pass|resign>
+  publish-ack [--json] [--nonce n] [--publish-auth-token publish-token.jsonl] [--publish-auth-trusted-hmac-key-file hmac-key-file] <game-root|game-descriptor> <event-id>
   play [--once|--live|--tui] [--count n|--max-polls n] [--interval seconds] [--move move|--ack event-id] [--nonce n] [--publish-auth-token publish-token.jsonl] [--publish-auth-trusted-hmac-key-file hmac-key-file] <game-root|game-descriptor>
-  watch [--live] [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>
+  watch [--live] [--compact] [--once] [--count n|--max-polls n] [--interval seconds] <game-root|game-descriptor>
   v1 keygen --profile signed-hmac-goftp1 --out hmac-key-file
   v1 keyid --fixture public-key-file
   v1 attest --profile signed-hmac-goftp1 --key hmac-key-file --out attestations.jsonl <game-root|game-descriptor>
@@ -2972,8 +3940,8 @@ commands:
   v1 publish-auth --profile signed-hmac-goftp1 --token publish-token.jsonl [--trusted-hmac-key id=key] [--trusted-hmac-key-file hmac-key-file] [--trusted-hmac-status id=status] <game-root|game-descriptor> <event-basename>
   v1 trust-report --fixture fixture-dir
   v1 witness --profile profile-id [--substrate-profile profile-id] --fixture fixture-dir [--attestations jsonl] [--trusted-hmac-key id=key] [--trusted-hmac-key-file hmac-key-file] [--trusted-hmac-status id=status] [--surface text|html|terminal]
-  v1 compare-roots --fixture fixture-dir [--profiles profile-id,...]
-  v1 compare-replay --fixture fixture-dir [--profiles profile-id,...]
+  v1 compare-roots --fixture fixture-dir [--profiles profile-id,...] [--json]
+  v1 compare-replay --fixture fixture-dir [--profiles profile-id,...] [--json]
 USAGE
 
     return $status;
@@ -2983,8 +3951,19 @@ sub _clean_error {
     my ($error) = @_;
 
     chomp $error;
-    $error =~ s/\s+at \S+ line [0-9]+\.?\z//;
-    return $error;
+    $error =~ s/\s+at \S+ line [0-9]+(?:,\s+.*)?\.?\z//;
+    return _escape_control_chars($error);
+}
+
+sub _escape_control_chars {
+    my ($text) = @_;
+
+    $text = '' if !defined $text;
+    $text =~ s/\n/\\n/g;
+    $text =~ s/\r/\\r/g;
+    $text =~ s/\t/\\t/g;
+    $text =~ s/([\x00-\x08\x0b\x0c\x0e-\x1f\x7f])/sprintf('\\x%02X', ord($1))/eg;
+    return $text;
 }
 
 1;

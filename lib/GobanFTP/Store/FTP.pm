@@ -10,6 +10,11 @@ use Carp qw(croak);
 use File::Temp qw(tempfile);
 use Net::FTP ();
 
+use constant {
+    DEFAULT_MAX_LISTING_ENTRIES    => 10_000,
+    DEFAULT_MAX_LISTING_LINE_BYTES => 4_096,
+};
+
 sub new {
     my ($class, %args) = @_;
 
@@ -19,12 +24,16 @@ sub new {
     my $publish_confirm_attempts = delete($args{publish_confirm_attempts}) // 3;
     my $publish_rename_attempts  = delete($args{publish_rename_attempts})  // 2;
     my $publish_confirm_delay    = delete($args{publish_confirm_delay})    // 0;
+    my $max_listing_entries      = delete($args{max_listing_entries})      // DEFAULT_MAX_LISTING_ENTRIES;
+    my $max_listing_line_bytes   = delete($args{max_listing_line_bytes})   // DEFAULT_MAX_LISTING_LINE_BYTES;
 
     croak 'publish_mode must be rename or mkdir'
         if $publish_mode ne 'rename' && $publish_mode ne 'mkdir';
     $publish_confirm_attempts = _positive_int_option('publish_confirm_attempts', $publish_confirm_attempts);
     $publish_rename_attempts  = _positive_int_option('publish_rename_attempts',  $publish_rename_attempts);
     $publish_confirm_delay    = _nonnegative_number_option('publish_confirm_delay', $publish_confirm_delay);
+    $max_listing_entries      = _positive_int_option('max_listing_entries', $max_listing_entries);
+    $max_listing_line_bytes   = _positive_int_option('max_listing_line_bytes', $max_listing_line_bytes);
 
     my ($root_absolute, @root_components) = _root_components($root);
 
@@ -80,6 +89,8 @@ sub new {
         publish_confirm_attempts => $publish_confirm_attempts,
         publish_rename_attempts  => $publish_rename_attempts,
         publish_confirm_delay    => $publish_confirm_delay,
+        max_listing_entries      => $max_listing_entries,
+        max_listing_line_bytes   => $max_listing_line_bytes,
     }, $class;
 }
 
@@ -175,7 +186,15 @@ sub exists_name {
     croak 'name is required' if !defined($name) || $name eq '';
 
     my $component = _name_component($name);
-    return (grep { $_ eq $component } $self->list_names($path)) ? 1 : 0;
+    my $remote = $self->_remote_path($path);
+    my @raw = $self->_listing($remote);
+
+    for my $entry (@raw) {
+        my $listed = _direct_exact_listing_name($entry, $remote);
+        return 1 if defined($listed) && $listed eq $component;
+    }
+
+    return 0;
 }
 
 sub quit {
@@ -221,7 +240,16 @@ sub _raw_listing {
     croak "list $remote failed: $@" if !$ok;
 
     @raw = @{ $raw[0] } if @raw == 1 && ref($raw[0]) eq 'ARRAY';
-    return grep { defined } @raw;
+    @raw = grep { defined } @raw;
+
+    croak "list $remote failed: listing entry limit exceeded"
+        if @raw > $self->{max_listing_entries};
+    for my $entry (@raw) {
+        croak "list $remote failed: listing line too long"
+            if length("$entry") > $self->{max_listing_line_bytes};
+    }
+
+    return @raw;
 }
 
 sub _remote_entry_listed_by_parent {
@@ -243,7 +271,7 @@ sub _remote_entry_listed_by_parent {
     return 0 if _message_looks_like_error($message);
 
     for my $entry (@parent_raw) {
-        my $name = _direct_listing_name($entry, $parent);
+        my $name = _direct_exact_listing_name($entry, $parent);
         return 1 if defined($name) && $name eq $child;
     }
 
@@ -318,6 +346,39 @@ sub _direct_listing_name {
     return undef if $name =~ /\Atotal\s+\d+\z/i;
 
     $name = _name_from_long_listing($name);
+    $name =~ s{\A\./+}{};
+    $name =~ s{/+\z}{};
+    $name =~ s{\A/+}{} if defined($remote) && $remote eq '/';
+
+    my @prefixes = _listing_prefixes($remote);
+    for my $prefix (@prefixes) {
+        next if $prefix eq '';
+        return undef if $name eq $prefix;
+        if ($name =~ s{\A\Q$prefix\E/+}{}) {
+            last;
+        }
+    }
+
+    $name =~ s{/+\z}{};
+    return undef if $name eq '' || $name eq '.' || $name eq '..';
+    return undef if $name =~ m{/};
+
+    return $name;
+}
+
+sub _direct_exact_listing_name {
+    my ($entry, $remote) = @_;
+
+    return undef if !defined $entry;
+
+    my $name = "$entry";
+    $name =~ s/\r?\n\z//;
+    $name =~ s/\A\s+//;
+    $name =~ s/\s+\z//;
+    return undef if $name eq '';
+    return undef if $name =~ /\Atotal\s+\d+\z/i;
+    return undef if $name =~ /\s/;
+
     $name =~ s{\A\./+}{};
     $name =~ s{/+\z}{};
     $name =~ s{\A/+}{} if defined($remote) && $remote eq '/';
@@ -423,8 +484,8 @@ sub _name_component {
 sub _tmp_component_for_event {
     my ($event_name) = @_;
 
-    return "$1-$2.part"
-        if $event_name =~ /(?:\A|\.)by-([a-z0-9_-]+)\.n-([a-z0-9_-]+)(?:\.|\z)/;
+    return "$1-$2-$3.part"
+        if $event_name =~ /(?:\A|\.)by-([a-z0-9_-]+)\.n-([a-z0-9_-]+)\.h-([0-9a-v]{16})(?:\z|[.])/;
 
     my $tmp = $event_name;
     $tmp =~ s/[^a-z0-9._-]+/-/g;

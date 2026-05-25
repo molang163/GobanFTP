@@ -107,8 +107,13 @@ sub render_witness_html {
         (map { _html_field_row($_->[0], $_->[1]) } _witness_pairs($witness)),
         _html_field_row('signature.status', _signature_status($witness)),
     );
+    my @projection_pairs = _projection_pairs($projections);
     my @projection_blocks = map { _html_projection_section($_->[0], $_->[1]) }
-        _projection_pairs($projections);
+        @projection_pairs;
+    my @nav_links = (
+        ['witness', 'Witness'],
+        map { [_html_projection_id($_->[0]), "projection.$_->[0]"] } @projection_pairs,
+    );
 
     return join("\n",
         '<!doctype html>',
@@ -127,8 +132,9 @@ sub render_witness_html {
         '<p class="eyebrow">GOFTP-WITNESS-SURFACE/1</p>',
         '<h1>Witness Surface</h1>',
         '<p class="subtitle">Rendered from witness fields and projection text only.</p>',
+        _html_nav(@nav_links),
         '</header>',
-        '<section class="witness">',
+        '<section id="witness" class="witness">',
         '<h2>Witness</h2>',
         '<dl>',
         @witness_rows,
@@ -237,11 +243,12 @@ sub _html_field_row {
 
 sub _html_projection_section {
     my ($name, $text) = @_;
+    my $section_id = _html_projection_id($name);
 
     if ($name eq 'board') {
         my $board = _parse_board_projection($text);
         if ($board) {
-            return '<section class="projection projection-board">'
+            return '<section id="' . _html($section_id) . '" class="projection projection-board">'
                 . '<h2>' . _html('projection.board') . '</h2>'
                 . '<div class="board-layout">'
                 . _html_goban($board)
@@ -270,10 +277,31 @@ sub _html_projection_section {
         }
     }
 
-    return '<section class="projection">'
+    return '<section id="' . _html($section_id) . '" class="projection">'
         . '<h2>' . _html("projection.$name") . '</h2>'
         . '<pre>' . _html($text) . '</pre>'
         . '</section>';
+}
+
+sub _html_nav {
+    my (@links) = @_;
+
+    return '<nav class="surface-nav" aria-label="Showcase sections">'
+        . join('', map {
+            my ($id, $label) = @$_;
+            '<a href="#' . _html($id) . '">' . _html($label) . '</a>'
+        } @links)
+        . '</nav>';
+}
+
+sub _html_projection_id {
+    my ($name) = @_;
+
+    my $id = "projection-$name";
+    $id =~ tr/A-Z/a-z/;
+    $id =~ s/[^a-z0-9_-]+/-/g;
+    $id =~ s/\A-+|-+\z//g;
+    return $id || 'projection';
 }
 
 sub _parse_board_projection {
@@ -448,6 +476,23 @@ h3 {
 .subtitle {
   color: #c7bea9;
   margin: 0;
+}
+.surface-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 0;
+}
+.surface-nav a {
+  border: 1px solid #3b3d34;
+  color: #f4f0e6;
+  padding: 7px 10px;
+  text-decoration: none;
+}
+.surface-nav a:focus,
+.surface-nav a:hover {
+  border-color: #9fbf8f;
+  color: #ffffff;
 }
 dl {
   display: grid;

@@ -10,6 +10,11 @@ use Carp qw(croak);
 use HTTP::Tiny ();
 use MIME::Base64 qw(encode_base64);
 
+use constant {
+    DEFAULT_MAX_RESPONSE_BYTES => 1_048_576,
+    DEFAULT_MAX_HREF_COUNT     => 10_000,
+};
+
 sub new {
     my ($class, %args) = @_;
 
@@ -21,12 +26,16 @@ sub new {
     my $publish_confirm_attempts = delete($args{publish_confirm_attempts}) // 3;
     my $publish_move_attempts    = delete($args{publish_move_attempts})    // 2;
     my $publish_confirm_delay    = delete($args{publish_confirm_delay})    // 0;
+    my $max_response_bytes       = delete($args{max_response_bytes})       // DEFAULT_MAX_RESPONSE_BYTES;
+    my $max_href_count           = delete($args{max_href_count})           // DEFAULT_MAX_HREF_COUNT;
 
     croak 'publish_mode must be move or mkcol'
         if $publish_mode ne 'move' && $publish_mode ne 'mkcol';
     $publish_confirm_attempts = _positive_int_option('publish_confirm_attempts', $publish_confirm_attempts);
     $publish_move_attempts    = _positive_int_option('publish_move_attempts',    $publish_move_attempts);
     $publish_confirm_delay    = _nonnegative_number_option('publish_confirm_delay', $publish_confirm_delay);
+    $max_response_bytes       = _positive_int_option('max_response_bytes', $max_response_bytes);
+    $max_href_count           = _positive_int_option('max_href_count', $max_href_count);
 
     my ($root_url, @root_segments) = _root_url($url);
 
@@ -46,6 +55,8 @@ sub new {
         $password //= '';
         $auth_headers{Authorization} = 'Basic ' . encode_base64("$user:$password", '');
     }
+    croak 'webdav credentials require https url'
+        if %auth_headers && $root_url =~ m{\Ahttp://}i;
 
     if (!defined $client) {
         my $client_class = delete($args{client_class}) // 'HTTP::Tiny';
@@ -75,6 +86,8 @@ sub new {
         publish_confirm_attempts => $publish_confirm_attempts,
         publish_move_attempts    => $publish_move_attempts,
         publish_confirm_delay    => $publish_confirm_delay,
+        max_response_bytes       => $max_response_bytes,
+        max_href_count           => $max_href_count,
     }, $class;
 }
 
@@ -95,11 +108,16 @@ sub list_names {
     $self->_croak_response("propfind $path_label", $response)
         if !$self->_response_success($response) || ($response->{status} // 0) != 207;
 
+    my $content = $response->{content} // '';
+    croak "propfind $path_label failed: response too large"
+        if length($content) > $self->{max_response_bytes};
+
     my @collection = (@{ $self->{root_segments} }, @path);
     my %seen;
     my @names = grep { !$seen{$_}++ }
         grep { defined && $_ ne '' }
-        map { _direct_href_child($_, \@collection) } _hrefs_from_multistatus($response->{content} // '');
+        map { _direct_href_child($_, \@collection) }
+            _hrefs_from_multistatus($content, $self->{max_href_count});
 
     return sort @names;
 }
@@ -294,13 +312,51 @@ sub _resource_url {
 }
 
 sub _hrefs_from_multistatus {
-    my ($content) = @_;
+    my ($content, $max_href_count) = @_;
+    $max_href_count //= DEFAULT_MAX_HREF_COUNT;
 
     my @hrefs;
-    while ($content =~ m{<(?:(?:[A-Za-z_][\w.-]*):)?href\b[^>]*>(.*?)</(?:(?:[A-Za-z_][\w.-]*):)?href>}gis) {
-        push @hrefs, _xml_text_decode($1);
+    while ($content =~ m{<(?:(?:[A-Za-z_][\w.-]*):)?response\b[^>]*>(.*?)</(?:(?:[A-Za-z_][\w.-]*):)?response>}gis) {
+        my $response = $1;
+        next if !_response_has_success_status($response);
+
+        my $href = _direct_response_href($response);
+        if (defined $href) {
+            croak 'webdav href limit exceeded' if @hrefs >= $max_href_count;
+            push @hrefs, $href;
+        }
     }
     return @hrefs;
+}
+
+sub _response_has_success_status {
+    my ($response) = @_;
+
+    my @statuses;
+    while ($response =~ m{<(?:(?:[A-Za-z_][\w.-]*):)?status\b[^>]*>(.*?)</(?:(?:[A-Za-z_][\w.-]*):)?status>}gis) {
+        push @statuses, _xml_text_decode($1);
+    }
+
+    return 0 if !@statuses;
+    for my $status (@statuses) {
+        return 1 if $status =~ m{\bHTTP/\S+\s+2[0-9][0-9]\b}i
+            || $status =~ m{\A\s*2[0-9][0-9]\b};
+    }
+
+    return 0;
+}
+
+sub _direct_response_href {
+    my ($response) = @_;
+
+    while ($response =~ m{<(?:(?:[A-Za-z_][\w.-]*):)?href\b[^>]*>(.*?)</(?:(?:[A-Za-z_][\w.-]*):)?href>}gis) {
+        my $before = substr($response, 0, $-[0]);
+        $before =~ s{<!--.*?-->}{}gs;
+        next if $before =~ m{<(?!(?:/)?(?:(?:[A-Za-z_][\w.-]*):)?href\b)[^>]+>}s;
+        return _xml_text_decode($1);
+    }
+
+    return undef;
 }
 
 sub _direct_href_child {
@@ -399,8 +455,8 @@ sub _name_component {
 sub _tmp_component_for_event {
     my ($event_name) = @_;
 
-    return "$1-$2.part"
-        if $event_name =~ /(?:\A|\.)by-([a-z0-9_-]+)\.n-([a-z0-9_-]+)(?:\.|\z)/;
+    return "$1-$2-$3.part"
+        if $event_name =~ /(?:\A|\.)by-([a-z0-9_-]+)\.n-([a-z0-9_-]+)\.h-([0-9a-v]{16})(?:\z|[.])/;
 
     my $tmp = $event_name;
     $tmp =~ s/[^a-z0-9._-]+/-/g;

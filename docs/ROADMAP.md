@@ -557,3 +557,83 @@ Acceptance:
 - all release artifacts can be rebuilt or verified from the recorded commands
 - shipped fixtures demonstrate baseline FTP, the named v1.0 substrates, attacks,
   cross-system witness equality, and signed/auth behavior where enabled
+
+## P15: v1.1 Security Backlog
+
+Goal: harden the v1.1 implementation against newly confirmed trust-boundary,
+parser, local filesystem, and CLI-output issues found after the v1.0 freeze.
+
+Candidate status as of 2026-05-25: the v1.1 source-review candidate contains
+fixture-backed repairs for the P0 subset below. The public release claim remains
+candidate-only until the release gate is reviewed by a maintainer; no tag,
+upload, deploy, or distribution artifact is claimed by this roadmap entry.
+
+P0 candidate-fixed issues:
+
+- WebDAV PROPFIND href spoof. Found in the v1.0.1 line: hrefs inside property
+  values or unsuccessful per-resource responses could be confused with listing
+  entries. Candidate repair: response-aware parsing admits only successful
+  direct response hrefs, with targeted WebDAV mock coverage.
+- DNS record parser poisoning. Found in the v1.0.1 line: inline comments and
+  duplicate critical fields could confuse TXT-like fixture rows. Candidate
+  repair: comment-aware field parsing rejects duplicate `type`, `owner`, and
+  `event` fields, and the store/profile owner-suffix paths are aligned.
+- DNS owner-suffix parity gap. Found in the v1.0.1 line: scoped store admission
+  and profile adapter witness admission could disagree. Candidate repair:
+  profile listing normalization accepts the same owner suffix context as the
+  store path.
+- Local projection symlink escape. Found in the v1.0.1 line: projection writes
+  could follow a preexisting projection-path symlink. Candidate repair:
+  projection rebuild and SGF write paths reject symlinked projection
+  boundaries.
+- Local event publish symlink escape. Found in the v1.0.1 line: local event
+  publish could cross a preexisting event-directory symlink. Candidate repair:
+  local event publish rejects symlinked event boundaries before and after path
+  creation.
+- FTP listing spoof. Found in the v1.0.1 line: compatibility listing parsing
+  could be confused with exact publish confirmation. Candidate repair: publish
+  idempotency and confirmation use exact basename checks while compatibility
+  parsing remains for read listing normalization.
+- Malformed signed-HMAC attestations. Found in the v1.0.1 line: bad public
+  JSONL could surface as an internal error. Candidate repair: malformed
+  attestation and publish-token JSONL is reported as public validation input.
+- CLI single-line diagnostic safety. Found in the v1.0.1 line: path-like values
+  containing control characters could make machine-readable output ambiguous.
+  Candidate repair: path-like CLI values reject ASCII control characters and
+  storage errors are cleaned into single-line diagnostics.
+- FTP/WebDAV temporary publish name collision. Found in the v1.0.1 line:
+  different events sharing author and nonce could compete for the same
+  temporary publish name. Candidate repair: temporary names include
+  event-specific material.
+- Invalid game descriptor roots. Found in the v1.0.1 line: consumers could be
+  tempted to inspect root-like fields before validation. Candidate repair:
+  invalid descriptor witnesses do not expose usable roots, and `v1 compare-*`
+  treats no-root descriptor validation as failure.
+- Input scale and timeout boundaries. Found in the v1.0.1 line: large WebDAV
+  XML, DNS record files, FTP listings, or signed-HMAC JSONL could drive
+  unbounded parsing. Candidate repair: local fixture-tested body, href, line,
+  record, and listing caps produce stable validation or storage diagnostics.
+
+Deferred or contract-clarity issues:
+
+- `fork-with-ack` produces different canonical-line outcomes under conservative
+  witness replay and ack-assisted replay. This appears to be a policy contract
+  clarity issue; witnesses should make the replay policy explicit if
+  ack-assisted consumers are expected.
+- A missing-parent event enters `accepted_events` and `event_set_root`, but
+  replay diagnostics report `missing_parent`; this is not a silent bypass. The
+  remaining question is whether `illegal_by_id` should also expose DAG-invalid
+  event ids for consumers that inspect that structure directly.
+
+v1.1 candidate evidence direction:
+
+- keep WebDAV XML handling response-aware: only direct response hrefs with
+  successful per-response status may contribute names
+- keep DNS record parsing line-aware: strip comments, reject duplicate critical
+  fields, and align adapter/store owner scoping
+- reject or realpath-check symlinked local consensus/projection directories
+  before writing
+- keep exact FTP basename handling split from compatibility long-listing parsing,
+  especially for publish idempotency checks
+- keep malformed public auth inputs as validation diagnostics
+- keep path-like control characters out of CLI machine-readable output

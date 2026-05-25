@@ -388,6 +388,9 @@ local absolute paths
 Read algorithm:
 
 ```text
+for local path arguments, use only basename(path) as the game descriptor
+reject local path basenames that are not valid game descriptors
+parent paths and absolute paths are storage addressing only
 list events/ through the store abstraction
 normalize direct event-looking basenames
 parse and verify GOFTP/1 event ids
@@ -530,14 +533,16 @@ unsigned GOFTP/1 replay remains valid
 sidecar signatures advisory only
 ```
 
-Fixtures and smoke:
+P1 fixture checks:
 
 ```text
 t/store-ftp-mock.t
 t/ftp-cli-parity.t
-script/live-ftp-smoke
-GOBANFTP_FTP_TEST=1 prove -l t/store-ftp.t t/ftp-live-flow.t
 ```
+
+Optional maintainer-run live FTP provider smoke is outside P1
+source-candidate fixture evidence, is not a default P1 gate, and requires a
+later separate maintainer-run gate.
 
 ## Additional Profiles
 
@@ -807,18 +812,27 @@ Auth stance:
 
 ```text
 WebDAV credentials protect transport access only
+authenticated WebDAV URLs must use https
+Basic and Bearer credentials are rejected on cleartext HTTP
+unauthenticated HTTP is a mock/local fixture convenience, not a production transport guarantee
 locks are publish coordination hints, not replay consensus
 bearer tokens and passwords must never appear in filenames, projections,
 diagnostics, or public fixtures
 ```
 
-Fixtures and smoke:
+P1 fixture checks:
 
 ```text
 t/store-webdav-mock.t
 t/webdav-cli-parity.t
 t/fixtures/v1/cross-substrate/*/webdav-goftp1/listing.names
 t/fixtures/v1/publish-failures/webdav-publish-failure/
+```
+
+Optional maintainer-run live WebDAV smoke is outside P1 source-candidate
+fixture evidence and is not a default P1 gate:
+
+```text
 GOBANFTP_STORE=webdav GOBANFTP_WEBDAV_URL=<url> perl -Ilib script/gobanftp play --once <game>
 ```
 

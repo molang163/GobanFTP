@@ -3,6 +3,7 @@ use strict;
 use warnings;
 
 use FindBin;
+use File::Temp qw(tempfile);
 use Test::More;
 
 use lib "$FindBin::Bin/../lib";
@@ -99,6 +100,89 @@ subtest 'DNS record store is a read-only runtime source' => sub {
         'publish_event_name is explicitly read-only';
 
     _assert_runtime_admission($store, 'read-only checks leave admission unchanged');
+};
+
+subtest 'DNS record parser rejects inline comment and duplicate-field poisoning' => sub {
+    my @records = (
+        "ttl=60 type=TXT owner=01.events.$GAME.example. event=$MOVE_B # type=TXT owner=03.events.$GAME.example. event=$POISON_MOVE",
+        "ttl=61 type=TXT owner=02.events.$GAME.example. event=$MOVE_W",
+        "ttl=62 type=A # type=TXT owner=04.events.$GAME.example. event=$POISON_MOVE",
+        "ttl=63 type=A type=TXT owner=05.events.$GAME.example. event=$POISON_MOVE",
+        "ttl=64 type=TXT owner=06.events.$GAME.example. event=$MOVE_B event=$POISON_MOVE",
+        "ttl=65 type=TXT owner=07.events.$GAME.example. owner=08.events.$GAME.example. event=$POISON_MOVE",
+    );
+    my $store = _new_store(records => \@records);
+    return if !$store;
+
+    _assert_runtime_admission($store, 'comment and duplicate poison rows');
+};
+
+subtest 'DNS owner suffix scopes runtime admission' => sub {
+    my @records = (
+        "ttl=60 type=TXT owner=01.events.$GAME.example. event=$MOVE_B",
+        "ttl=61 type=TXT owner=02.events.$GAME.example. event=$MOVE_W",
+        "ttl=62 type=TXT owner=03.events.$GAME.example.evil. event=$POISON_MOVE",
+    );
+    my $store = _new_store(records => \@records, owner_suffix => 'example.');
+    return if !$store;
+
+    _assert_runtime_admission($store, 'owner_suffix scoped rows');
+};
+
+subtest 'DNS record input limits reject oversized inputs' => sub {
+    like _dies(sub {
+        my $store = _new_store(
+            records => ["ttl=60 type=TXT owner=01.events.$GAME.example. event=$MOVE_B"],
+            max_line_bytes => 24,
+        );
+        $store->list_names("$GAME/events");
+    }), qr/dns record line too long/,
+        'DNS record array rows have a line length limit';
+
+    like _dies(sub {
+        my $store = _new_store(
+            records => [
+                "ttl=60 type=TXT owner=01.events.$GAME.example. event=$MOVE_B",
+                "ttl=61 type=TXT owner=02.events.$GAME.example. event=$MOVE_W",
+            ],
+            max_records => 1,
+        );
+        $store->list_names("$GAME/events");
+    }), qr/dns record limit exceeded/,
+        'DNS record arrays have a record count limit';
+
+    like _dies(sub {
+        my $store = _new_store(
+            records => [
+                '# comment',
+                "ttl=60 type=TXT owner=01.events.$GAME.example. event=$MOVE_B",
+            ],
+            max_lines => 1,
+        );
+        $store->list_names("$GAME/events");
+    }), qr/dns record line count exceeded/,
+        'DNS record arrays have a physical line count limit';
+
+    my ($fh, $path) = tempfile();
+    print {$fh} 'x' x 32;
+    close $fh or die "close $path: $!";
+
+    like _dies(sub {
+        my $store = _new_store(record_file => $path, max_file_bytes => 8);
+        $store->list_names("$GAME/events");
+    }), qr/dns record file too large/,
+        'DNS record files have a byte-size limit before parsing';
+
+    my ($line_fh, $line_path) = tempfile();
+    print {$line_fh} "# comment\n";
+    print {$line_fh} "ttl=60 type=TXT owner=01.events.$GAME.example. event=$MOVE_B\n";
+    close $line_fh or die "close $line_path: $!";
+
+    like _dies(sub {
+        my $store = _new_store(record_file => $line_path, max_lines => 1);
+        $store->list_names("$GAME/events");
+    }), qr/dns record line count exceeded/,
+        'DNS record files have a physical line count limit';
 };
 
 done_testing;

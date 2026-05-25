@@ -9,6 +9,7 @@ use lib "$FindBin::Bin/../lib";
 use lib "$FindBin::Bin/lib";
 
 use GobanFTP::Store::WebDAV;
+use GobanFTP::MovePublisher qw(build_move_name);
 use GobanFTP::Test::StoreContract qw(run_store_contract);
 
 my $root_url = 'https://dav.example.test/goftp';
@@ -48,8 +49,8 @@ subtest 'move publish mode uses zero-byte temp PUT and MOVE target' => sub {
     my ($put_call) = grep { $_->[0] eq 'PUT' } @calls;
     my ($move_call) = grep { $_->[0] eq 'MOVE' } @calls;
 
-    is $put_call->[1], "$root_url/$game/tmp/alice-k31v.part", 'temp upload path uses player and nonce';
-    is $move_call->[1], "$root_url/$game/tmp/alice-k31v.part", 'MOVE source is the temp path';
+    is $put_call->[1], "$root_url/$game/tmp/alice-k31v-f98qai37nace5spg.part", 'temp upload path uses player, nonce, and event id';
+    is $move_call->[1], "$root_url/$game/tmp/alice-k31v-f98qai37nace5spg.part", 'MOVE source is the temp path';
     is $move_call->[2]{headers}{Destination}, "$root_url/$game/events/$move_b",
         'MOVE destination is events/event_name';
     is $move_call->[2]{headers}{Overwrite}, 'F', 'MOVE does not overwrite an existing event';
@@ -127,7 +128,7 @@ subtest 'MOVE failure is bounded and retries the same temp and target paths' => 
         publish_move_attempts    => 2,
     );
 
-    my $tmp_path = "$game/tmp/alice-k31v.part";
+    my $tmp_path = "$game/tmp/alice-k31v-f98qai37nace5spg.part";
     my $target_path = "$game/events/$move_b";
 
     like exception(sub { $store->publish_event_name($game, $move_b) }),
@@ -189,6 +190,25 @@ subtest 'PROPFIND href parsing ignores metadata, duplicates, and recursive desce
     no_forbidden_reads($http, 'href parsing uses PROPFIND only');
 };
 
+subtest 'PROPFIND admits only successful direct response hrefs' => sub {
+    my $http = MockWebDAV->new(root => 'goftp');
+    my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
+
+    $http->create_file("goftp/$game/events/$move_b");
+    $http->add_response("goftp/$game/events",
+        '<D:response><D:href>/goftp/' . $game . '/events/' . $move_w . '</D:href>'
+            . '<D:status>HTTP/1.1 404 Not Found</D:status></D:response>');
+    $http->add_response("goftp/$game/events",
+        '<D:response><D:href>/goftp/' . $game . '/events</D:href>'
+            . '<D:propstat><D:prop><D:href>/goftp/' . $game . '/events/' . $move_w . '</D:href></D:prop>'
+            . '<D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>');
+
+    is_deeply [ $store->list_names("$game/events") ], [$move_b],
+        'failed responses and property hrefs cannot inject phantom events';
+    ok !$store->exists_name("$game/events", $move_w),
+        'exists_name does not confirm a property or failed-response href';
+};
+
 subtest 'PROPFIND href order and duplicates do not affect returned names' => sub {
     my $http = MockWebDAV->new(root => 'goftp');
     my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
@@ -201,6 +221,97 @@ subtest 'PROPFIND href order and duplicates do not affect returned names' => sub
     is_deeply [ $store->list_names("$game/events") ], [ sort ($move_b, $move_w) ],
         'unordered duplicate hrefs are deduplicated and sorted';
     no_forbidden_reads($http, 'order test uses PROPFIND only');
+};
+
+subtest 'authenticated WebDAV refuses cleartext HTTP URLs' => sub {
+    my $http_url = 'http://dav.example.test/goftp';
+
+    ok(
+        GobanFTP::Store::WebDAV->new(url => $http_url, client => MockWebDAV->new(root => 'goftp')),
+        'unauthenticated HTTP URL remains available when no credentials are configured',
+    );
+
+    my $basic_http = MockWebDAV->new(root => 'goftp');
+    like exception(sub {
+        GobanFTP::Store::WebDAV->new(
+            url      => $http_url,
+            client   => $basic_http,
+            user     => 'alice',
+            password => 'secret',
+        );
+    }), qr/webdav credentials require https url/,
+        'Basic auth is not sent over cleartext HTTP';
+    is scalar($basic_http->calls), 0, 'Basic cleartext rejection happens before any HTTP request';
+
+    my $bearer_http = MockWebDAV->new(root => 'goftp');
+    like exception(sub {
+        GobanFTP::Store::WebDAV->new(
+            url          => $http_url,
+            client       => $bearer_http,
+            bearer_token => 'secret-token',
+        );
+    }), qr/webdav credentials require https url/,
+        'Bearer auth is not sent over cleartext HTTP';
+    is scalar($bearer_http->calls), 0, 'Bearer cleartext rejection happens before any HTTP request';
+};
+
+subtest 'temporary names include event id to avoid same player nonce collisions' => sub {
+    my $http = MockWebDAV->new(root => 'goftp');
+    my $store = GobanFTP::Store::WebDAV->new(url => $root_url, client => $http);
+    my $same_nonce_other_event = build_move_name(
+        game_descriptor => $game,
+        ply             => 1,
+        color           => 'b',
+        action          => 'play-ee',
+        parent_id       => 'genesis',
+        player          => 'alice',
+        nonce           => 'k31v',
+    );
+
+    ok $store->publish_event_name($game, $move_b), 'published first same nonce event';
+    ok $store->publish_event_name($game, $same_nonce_other_event), 'published second same nonce event';
+
+    my @tmp_paths = map { $_->[1] } grep { $_->[0] eq 'PUT' } $http->calls;
+    is scalar(@tmp_paths), 2, 'both publishes uploaded a temporary resource';
+    isnt $tmp_paths[0], $tmp_paths[1], 'temporary resources differ by event id';
+};
+
+subtest 'PROPFIND response size and href count limits fail closed' => sub {
+    my $large_http = MockWebDAV->new(root => 'goftp');
+    my $large_store = GobanFTP::Store::WebDAV->new(
+        url => $root_url,
+        client => $large_http,
+        max_response_bytes => 64,
+    );
+
+    like exception(sub { $large_store->list_names('') }),
+        qr/propfind  failed: response too large/,
+        'oversized WebDAV PROPFIND response is rejected';
+
+    my $href_http = MockWebDAV->new(root => 'goftp');
+    my $href_store = GobanFTP::Store::WebDAV->new(
+        url => $root_url,
+        client => $href_http,
+        max_href_count => 1,
+    );
+    $href_http->create_file("goftp/$game/events/$move_b");
+    $href_http->create_file("goftp/$game/events/$move_w");
+
+    like exception(sub { $href_store->list_names("$game/events") }),
+        qr/webdav href limit exceeded/,
+        'excessive PROPFIND href count is rejected';
+};
+
+subtest 'mock timeout surfaces as stable storage failure' => sub {
+    my $store = GobanFTP::Store::WebDAV->new(
+        url => $root_url,
+        client_class => 'MockWebDAVTimeoutClient',
+        timeout => 7,
+    );
+
+    like exception(sub { $store->list_names('') }),
+        qr/PROPFIND request failed: simulated timeout 7/,
+        'client timeout failure is surfaced without a real network call';
 };
 
 done_testing;
@@ -262,6 +373,7 @@ sub new {
         move_hook => $args{move_hook},
         scheduled_creates => [],
         extra_hrefs => {},
+        extra_responses => {},
     }, $class;
 }
 
@@ -304,6 +416,12 @@ sub schedule_create_file {
 sub add_href {
     my ($self, $parent, $href) = @_;
     push @{ $self->{extra_hrefs}{ _canon($parent) } }, $href;
+    return 1;
+}
+
+sub add_response {
+    my ($self, $parent, $xml) = @_;
+    push @{ $self->{extra_responses}{ _canon($parent) } }, $xml;
     return 1;
 }
 
@@ -350,8 +468,9 @@ sub _propfind {
                 . '<D:propstat><D:prop><D:getetag>"ignored"</D:getetag>'
                 . '<D:getlastmodified>Mon, 18 May 2026 00:00:00 GMT</D:getlastmodified>'
                 . '<D:getcontentlength>999</D:getcontentlength>'
-                . '</D:prop></D:propstat></D:response>'
+                . '</D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>'
         } @hrefs)
+        . join('', @{ $self->{extra_responses}{$path} // [] })
         . '</D:multistatus>';
 
     return main::response(207, 'Multi-Status', content => $xml);
@@ -478,4 +597,20 @@ sub _xml_escape {
     $value =~ s/</&lt;/g;
     $value =~ s/>/&gt;/g;
     return $value;
+}
+
+package MockWebDAVTimeoutClient;
+
+use v5.34;
+use strict;
+use warnings;
+
+sub new {
+    my ($class, %args) = @_;
+    return bless { timeout => $args{timeout} }, $class;
+}
+
+sub request {
+    my ($self) = @_;
+    die 'simulated timeout ' . ($self->{timeout} // '');
 }

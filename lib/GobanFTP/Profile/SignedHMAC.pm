@@ -56,6 +56,18 @@ sub signed_hmac_event_set_result {
         push @signature_diagnostics, $diagnostic;
     }
 
+    if (!exists $unsigned_result->{event_set_root}) {
+        return {
+            version         => $unsigned_result->{version} // 'GOFTP-EVENT-SET/1',
+            event_count     => scalar(@signed_events),
+            accepted_events => [@signed_events],
+            diagnostics     => [
+                @{ $unsigned_result->{diagnostics} // [] },
+                @signature_diagnostics,
+            ],
+        };
+    }
+
     my $signed_result = event_set_root_result(
         game_descriptor => $game_descriptor,
         names           => \@signed_events,

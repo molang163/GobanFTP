@@ -126,12 +126,17 @@ check; it uses fixtures in the repository.
 perl Makefile.PL
 make
 make test
-prove -lr t/showcase-demo.t
+prove -lr t/showcase-demo.t t/showcase-v1_1.t
+perl -Ilib script/gobanftp showcase --out showcase-v1.1
 ```
 
 The showcase test checks this boundary: a clean game replays, a race becomes a
 visible fork, and display surfaces, file bodies, and metadata do not silently
 decide the game.
+
+`gobanftp showcase --out showcase-v1.1` writes a local direct-open static bundle
+from checked-in fixtures. It is display output for local inspection, not a
+hosted Web UI and not replay input.
 
 Those views are inspection output: static HTML is not hosted Web UI, and
 `--surface terminal` is not the local `play --tui` input surface.
@@ -252,11 +257,13 @@ For read-only live-over-listing observation, use bounded `watch --live` or
 
 ```sh
 perl -Ilib script/gobanftp watch --live --max-polls 3 --interval 1 "$game"
+perl -Ilib script/gobanftp watch --live --compact --max-polls 3 --interval 1 "$game"
 ```
 
 Live mode keeps polling after visible forks or validation diagnostics. It does
 not choose a winner, and it does not publish moves. It only keeps re-listing
 `events/`, replaying the names, and showing the current witness surface.
+`--compact` keeps the event-set and worldline fields while omitting the board.
 
 <a id="static-witness-specimen"></a>
 
@@ -389,8 +396,8 @@ Deliberately out of scope in v1.0.1/package 1.001:
 FTP listing-shadow public poison-vector coverage is fixture/listing evidence
 only. It does not claim `RETR`, `SIZE`, `MDTM`, live FTP auth, live FTP
 integrity, or production FTP deployment safety. The `ftp-goftp1` tmp+rename
-publish path is declared separately and covered by mock FTP tests plus optional
-`script/live-ftp-smoke`.
+publish path is declared separately and covered by mock FTP tests. Live
+provider smoke remains outside the P1 fixture-local review scope.
 
 Signed/auth material in this release is verifier-local fixture/preflight
 coverage. It is not production writer authorization or production key lifecycle.
@@ -485,6 +492,9 @@ Those names are the game input. File contents are not.
 Local is the default store. FTP, read-only Git tree, read-only DNS record-file
 admission, and WebDAV use the same listing-first boundary without reading event
 file contents, blob bytes, resource bodies, or DNS transport metadata.
+When a local argument is a path, only the final path component is used as the
+game descriptor basename, and that basename must be a valid GOFTP game
+descriptor.
 
 FTP mode:
 
@@ -512,6 +522,10 @@ GOBANFTP_WEBDAV_TIMEOUT
 GOBANFTP_WEBDAV_CLASS
 GOBANFTP_WEBDAV_PUBLISH_MODE
 ```
+
+Authenticated WebDAV URLs must use `https://`; Basic and Bearer credentials are
+rejected on `http://`. Unauthenticated `http://` remains available for
+mock/local cleartext fixtures and is not a production transport-safety mode.
 
 Git tree mode:
 
@@ -566,17 +580,15 @@ prove -lr t
 ```
 
 The current P14 release record is in `docs/P14_RELEASE_GATE.md`. It records the
-final release-source checks and points to the external artifact/tag record plan;
+final release-source checks and points to the external release/tag record plan;
 the final tarball hash belongs outside the source tree.
 
-The final artifact identity, version decision, and tag preconditions are tracked
+The final distribution identity, version decision, and tag preconditions are tracked
 in `docs/P14_RELEASE_MANIFEST_AND_TAG_PLAN.md`.
 
-Optional disposable live FTP smoke:
-
-```sh
-script/live-ftp-smoke
-```
+For the P1 fixture-local review scope, live provider smoke, distribution
+packaging, tag, upload, and deploy are outside P1 and require a later separate
+maintainer-run gate.
 
 ## License
 

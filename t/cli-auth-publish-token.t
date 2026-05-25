@@ -177,6 +177,79 @@ subtest 'v1 publish-auth rejects replayed or malformed publish tokens' => sub {
     like $stderr, qr/^diagnostic code=parse_publish_token /m,
         'malformed token emits parser diagnostic';
     unlike $stdout . $stderr, qr/\Q$key->{secret_hex}\E/, 'malformed token does not leak secret';
+
+    my $long_token = File::Spec->catfile($dir, 'long-token.jsonl');
+    _write_text($long_token, '{"x":"' . ('a' x 8_200) . "\"}\n");
+    ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'publish-auth',
+        '--profile', 'signed-hmac-goftp1',
+        '--token', $long_token,
+        '--trusted-hmac-key-file', $key_path,
+        $game,
+        $event,
+    );
+    is $exit, 2, 'oversized publish token JSONL line exits validation';
+    is $stdout, "gobanftp.v1.publish-auth=failed\n", 'oversized token line prints failed only';
+    like $stderr, qr/^diagnostic code=parse_publish_token error=line[.]too_long$/m,
+        'oversized token line emits stable validation diagnostic';
+
+    my $large_token = File::Spec->catfile($dir, 'large-token.jsonl');
+    _write_text($large_token, 'x' x (1_048_576 + 1));
+    ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'publish-auth',
+        '--profile', 'signed-hmac-goftp1',
+        '--token', $large_token,
+        '--trusted-hmac-key-file', $key_path,
+        $game,
+        $event,
+    );
+    is $exit, 2, 'oversized publish token JSONL file exits validation';
+    is $stdout, "gobanftp.v1.publish-auth=failed\n", 'oversized token file prints failed only';
+    like $stderr, qr/^diagnostic code=parse_publish_token error=file[.]too_large$/m,
+        'oversized token file emits stable validation diagnostic';
+
+    my $two_rows = File::Spec->catfile($dir, 'two-token-rows.jsonl');
+    _write_text($two_rows, "{}\n{}\n");
+    ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'publish-auth',
+        '--profile', 'signed-hmac-goftp1',
+        '--token', $two_rows,
+        '--trusted-hmac-key-file', $key_path,
+        $game,
+        $event,
+    );
+    is $exit, 2, 'multi-row publish token exits validation';
+    is $stdout, "gobanftp.v1.publish-auth=failed\n", 'multi-row token prints failed only';
+    like $stderr, qr/^diagnostic code=parse_publish_token error=record_count$/m,
+        'multi-row token emits stable validation diagnostic';
+};
+
+subtest 'v1 publish-auth path options reject control characters' => sub {
+    my $dir = tempdir(CLEANUP => 1);
+    my ($key_path) = _keygen($dir);
+
+    my ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'publish-auth',
+        '--profile', 'signed-hmac-goftp1',
+        '--token', File::Spec->catfile($dir, "token\ninjected=1.jsonl"),
+        '--trusted-hmac-key-file', $key_path,
+        $game,
+        $event,
+    );
+    is $exit, 1, 'publish-auth newline token path exits usage';
+    is $stdout, '', 'publish-auth newline token path has no stdout';
+    unlike $stderr, qr/^injected=1/m, 'publish-auth token path cannot split stderr';
+
+    ($exit, $stdout, $stderr) = _run_cli(
+        'v1', 'publish-auth',
+        '--profile', 'signed-hmac-goftp1',
+        '--token', File::Spec->catfile($dir, 'publish-token.jsonl'),
+        '--trusted-hmac-key-file', File::Spec->catfile($dir, "key\177injected=1"),
+        $game,
+        $event,
+    );
+    is $exit, 1, 'publish-auth DEL key path exits usage';
+    is $stdout, '', 'publish-auth DEL key path has no stdout';
 };
 
 done_testing;

@@ -3,6 +3,8 @@ use strict;
 use warnings;
 
 use FindBin;
+use File::Path qw(make_path);
+use File::Spec;
 use File::Temp qw(tempdir);
 use Test::More;
 
@@ -73,6 +75,137 @@ like dies(sub { $store->list_names('../outside') }), qr/path must be relative|do
 like dies(sub { $store->exists_name($game, '../outside') }), qr/basename|dot/,
     'child name traversal is rejected';
 
+subtest 'mkdir rejects symlinked game root' => sub {
+    my $root = tempdir(CLEANUP => 1);
+    my $outside = tempdir(CLEANUP => 1);
+    my $game_root = File::Spec->catdir($root, $game);
+    make_symlink_or_skip($outside, $game_root);
+
+    my $store = GobanFTP::Store::Local->new(root => $root);
+    like dies(sub { $store->mkdir("$game/events") }), qr/symlink/,
+        'symlinked game root is rejected during mkdir';
+    ok !-e File::Spec->catdir($outside, 'events'), 'outside events directory was not created';
+};
+
+subtest 'mkdir rejects symlinked child directories' => sub {
+    my $root = tempdir(CLEANUP => 1);
+    my $outside = tempdir(CLEANUP => 1);
+    my $game_root = File::Spec->catdir($root, $game);
+    make_path($game_root);
+
+    my $events = File::Spec->catdir($game_root, 'events');
+    make_symlink_or_skip($outside, $events);
+
+    my $store = GobanFTP::Store::Local->new(root => $root);
+    like dies(sub { $store->mkdir("$game/events/tmp") }), qr/symlink/,
+        'symlinked intermediate directory is rejected during mkdir';
+    ok !-e File::Spec->catdir($outside, 'tmp'), 'outside tmp directory was not created';
+
+    my $root2 = tempdir(CLEANUP => 1);
+    my $outside2 = tempdir(CLEANUP => 1);
+    my $events2 = File::Spec->catdir($root2, $game, 'events');
+    make_path($events2);
+    my $tmp = File::Spec->catdir($events2, 'tmp');
+    make_symlink_or_skip($outside2, $tmp);
+
+    my $store2 = GobanFTP::Store::Local->new(root => $root2);
+    like dies(sub { $store2->mkdir("$game/events/tmp/nested") }), qr/symlink/,
+        'symlinked leaf directory is rejected during mkdir';
+    ok !-e File::Spec->catdir($outside2, 'nested'), 'outside nested directory was not created';
+};
+
+subtest 'list_names rejects symlinked local paths' => sub {
+    my $root = tempdir(CLEANUP => 1);
+    my $outside = tempdir(CLEANUP => 1);
+    open my $fh, '>', File::Spec->catfile($outside, 'leaked') or die "create leaked file: $!";
+    close $fh or die "close leaked file: $!";
+
+    make_symlink_or_skip($outside, File::Spec->catdir($root, $game));
+
+    my $store = GobanFTP::Store::Local->new(root => $root);
+    like dies(sub { $store->list_names($game) }), qr/symlink/,
+        'symlinked game root is rejected during listing';
+
+    my $root2 = tempdir(CLEANUP => 1);
+    my $outside2 = tempdir(CLEANUP => 1);
+    my $game_root2 = File::Spec->catdir($root2, $game);
+    make_path($game_root2);
+    make_symlink_or_skip($outside2, File::Spec->catdir($game_root2, 'events'));
+
+    my $store2 = GobanFTP::Store::Local->new(root => $root2);
+    like dies(sub { $store2->list_names("$game/events") }), qr/symlink/,
+        'symlinked events directory is rejected during listing';
+};
+
+subtest 'exists_name rejects symlinked local paths' => sub {
+    my $root = tempdir(CLEANUP => 1);
+    my $outside = tempdir(CLEANUP => 1);
+    make_symlink_or_skip($outside, File::Spec->catdir($root, $game));
+
+    my $store = GobanFTP::Store::Local->new(root => $root);
+    like dies(sub { $store->exists_name($game, 'events') }), qr/symlink/,
+        'symlinked parent is rejected during exists_name';
+
+    my $root2 = tempdir(CLEANUP => 1);
+    my $outside_file = File::Spec->catfile(tempdir(CLEANUP => 1), 'outside-event');
+    open my $fh, '>', $outside_file or die "create outside event: $!";
+    close $fh or die "close outside event: $!";
+
+    my $events = File::Spec->catdir($root2, $game, 'events');
+    make_path($events);
+    make_symlink_or_skip($outside_file, File::Spec->catfile($events, $move_b));
+
+    my $store2 = GobanFTP::Store::Local->new(root => $root2);
+    like dies(sub { $store2->exists_name("$game/events", $move_b) }), qr/symlink/,
+        'symlinked child is rejected during exists_name';
+};
+
+subtest 'publish_event_name rejects symlinked game root' => sub {
+    my $root = tempdir(CLEANUP => 1);
+    my $outside = tempdir(CLEANUP => 1);
+    make_symlink_or_skip($outside, File::Spec->catdir($root, $game));
+
+    my $store = GobanFTP::Store::Local->new(root => $root);
+    like dies(sub { $store->publish_event_name($game, $move_b) }), qr/symlink/,
+        'symlinked game root is rejected during publish';
+    ok !-e File::Spec->catdir($outside, 'events'), 'outside events directory was not created';
+};
+
+subtest 'publish_event_name rejects symlinked events directory' => sub {
+    my $root = tempdir(CLEANUP => 1);
+    my $outside = tempdir(CLEANUP => 1);
+    my $game_root = File::Spec->catdir($root, $game);
+    make_path($game_root);
+
+    my $events = File::Spec->catdir($game_root, 'events');
+    make_symlink_or_skip($outside, $events);
+
+    my $store = GobanFTP::Store::Local->new(root => $root);
+    like dies(sub { $store->publish_event_name($game, $move_b) }), qr/symlink/,
+        'symlinked events directory is rejected';
+    ok !-e File::Spec->catfile($outside, $move_b), 'outside target was not written';
+};
+
+subtest 'publish_event_name rejects symlinked event leaf' => sub {
+    my $root = tempdir(CLEANUP => 1);
+    my $outside = tempdir(CLEANUP => 1);
+    my $game_root = File::Spec->catdir($root, $game);
+    my $events = File::Spec->catdir($game_root, 'events');
+    make_path($events);
+
+    my $outside_event = File::Spec->catfile($outside, 'outside-event');
+    open my $fh, '>', $outside_event or die "create outside event: $!";
+    print {$fh} "sentinel\n";
+    close $fh or die "close outside event: $!";
+
+    make_symlink_or_skip($outside_event, File::Spec->catfile($events, $move_b));
+
+    my $store = GobanFTP::Store::Local->new(root => $root);
+    like dies(sub { $store->publish_event_name($game, $move_b) }), qr/symlink/,
+        'symlinked event leaf is rejected';
+    is -s $outside_event, length("sentinel\n"), 'outside event was not truncated';
+};
+
 done_testing;
 
 sub dies {
@@ -83,4 +216,22 @@ sub dies {
     eval { $code->(); 1 } or $error = $@;
 
     return $error;
+}
+
+sub make_symlink_or_skip {
+    my ($target, $link) = @_;
+
+    if (!eval { symlink $target, $link }) {
+        my $message = "symlink unavailable on this platform: $!";
+        BAIL_OUT($message) if $ENV{GOBANFTP_REQUIRE_SYMLINK_TESTS};
+        plan skip_all => $message;
+    }
+
+    if (!-l $link) {
+        my $message = "symlink did not create an lstat-visible link: $link";
+        BAIL_OUT($message) if $ENV{GOBANFTP_REQUIRE_SYMLINK_TESTS};
+        plan skip_all => $message;
+    }
+
+    return 1;
 }
