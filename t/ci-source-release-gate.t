@@ -26,6 +26,17 @@ subtest 'forbidden command scanner catches executable release operations only' =
         ["bash -lc 'git push'", 'git push'],
         ["bash -lc 'set -e; git push'", 'git push'],
         ["bash -lc 'git push && true'", 'git push'],
+        ['true & git push', 'git push'],
+        ["bash -lc 'true & git push'", 'git push'],
+        ['( git push )', 'git push'],
+        ["bash -lc '( git push )'", 'git push'],
+        ['{ git push; }', 'git push'],
+        ["bash -lc '{ git push; }'", 'git push'],
+        [q{case "$target" in prod) git push ;; esac}, 'git push'],
+        [q{case "$target" in prod|staging) git push ;; esac}, 'git push'],
+        [q{case "$target" in dev) true ;; prod) git push ;; esac}, 'git push'],
+        [q{bash -lc 'case "$target" in prod) git push ;; esac'}, 'git push'],
+        ['prod) git push ;;', 'git push'],
         ['printf ok | git push', 'git push'],
         ["bash -lc 'printf ok | git push'", 'git push'],
         ['if true; then git push; fi', 'git push'],
@@ -36,7 +47,11 @@ subtest 'forbidden command scanner catches executable release operations only' =
         [q{run: 'git push'}, 'git push'],
         [qq{run: "git push"}, 'git push'],
         ["run: >-\n  git\n  push", 'git push'],
+        ["run: >+\n  git\n  push", 'git push'],
+        ["run: >2\n    git\n    push", 'git push'],
         ["run: |\n  git \\\n    push", 'git push'],
+        ["run: |+\n  git push", 'git push'],
+        ["run: |2\n    git push", 'git push'],
         ['gh release create v1.1.0-beta.1 artifact.tar.gz', 'gh release create'],
         ['gh release upload artifact.tar.gz', 'gh release upload'],
         ['cpan-upload GobanFTP-1.000.tar.gz', 'cpan-upload'],
@@ -46,6 +61,9 @@ subtest 'forbidden command scanner catches executable release operations only' =
         ['python3.11 -m twine upload dist/*', 'python -m twine upload'],
         ['npm publish', 'npm publish'],
         ['npm --registry https://registry.example.invalid publish', 'npm publish'],
+        ['npm --workspace pkg publish', 'npm publish'],
+        ['npm --workspace=pkg publish', 'npm publish'],
+        ['npm -w pkg publish', 'npm publish'],
         ['pnpm publish', 'pnpm publish'],
         ['yarn publish', 'yarn publish'],
         ['docker push ghcr.io/example/gobanftp:latest', 'docker push'],
@@ -53,13 +71,19 @@ subtest 'forbidden command scanner catches executable release operations only' =
         ['firebase deploy --only hosting', 'firebase deploy'],
         ['wrangler pages deploy public', 'wrangler pages deploy'],
         ['npx wrangler pages deploy public', 'wrangler pages deploy'],
+        ['npx --yes -- wrangler pages deploy public', 'wrangler pages deploy'],
+        ['wrangler --config wrangler.toml pages deploy public', 'wrangler pages deploy'],
+        ['wrangler --config=wrangler.toml pages deploy public', 'wrangler pages deploy'],
         ['curl -T artifact.tar.gz ftp://example.invalid/artifact.tar.gz', 'curl upload'],
         ['curl --upload-file artifact.tar.gz https://example.invalid/artifact.tar.gz', 'curl upload'],
         ['scp artifact.tar.gz example.invalid:/tmp/', 'scp'],
         ['rsync -a dist/ example.invalid:/srv/dist/', 'rsync'],
         ['rclone copy dist remote:bucket', 'rclone'],
         ['aws s3 cp artifact.tar.gz s3://example-bucket/artifact.tar.gz', 'aws s3'],
+        ['aws --profile prod s3 cp artifact.tar.gz s3://example-bucket/artifact.tar.gz', 'aws s3'],
+        ['aws --profile=prod s3 sync dist/ s3://example-bucket/dist/', 'aws s3'],
         ['gsutil cp artifact.tar.gz gs://example-bucket/artifact.tar.gz', 'gsutil'],
+        ['gsutil -m cp artifact.tar.gz gs://example-bucket/artifact.tar.gz', 'gsutil'],
         ['upload artifact.tar.gz', 'upload'],
         ['deploy production', 'deploy'],
         ["bash -lc 'upload artifact.tar.gz'", 'upload'],
@@ -84,7 +108,15 @@ subtest 'forbidden command scanner catches executable release operations only' =
         'publish-move and publish-auth are GobanFTP protocol terms, not package publish commands',
         'The phrase curl -T/--upload-file is documentation prose.',
         'npm --script-shell publish test',
+        'npx --yes echo wrangler pages deploy',
+        'aws --profile prod configure list',
+        'gsutil -m ls',
         'printf ok | cat',
+        q{echo "true & git push"},
+        q{echo "( git push )"},
+        q{echo "{ git push; }"},
+        'array=(git push)',
+        'This prose mentions git push but is not a command.',
     ) {
         is_deeply [_forbidden_command_hits($line)], [], "$line is not treated as a command";
     }
@@ -145,6 +177,8 @@ subtest 'documentation guard scans current README/docs with historical block exe
             "$rel $heading exemption covers an executable historical release command block";
         is_deeply [_unexpected_historical_release_command_hits($spec, @hits)], [],
             "$rel $heading exemption contains only expected historical release command kinds";
+        is_deeply [_missing_historical_release_command_kinds($spec, @hits)], [],
+            "$rel $heading exemption contains every expected historical release command kind";
     }
 
     for my $rel (@docs) {
@@ -182,7 +216,7 @@ sub _logical_command_entries {
     for (my $i = 0; $i < @raw_lines; $i++) {
         my $raw = $raw_lines[$i];
 
-        if ($raw =~ /\A(\s*)(?:-\s*)?(?:run|command|script):\s*([>|])-?\s*(?:#.*)?\z/) {
+        if ($raw =~ /\A(\s*)(?:-\s*)?(?:run|command|script):\s*([>|])(?:[+-][1-9]?|[1-9][+-]?|[+-]|[1-9])?\s*(?:#.*)?\z/) {
             my $base_indent = length($1);
             my $style = $2;
             my @block;
@@ -277,6 +311,9 @@ sub _command_segments {
     $line =~ s/\A\$\s+//;
     $line = _unwrap_quoted_scalar($line);
 
+    my @case_commands = _case_branch_commands($line);
+    return map { _shell_segments($_) } @case_commands if @case_commands;
+
     return _shell_segments($line);
 }
 
@@ -325,10 +362,25 @@ sub _shell_segments {
             $buffer = '';
             next;
         }
+        if ($char eq '|' && _inside_case_pattern($buffer)) {
+            $buffer .= $char;
+            next;
+        }
         if (($char eq '&' || $char eq '|') && (($chars[$i + 1] // '') eq $char)) {
             _push_shell_segment(\@segments, $buffer);
             $buffer = '';
             $i++;
+            next;
+        }
+        if ($char eq '&') {
+            my $previous = $chars[$i - 1] // '';
+            my $next = $chars[$i + 1] // '';
+            if ($previous eq '>' || $previous eq '<' || $next eq '>') {
+                $buffer .= $char;
+                next;
+            }
+            _push_shell_segment(\@segments, $buffer);
+            $buffer = '';
             next;
         }
         if ($char eq '|') {
@@ -350,6 +402,87 @@ sub _push_shell_segment {
     $segment //= '';
     $segment =~ s/\A\s+|\s+\z//g;
     push @$segments, $segment if $segment ne '';
+}
+
+sub _inside_case_pattern {
+    my ($buffer) = @_;
+
+    $buffer //= '';
+    return $buffer =~ /\A\s*case\b.*?\bin\b\s+[^)]*\z/s ? 1 : 0;
+}
+
+sub _case_branch_commands {
+    my ($line) = @_;
+
+    return if ($line // '') !~ /\A\s*case\b/s;
+    return if $line !~ /\A\s*case\b.*?\bin\b\s*(.*?)\s*\z/s;
+
+    my $body = $1;
+    $body =~ s/\s*\besac\s*\z//;
+
+    my @commands;
+    for my $arm (_split_case_arms($body)) {
+        my $command = _case_arm_pattern_command($arm);
+        push @commands, $command if defined($command) && $command ne '';
+    }
+
+    return @commands;
+}
+
+sub _split_case_arms {
+    my ($body) = @_;
+
+    my @arms;
+    my $buffer = '';
+    my $quote = '';
+    my $escape = 0;
+    my @chars = split //, $body // '';
+
+    for (my $i = 0; $i < @chars; $i++) {
+        my $char = $chars[$i];
+
+        if ($escape) {
+            $buffer .= $char;
+            $escape = 0;
+            next;
+        }
+        if ($char eq '\\' && $quote ne q{'}) {
+            $buffer .= $char;
+            $escape = 1;
+            next;
+        }
+        if ($quote ne '') {
+            $quote = '' if $char eq $quote;
+            $buffer .= $char;
+            next;
+        }
+        if ($char eq q{'} || $char eq q{"}) {
+            $quote = $char;
+            $buffer .= $char;
+            next;
+        }
+        if ($char eq ';') {
+            my $next = $chars[$i + 1] // '';
+            my $after_next = $chars[$i + 2] // '';
+            if ($next eq ';' && $after_next eq '&') {
+                _push_shell_segment(\@arms, $buffer);
+                $buffer = '';
+                $i += 2;
+                next;
+            }
+            if ($next eq ';' || $next eq '&') {
+                _push_shell_segment(\@arms, $buffer);
+                $buffer = '';
+                $i++;
+                next;
+            }
+        }
+
+        $buffer .= $char;
+    }
+
+    _push_shell_segment(\@arms, $buffer);
+    return @arms;
 }
 
 sub _forbidden_command_kind {
@@ -498,7 +631,7 @@ sub _publish_upload_deploy_kind {
         my @rest = @tokens[1 .. $#tokens];
         _drop_leading_cli_options(
             \@rest,
-            qr/\A(?:--registry|--tag|--otp|--scope|--cwd|--script-shell|-C)\z/,
+            qr/\A(?:--registry|--tag|--otp|--scope|--cwd|--script-shell|--workspace|-C|-w)\z/,
             qr/\A(?:--dry-run|--force|--ignore-scripts|--no-git-checks)\z/,
         );
         return "$tokens[0] publish" if @rest && $rest[0] eq 'publish';
@@ -519,13 +652,18 @@ sub _publish_upload_deploy_kind {
         if _subcommand_after_options(\@runner_tokens, 'vercel') eq 'deploy';
     return 'netlify deploy'
         if _subcommand_after_options(\@runner_tokens, 'netlify') eq 'deploy';
+    my @wrangler_tokens = _tokens_after_command_options(
+        \@runner_tokens,
+        'wrangler',
+        qr/\A(?:--config|--cwd|-c|-C)\z/,
+        qr/\A(?:--debug|--verbose|--quiet|-v|-q)\z/,
+    );
     return 'wrangler pages deploy'
-        if @runner_tokens >= 3
-            && $runner_tokens[0] eq 'wrangler'
-            && $runner_tokens[1] eq 'pages'
-            && $runner_tokens[2] eq 'deploy';
+        if @wrangler_tokens >= 2
+            && $wrangler_tokens[0] eq 'pages'
+            && $wrangler_tokens[1] eq 'deploy';
     return 'wrangler deploy'
-        if _subcommand_after_options(\@runner_tokens, 'wrangler') eq 'deploy';
+        if @wrangler_tokens && $wrangler_tokens[0] eq 'deploy';
 
     return 'curl upload' if _curl_upload(@tokens);
 
@@ -535,15 +673,25 @@ sub _publish_upload_deploy_kind {
         if @tokens >= 2
             && $tokens[0] eq 'rclone'
             && $tokens[1] =~ /\A(?:copy|copyto|sync|move|moveto)\z/;
+    my @aws_tokens = _tokens_after_command_options(
+        \@tokens,
+        'aws',
+        qr/\A(?:--profile|--region|--endpoint-url|--ca-bundle)\z/,
+        qr/\A(?:--debug|--no-paginate|--no-verify-ssl)\z/,
+    );
     return 'aws s3'
-        if @tokens >= 3
-            && $tokens[0] eq 'aws'
-            && $tokens[1] eq 's3'
-            && $tokens[2] =~ /\A(?:cp|sync|mv|rm)\z/;
+        if @aws_tokens >= 2
+            && $aws_tokens[0] eq 's3'
+            && $aws_tokens[1] =~ /\A(?:cp|sync|mv|rm)\z/;
+    my @gsutil_tokens = _tokens_after_command_options(
+        \@tokens,
+        'gsutil',
+        qr/\A(?:-h|-o)\z/,
+        qr/\A(?:-m|-q|-D)\z/,
+    );
     return 'gsutil'
-        if @tokens >= 2
-            && $tokens[0] eq 'gsutil'
-            && $tokens[1] =~ /\A(?:cp|rsync|mv|rm)\z/;
+        if @gsutil_tokens
+            && $gsutil_tokens[0] =~ /\A(?:cp|rsync|mv|rm)\z/;
 
     return;
 }
@@ -570,21 +718,30 @@ sub _npx_unwrapped_tokens {
         qr/\A(?:--package|-p)\z/,
         qr/\A(?:--yes|-y|--no-install)\z/,
     );
+    shift @tokens if @tokens && $tokens[0] eq '--';
     return @tokens;
 }
 
 sub _subcommand_after_options {
     my ($tokens, $command_name, $takes_value, $value_less) = @_;
 
+    my @tokens = _tokens_after_command_options($tokens, $command_name, $takes_value, $value_less);
+    return $tokens[0] // '';
+}
+
+sub _tokens_after_command_options {
+    my ($tokens, $command_name, $takes_value, $value_less) = @_;
+
     my @tokens = @$tokens;
-    return '' if !@tokens || $tokens[0] ne $command_name;
+    return if !@tokens || $tokens[0] ne $command_name;
     shift @tokens;
     _drop_leading_cli_options(
         \@tokens,
         $takes_value // qr/\A(?:--context|--config|--project|--cwd|-c|-C)\z/,
         $value_less // qr/\A(?:--debug|--verbose|--quiet|-v|-q)\z/,
     );
-    return $tokens[0] // '';
+    shift @tokens if @tokens && $tokens[0] eq '--';
+    return @tokens;
 }
 
 sub _drop_leading_cli_options {
@@ -636,6 +793,9 @@ sub _strip_command_prefixes {
 
     my $command = $segment // '';
     $command =~ s/\A\s+|\s+\z//g;
+    $command = _strip_leading_compound_shell($command);
+    $command = _case_pattern_command($command);
+    $command = _case_arm_pattern_command($command) // $command;
 
     if ($command =~ s/\Aenv\s+//) {
         while (1) {
@@ -667,9 +827,64 @@ sub _strip_command_prefixes {
             next;
         }
     }
+    $command = _strip_leading_compound_shell($command);
+    $command = _case_pattern_command($command);
+    $command = _case_arm_pattern_command($command) // $command;
     $command =~ s/\A\s+|\s+\z//g;
 
     return $command;
+}
+
+sub _strip_leading_compound_shell {
+    my ($command) = @_;
+
+    $command //= '';
+    $command =~ s/\A\s+|\s+\z//g;
+
+    while (1) {
+        my $before = $command;
+        if ($command =~ s/\A\(\s*//) {
+            $command =~ s/\s*\)\z//;
+        }
+        if ($command =~ s/\A\{\s*//) {
+            $command =~ s/\s*\}\z//;
+        }
+        $command =~ s/\A\s+|\s+\z//g;
+        last if $command eq $before;
+    }
+
+    return $command;
+}
+
+sub _case_pattern_command {
+    my ($command) = @_;
+
+    return $command if ($command // '') !~ /\Acase\b/;
+    if ($command =~ /\Acase\b.*?\bin\b\s+[^)]*\)\s*(.*?)\s*\z/s) {
+        my $after = $1;
+        $after =~ s/\s*(?:;;&|;&|;;)\s*esac\s*\z//;
+        $after =~ s/\s*\besac\s*\z//;
+        $after =~ s/\s*(?:;;&|;&|;;)\s*\z//;
+        $after =~ s/\A\s+|\s+\z//g;
+        return $after if $after ne '';
+    }
+
+    return $command;
+}
+
+sub _case_arm_pattern_command {
+    my ($command) = @_;
+
+    return if !defined $command;
+    $command =~ s/\A\s+|\s+\z//g;
+    if ($command =~ /\A[^()\s;]+(?:\|[^()\s;]+)*\)\s*(.*?)\s*\z/s) {
+        my $after = $1;
+        $after =~ s/\s*(?:;;&|;&|;;)\s*\z//;
+        $after =~ s/\A\s+|\s+\z//g;
+        return $after if $after ne '';
+    }
+
+    return;
 }
 
 sub _make_dist_kind {
@@ -783,6 +998,18 @@ sub _unexpected_historical_release_command_hits {
         push @unexpected, $hit if !defined($kind) || !$allowed{$kind};
     }
     return @unexpected;
+}
+
+sub _missing_historical_release_command_kinds {
+    my ($spec, @hits) = @_;
+
+    my %seen;
+    for my $hit (@hits) {
+        my ($kind) = $hit =~ /\A[0-9]+:([^:]+):/;
+        $seen{$kind} = 1 if defined $kind;
+    }
+
+    return grep { !$seen{$_} } @{ $spec->[2] // [] };
 }
 
 sub _without_historical_release_command_blocks {
